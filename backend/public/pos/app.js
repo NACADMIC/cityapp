@@ -98,6 +98,10 @@ function testOrder() {
   playNotification(testOrder);
 }
 
+// 주문 큐 시스템
+let orderQueue = [];
+let isProcessingOrder = false;
+
 // Listen for new orders
 socket.on('new-order', (orderData) => {
   console.log('🎉 New order received:', orderData);
@@ -109,14 +113,36 @@ socket.on('new-order', (orderData) => {
   }
   
   processedOrders.add(orderData.orderId);
-  currentPendingOrder = orderData;
+  
+  // 큐에 추가
+  orderQueue.push(orderData);
+  console.log(`📥 주문 큐에 추가됨. 대기 중: ${orderQueue.length}개`);
+  
+  // 현재 처리 중이 아니면 처리 시작
+  if (!isProcessingOrder) {
+    processNextOrder();
+  }
+});
+
+// 다음 주문 처리
+function processNextOrder() {
+  if (orderQueue.length === 0) {
+    isProcessingOrder = false;
+    console.log('✅ 모든 주문 처리 완료');
+    return;
+  }
+  
+  isProcessingOrder = true;
+  currentPendingOrder = orderQueue[0]; // 큐에서 제거하지 않음 (수락/거절 시 제거)
+  
+  console.log(`🔄 주문 처리 중... (남은 대기: ${orderQueue.length - 1}개)`);
   
   // 팝업 표시
-  showOrderPopup(orderData);
+  showOrderPopup(currentPendingOrder);
   
   // 음성 알림
-  playNotification(orderData);
-});
+  playNotification(currentPendingOrder);
+}
 
 // Play notification
 function playNotification(orderData) {
@@ -361,9 +387,9 @@ function startNotificationLoop() {
   // 기존 반복 정지
   stopNotificationLoop();
   
-  console.log('🔁 알림 반복 시작 (20초 간격)');
+  console.log('🔁 알림 반복 시작 (15초 간격)');
   
-  // 20초마다 반복
+  // 15초마다 반복 (더 자주)
   notificationInterval = setInterval(() => {
     if (currentPendingOrder && voiceEnabled) {
       // 음성이 재생 중이어도 강제로 정지하고 다시 재생
@@ -371,9 +397,10 @@ function startNotificationLoop() {
       isPlayingVoice = false;
       
       console.log('🔄 알림 반복... (' + new Date().toLocaleTimeString() + ')');
+      console.log('📢 대기 중인 주문:', orderQueue.length, '개');
       playVoiceFile(currentPendingOrder);
     }
-  }, 20000); // 20초
+  }, 15000); // 15초로 단축
 }
 
 // 알림 반복 정지
@@ -411,7 +438,13 @@ function acceptOrder() {
   // socket.emit('order-accepted', { orderId: currentPendingOrder.orderId, prepTime });
   
   hideOrderPopup();
+  
+  // 큐에서 제거
+  orderQueue.shift();
   currentPendingOrder = null;
+  
+  // 다음 주문 처리
+  processNextOrder();
 }
 
 // 주문 거절
@@ -425,7 +458,13 @@ function rejectOrder() {
     // socket.emit('order-rejected', { orderId: currentPendingOrder.orderId });
     
     hideOrderPopup();
+    
+    // 큐에서 제거
+    orderQueue.shift();
     currentPendingOrder = null;
+    
+    // 다음 주문 처리
+    processNextOrder();
   }
 }
 
