@@ -24,6 +24,37 @@ socket.on('disconnect', () => {
   console.log('❌ Disconnected from server');
 });
 
+// 주문 복원 (POS 재시작 시)
+socket.on('restore-orders', (restoredOrders) => {
+  console.log('📦 주문 복원:', restoredOrders.length, '개');
+  
+  restoredOrders.forEach(order => {
+    // 중복 체크
+    if (!processedOrders.has(order.orderid || order.orderId)) {
+      const orderId = order.orderid || order.orderId;
+      processedOrders.add(orderId);
+      
+      // 주문 목록에 추가 (팝업은 안 띄움)
+      const orderData = {
+        orderId: orderId,
+        customerName: order.customername || order.customerName,
+        phone: order.customerphone || order.phone,
+        address: order.address,
+        items: order.items,
+        totalAmount: order.totalprice || order.totalAmount,
+        paymentMethod: order.paymentmethod || order.paymentMethod || 'cash',
+        status: order.status,
+        prepTime: order.preptime || order.prepTime,
+        createdAt: order.createdat || order.createdAt
+      };
+      
+      addOrder(orderData);
+    }
+  });
+  
+  console.log('✅ 주문 복원 완료');
+});
+
 // Voice toggle
 document.getElementById('voice-toggle').addEventListener('change', (e) => {
   voiceEnabled = e.target.checked;
@@ -330,13 +361,19 @@ function startNotificationLoop() {
   // 기존 반복 정지
   stopNotificationLoop();
   
-  // 30초마다 반복
+  console.log('🔁 알림 반복 시작 (20초 간격)');
+  
+  // 20초마다 반복
   notificationInterval = setInterval(() => {
-    if (currentPendingOrder && voiceEnabled && !isPlayingVoice) {
-      console.log('🔄 알림 반복...');
+    if (currentPendingOrder && voiceEnabled) {
+      // 음성이 재생 중이어도 강제로 정지하고 다시 재생
+      window.speechSynthesis.cancel();
+      isPlayingVoice = false;
+      
+      console.log('🔄 알림 반복... (' + new Date().toLocaleTimeString() + ')');
       playVoiceFile(currentPendingOrder);
     }
-  }, 30000); // 30초
+  }, 20000); // 20초
 }
 
 // 알림 반복 정지

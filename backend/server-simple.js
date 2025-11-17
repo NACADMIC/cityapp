@@ -56,9 +56,24 @@ app.get('/api/business-hours', (req, res) => {
 // Socket.io
 io.on('connection', (socket) => {
   console.log('🔌 연결:', socket.id);
-  socket.on('register-pos', () => {
+  socket.on('register-pos', async () => {
     posClients.push(socket.id);
     console.log('💻 POS 등록:', socket.id);
+    
+    // POS 연결 시 최근 미처리 주문 전송 (최근 10개)
+    try {
+      const recentOrders = await db.getAllOrders();
+      const pendingOrders = recentOrders
+        .filter(o => o.status === 'pending' || o.status === 'accepted')
+        .slice(0, 10);
+      
+      if (pendingOrders.length > 0) {
+        console.log(`📦 미처리 주문 ${pendingOrders.length}개 전송`);
+        socket.emit('restore-orders', pendingOrders);
+      }
+    } catch (err) {
+      console.error('주문 복원 오류:', err);
+    }
   });
   socket.on('disconnect', () => {
     posClients = posClients.filter(id => id !== socket.id);
