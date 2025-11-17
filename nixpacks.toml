@@ -7,8 +7,8 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["echo 'PostgreSQL Build complete'"]
+cmds = ["echo 'Build complete'"]
 
 [start]
-cmd = "node backend/server-pg.js"
+cmd = "node backend/server-simple.js"
 
