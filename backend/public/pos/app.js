@@ -9,6 +9,10 @@ const socket = io();
 // Global variables
 let orders = [];
 let voiceEnabled = true;
+let isPlayingVoice = false;
+let processedOrders = new Set();
+let currentPendingOrder = null;
+let notificationInterval = null;
 
 // Register as POS client
 socket.on('connect', () => {
@@ -66,7 +70,20 @@ function testOrder() {
 // Listen for new orders
 socket.on('new-order', (orderData) => {
   console.log('🎉 New order received:', orderData);
-  addOrder(orderData);
+  
+  // 중복 주문 체크
+  if (processedOrders.has(orderData.orderId)) {
+    console.log('⚠️ Duplicate order ignored:', orderData.orderId);
+    return;
+  }
+  
+  processedOrders.add(orderData.orderId);
+  currentPendingOrder = orderData;
+  
+  // 팝업 표시
+  showOrderPopup(orderData);
+  
+  // 음성 알림
   playNotification(orderData);
 });
 
@@ -76,8 +93,14 @@ function playNotification(orderData) {
     console.log('🔇 Voice disabled');
     return;
   }
+  
+  if (isPlayingVoice) {
+    console.log('⚠️ Voice already playing, skipping...');
+    return;
+  }
 
   console.log('🔊 Playing notification...');
+  isPlayingVoice = true;
   playVoiceFile(orderData);
 }
 
@@ -88,6 +111,7 @@ function playVoiceFile(orderData) {
   audio.onerror = () => {
     console.log('⚠️ Audio file not found, using browser TTS');
     speakOrderDetails(orderData);
+    isPlayingVoice = false;
   };
 
   audio.onended = () => {
@@ -98,6 +122,7 @@ function playVoiceFile(orderData) {
   audio.play().catch(err => {
     console.log('⚠️ Audio play failed:', err);
     speakOrderDetails(orderData);
+    isPlayingVoice = false;
   });
 }
 
@@ -105,23 +130,15 @@ function playVoiceFile(orderData) {
 function speakOrderDetails(orderData) {
   if (!window.speechSynthesis) {
     console.log('⚠️ Speech synthesis not supported');
+    isPlayingVoice = false;
     return;
   }
 
-  const itemsText = orderData.items
-    .map(item => `${item.name} ${item.quantity}개`)
-    .join(', ');
-
-  const addressParts = orderData.address.split(',');
-  const shortAddress = addressParts.length > 2 
-    ? addressParts.slice(-2).join(',') 
-    : orderData.address;
-
-  const text = `고객명 ${orderData.customerName}, 주문 ${itemsText}, 배달지 ${shortAddress}`;
+  const text = `띵동, 주문이 왔습니다`;
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'ko-KR';
-  utterance.rate = 1.1;
+  utterance.rate = 1.0;
   utterance.pitch = 1.0;
 
   const voices = window.speechSynthesis.getVoices();
@@ -132,6 +149,16 @@ function speakOrderDetails(orderData) {
   if (koreanVoice) {
     utterance.voice = koreanVoice;
   }
+  
+  utterance.onend = () => {
+    console.log('✅ TTS finished');
+    isPlayingVoice = false;
+  };
+  
+  utterance.onerror = () => {
+    console.log('⚠️ TTS error');
+    isPlayingVoice = false;
+  };
 
   window.speechSynthesis.speak(utterance);
   console.log('🗣️ Speaking:', text);
@@ -191,7 +218,8 @@ function renderOrders() {
           <div>👤 ${order.customerName}</div>
           <div>📞 ${order.phone}</div>
           <div>📍 ${order.address}</div>
-          <div>💳 ${formatPayment(order.paymentMethod)}</div>
+          <div>💳 ${formatPayment(order.paymentMethod || 'cash')}</div>
+          ${order.prepTime ? `<div>⏰ 예상 소요시간: ${order.prepTime}분</div>` : ''}
         </div>
       </div>
 
@@ -271,9 +299,97 @@ async function updateStatus(orderId, newStatus) {
   }
 }
 
-// Order actions
-function acceptOrder(orderId) {
-  updateStatus(orderId, 'preparing');
+// 팝업 표시
+function showOrderPopup(orderData) {
+  const popup = document.getElementById('order-popup');
+  const popupInfo = document.getElementById('popup-order-info');
+  
+  const itemsHTML = orderData.items.map(item => 
+    `<div class="popup-item">${item.name} x ${item.quantity} - ${(item.price * item.quantity).toLocaleString()}원</div>`
+  ).join('');
+  
+  popupInfo.innerHTML = `
+    <h3>👤 고객 정보</h3>
+    <p><strong>고객명:</strong> ${orderData.customerName}</p>
+    <p><strong>전화번호:</strong> ${orderData.phone}</p>
+    <p><strong>주소:</strong> ${orderData.address}</p>
+    
+    <h3 style="margin-top: 25px;">🍜 주문 메뉴</h3>
+    ${itemsHTML}
+    <div class="popup-total">합계: ${orderData.totalAmount.toLocaleString()}원</div>
+  `;
+  
+  popup.classList.add('show');
+  
+  // 30초마다 음성 반복
+  startNotificationLoop();
+}
+
+// 알림 반복 시작
+function startNotificationLoop() {
+  // 기존 반복 정지
+  stopNotificationLoop();
+  
+  // 30초마다 반복
+  notificationInterval = setInterval(() => {
+    if (currentPendingOrder && voiceEnabled && !isPlayingVoice) {
+      console.log('🔄 알림 반복...');
+      playVoiceFile(currentPendingOrder);
+    }
+  }, 30000); // 30초
+}
+
+// 알림 반복 정지
+function stopNotificationLoop() {
+  if (notificationInterval) {
+    clearInterval(notificationInterval);
+    notificationInterval = null;
+    console.log('⏹️ 알림 반복 정지');
+  }
+}
+
+// 팝업 닫기
+function hideOrderPopup() {
+  const popup = document.getElementById('order-popup');
+  popup.classList.remove('show');
+  
+  // 알림 반복 정지
+  stopNotificationLoop();
+}
+
+// 주문 수락
+function acceptOrder() {
+  if (!currentPendingOrder) return;
+  
+  const prepTime = document.getElementById('prep-time').value;
+  console.log(`✅ 주문 수락: ${currentPendingOrder.orderId}, 소요시간: ${prepTime}분`);
+  
+  // 주문에 소요시간 추가
+  currentPendingOrder.prepTime = prepTime;
+  currentPendingOrder.status = 'accepted';
+  
+  addOrder(currentPendingOrder);
+  
+  // 서버에 수락 알림 (옵션)
+  // socket.emit('order-accepted', { orderId: currentPendingOrder.orderId, prepTime });
+  
+  hideOrderPopup();
+  currentPendingOrder = null;
+}
+
+// 주문 거절
+function rejectOrder() {
+  if (!currentPendingOrder) return;
+  
+  if (confirm(`주문을 거절하시겠습니까?\n고객: ${currentPendingOrder.customerName}`)) {
+    console.log(`❌ 주문 거절: ${currentPendingOrder.orderId}`);
+    
+    // 서버에 거절 알림 (옵션)
+    // socket.emit('order-rejected', { orderId: currentPendingOrder.orderId });
+    
+    hideOrderPopup();
+    currentPendingOrder = null;
+  }
 }
 
 function printOrder(orderId) {
@@ -281,15 +397,6 @@ function printOrder(orderId) {
   const order = orders.find(o => o.orderId === orderId);
   if (order) {
     window.print();
-  }
-}
-
-function rejectOrder(orderId) {
-  if (confirm(`주문 ${orderId}을(를) 거절하시겠습니까?`)) {
-    console.log('❌ 거절:', orderId);
-    orders = orders.filter(o => o.orderId !== orderId);
-    renderOrders();
-    updateStats();
   }
 }
 

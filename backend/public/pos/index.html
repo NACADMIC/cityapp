@@ -48,6 +48,34 @@
     </div>
   </div>
 
+  <!-- 주문 확인 팝업 -->
+  <div id="order-popup" class="popup-overlay">
+    <div class="popup-content">
+      <h2>🔔 새 주문</h2>
+      <div id="popup-order-info" class="popup-order-info"></div>
+      
+      <div class="popup-time-select">
+        <label>예상 소요시간:</label>
+        <select id="prep-time">
+          <option value="15">15분</option>
+          <option value="20" selected>20분</option>
+          <option value="25">25분</option>
+          <option value="30">30분</option>
+          <option value="35">35분</option>
+          <option value="40">40분</option>
+          <option value="45">45분</option>
+          <option value="50">50분</option>
+          <option value="60">60분</option>
+        </select>
+      </div>
+
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="acceptOrder()">✓ 수락</button>
+        <button class="btn btn-reject" onclick="rejectOrder()">✕ 거절</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
   <script src="app.js"></script>
 </body>
