@@ -300,22 +300,34 @@
 
     // 주문 표시
     function displayOrder(order) {
-      document.getElementById('display-order-id').textContent = order.orderId;
+      const orderId = order.orderid || order.orderId;
+      const customerName = order.customername || order.customerName;
+      const phone = order.customerphone || order.phone;
+      const totalAmount = order.totalprice || order.totalAmount;
+      const paymentMethod = order.paymentmethod || order.paymentMethod || 'cash';
+      
+      document.getElementById('display-order-id').textContent = orderId;
       
       // 상태 업데이트
-      updateStatus(order.status);
+      updateStatus(order.status || 'pending');
       
       // 주문 상세
-      const items = JSON.parse(order.items);
+      let items = [];
+      try {
+        items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (e) {
+        items = order.items || [];
+      }
+      
       const detailsHtml = `
         <h3>주문 정보</h3>
         <div class="detail-row">
           <span>고객명</span>
-          <span>${order.customerName}</span>
+          <span>${customerName}</span>
         </div>
         <div class="detail-row">
           <span>전화번호</span>
-          <span>${order.phone}</span>
+          <span>${phone}</span>
         </div>
         <div class="detail-row">
           <span>배달 주소</span>
@@ -327,11 +339,11 @@
         </div>
         <div class="detail-row">
           <span>결제 금액</span>
-          <span><strong>${order.totalAmount.toLocaleString()}원</strong></span>
+          <span><strong>${totalAmount.toLocaleString()}원</strong></span>
         </div>
         <div class="detail-row">
           <span>결제 방법</span>
-          <span>${order.paymentMethod === 'cash' ? '현금' : '카드'}</span>
+          <span>${paymentMethod === 'cash' ? '현금' : '카드'}</span>
         </div>
       `;
       
@@ -357,10 +369,77 @@
 
     // 실시간 상태 업데이트
     socket.on('order-status-changed', (data) => {
+      console.log('📡 상태 변경:', data);
       if (data.orderId === currentOrderId) {
+        console.log('✅ 현재 주문 상태 업데이트:', data.status);
         updateStatus(data.status);
+        
+        // 알림 표시
+        showNotification(data.status);
       }
     });
+    
+    // 상태 변경 알림
+    function showNotification(status) {
+      const messages = {
+        'pending': '주문이 접수되었습니다',
+        'accepted': '주문이 확인되었습니다',
+        'preparing': '조리를 시작했습니다! 👨‍🍳',
+        'delivering': '배달원이 출발했습니다! 🚚',
+        'completed': '배달이 완료되었습니다! ✅'
+      };
+      
+      const message = messages[status] || '상태가 업데이트되었습니다';
+      
+      // 간단한 알림 (필요시 더 멋지게 꾸밀 수 있음)
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4caf50;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s;
+        font-weight: 600;
+      `;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+    
+    // CSS 애니메이션
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
