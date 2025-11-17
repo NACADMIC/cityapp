@@ -83,6 +83,28 @@
       box-shadow: 0 8px 20px rgba(211, 47, 47, 0.4);
     }
 
+    .tab-btn {
+      padding: 10px 20px;
+      margin: 0 5px;
+      border: 2px solid #d32f2f;
+      background: white;
+      color: #d32f2f;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      background: #d32f2f;
+      color: white;
+    }
+
+    .tab-btn:hover {
+      transform: translateY(-2px);
+    }
+
     .order-result {
       background: white;
       padding: 30px;
@@ -217,12 +239,25 @@
     </div>
 
     <div class="search-box">
-      <form id="search-form">
+      <div style="margin-bottom: 20px; text-align: center;">
+        <button type="button" class="tab-btn active" onclick="showTab('order-id')">주문번호로 조회</button>
+        <button type="button" class="tab-btn" onclick="showTab('phone')">전화번호로 조회</button>
+      </div>
+
+      <form id="search-form-orderid" class="search-form">
         <div class="form-group">
           <label>주문번호</label>
           <input type="text" id="order-id-input" placeholder="ORD-1234567890" required>
         </div>
         <button type="submit" class="btn">조회하기</button>
+      </form>
+
+      <form id="search-form-phone" class="search-form" style="display: none;">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="phone-input" placeholder="010-1234-5678" required>
+        </div>
+        <button type="submit" class="btn">최근 주문 조회</button>
       </form>
       
       <div class="error-message" id="error-message">주문을 찾을 수 없습니다.</div>
@@ -274,8 +309,25 @@
     const socket = io();
     let currentOrderId = null;
 
-    // 주문 조회
-    document.getElementById('search-form').addEventListener('submit', async (e) => {
+    // 탭 전환
+    function showTab(tab) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const forms = document.querySelectorAll('.search-form');
+      
+      tabs.forEach(t => t.classList.remove('active'));
+      forms.forEach(f => f.style.display = 'none');
+      
+      if (tab === 'order-id') {
+        tabs[0].classList.add('active');
+        document.getElementById('search-form-orderid').style.display = 'block';
+      } else {
+        tabs[1].classList.add('active');
+        document.getElementById('search-form-phone').style.display = 'block';
+      }
+    }
+
+    // 주문번호로 조회
+    document.getElementById('search-form-orderid').addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const orderId = document.getElementById('order-id-input').value.trim();
@@ -290,6 +342,34 @@
           document.getElementById('error-message').classList.remove('show');
           document.getElementById('order-result').classList.add('show');
         } else {
+          document.getElementById('error-message').textContent = '주문을 찾을 수 없습니다.';
+          document.getElementById('error-message').classList.add('show');
+          document.getElementById('order-result').classList.remove('show');
+        }
+      } catch (err) {
+        alert('조회 오류: ' + err.message);
+      }
+    });
+
+    // 전화번호로 조회
+    document.getElementById('search-form-phone').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const phone = document.getElementById('phone-input').value.trim();
+      
+      try {
+        const res = await fetch(`/api/orders/phone/${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        
+        if (data.success && data.orders && data.orders.length > 0) {
+          // 최근 주문 표시
+          const recentOrder = data.orders[0];
+          currentOrderId = recentOrder.orderid || recentOrder.orderId;
+          displayOrder(recentOrder);
+          document.getElementById('error-message').classList.remove('show');
+          document.getElementById('order-result').classList.add('show');
+        } else {
+          document.getElementById('error-message').textContent = '해당 전화번호로 주문 내역이 없습니다.';
           document.getElementById('error-message').classList.add('show');
           document.getElementById('order-result').classList.remove('show');
         }

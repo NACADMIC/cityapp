@@ -171,15 +171,24 @@
           <span id="items-total">0원</span>
         </div>
         
-        <div id="point-section" style="display: none;">
-          <div class="summary-row">
-            <span>포인트 사용</span>
-            <span id="used-points-display">0P</span>
+        <div id="point-section" style="display: none; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 20px; border-radius: 12px; margin: 15px 0; border: 2px solid #4caf50;">
+          <div style="text-align: center; margin-bottom: 15px;">
+            <p style="font-size: 14px; color: #2e7d32; margin-bottom: 5px;">💳 내 포인트</p>
+            <p style="font-size: 28px; font-weight: 700; color: #1b5e20; margin: 0;">
+              <span id="user-points-display">0P</span>
+            </p>
           </div>
-          <div class="form-group">
-            <input type="number" id="use-points" placeholder="사용할 포인트" min="0" max="0">
-            <button class="btn btn-small" onclick="applyPoints()">적용</button>
+          <div class="summary-row" style="margin-bottom: 10px;">
+            <span style="color: #d32f2f; font-weight: 600;">포인트 사용</span>
+            <span id="used-points-display" style="color: #d32f2f; font-weight: 600;">0P</span>
           </div>
+          <div class="form-group" style="display: flex; gap: 10px; margin: 0;">
+            <input type="number" id="use-points" placeholder="사용할 포인트 입력" min="0" max="0" style="flex: 1; padding: 12px; border: 2px solid #4caf50; border-radius: 8px; font-size: 16px;">
+            <button class="btn btn-small" onclick="applyPoints()" style="background: #4caf50; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap;">적용</button>
+          </div>
+          <p style="font-size: 12px; color: #2e7d32; margin-top: 10px; text-align: center;">
+            💡 1P = 1원으로 사용 가능합니다
+          </p>
         </div>
 
         <div class="summary-total">
@@ -187,8 +196,8 @@
           <span id="total-price" class="total-price">0원</span>
         </div>
 
-        <div id="earn-points-info" class="earn-info" style="display: none;">
-          💰 <span id="earn-points">0</span>P 적립 예정
+        <div id="earn-points-info" class="earn-info" style="display: none; background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 16px; font-weight: 600; color: #f57c00;">
+          🎁 <span id="earn-points">0</span>P 적립 예정 (7%)
         </div>
       </div>
 
@@ -257,8 +266,14 @@
             <span id="checkout-total" class="total-price">0원</span>
           </div>
 
-          <div id="checkout-earn-info" class="earn-info" style="display: none;">
-            💰 <span id="checkout-earn-points">0</span>P 적립 예정
+          <div id="checkout-earn-info" class="earn-info" style="display: none; background: #fff3cd; padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px dashed #ffa000;">
+            <div style="text-align: center;">
+              <p style="font-size: 14px; color: #e65100; margin-bottom: 5px;">🎉 포인트 적립</p>
+              <p style="font-size: 24px; font-weight: 700; color: #f57c00; margin: 0;">
+                <span id="checkout-earn-points">0</span>P
+              </p>
+              <p style="font-size: 12px; color: #e65100; margin-top: 5px;">결제 금액의 7% 적립!</p>
+            </div>
           </div>
         </div>
 
@@ -278,9 +293,15 @@
         <p id="complete-order-id" class="order-id"></p>
       </div>
 
-      <div id="complete-points-info" style="display: none;">
-        <p class="points-earned">
-          🎉 <span id="complete-earned-points">0</span>P 적립되었습니다!
+      <div id="complete-points-info" style="display: none; background: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%); padding: 25px; border-radius: 15px; margin: 20px 0; box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);">
+        <p style="font-size: 16px; color: #e65100; margin-bottom: 10px; font-weight: 600;">
+          🎉 포인트 적립 완료!
+        </p>
+        <p style="font-size: 32px; font-weight: 700; color: #e65100; margin: 0;">
+          <span id="complete-earned-points">0</span>P
+        </p>
+        <p style="font-size: 14px; color: #e65100; margin-top: 10px;">
+          다음 주문 시 사용하실 수 있습니다!
         </p>
       </div>
 
@@ -289,14 +310,53 @@
         약 30-40분 후 배달될 예정입니다.
       </p>
 
-      <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="font-size: 14px; color: #856404; text-align: center;">
-          💡 배달 현황은 주문번호로 조회할 수 있습니다
+      <div style="background: #e3f2fd; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #2196f3;">
+        <p style="font-size: 16px; color: #1976d2; text-align: center; font-weight: 600; margin-bottom: 10px;">
+          🚚 배달 현황 실시간 추적
+        </p>
+        <p style="font-size: 14px; color: #1976d2; text-align: center;">
+          조리 시작부터 배달 완료까지 실시간으로 확인하세요!
         </p>
       </div>
 
-      <button class="btn btn-primary" onclick="window.location.href='/track'">배달 현황 보기</button>
-      <button class="btn btn-secondary" onclick="location.reload()">홈으로 가기</button>
+      <button class="btn btn-primary" onclick="window.location.href='/track'">🔍 배달 현황 보기</button>
+      <button class="btn btn-secondary" onclick="location.reload()">🏠 홈으로 가기</button>
+    </div>
+  </div>
+
+  <!-- 포인트 사용 모달 -->
+  <div id="points-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; justify-content: center; align-items: center;">
+    <div style="background: white; width: 90%; max-width: 400px; border-radius: 20px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+      <h2 style="text-align: center; color: #d32f2f; margin-bottom: 20px;">💰 포인트 사용</h2>
+      
+      <div style="background: #f5f5f5; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+          <span style="color: #666;">보유 포인트</span>
+          <span style="font-weight: 700; font-size: 18px; color: #4caf50;"><span id="modal-available-points">0</span>P</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #666;">최대 사용 가능</span>
+          <span style="font-weight: 700; font-size: 18px; color: #2196f3;"><span id="modal-max-points">0</span>P</span>
+        </div>
+      </div>
+      
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">사용할 포인트</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="number" id="points-input" placeholder="0" min="0" style="flex: 1; padding: 14px; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; text-align: right;">
+          <span style="font-size: 18px; font-weight: 600; color: #666;">P</span>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button type="button" onclick="setPointsAmount(1000)" style="flex: 1; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600;">+1천</button>
+          <button type="button" onclick="setPointsAmount(5000)" style="flex: 1; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600;">+5천</button>
+          <button type="button" onclick="setPointsAmount('max')" style="flex: 1; padding: 8px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-weight: 600;">전액</button>
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button type="button" onclick="closePointsModal()" style="flex: 1; padding: 14px; background: #757575; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;">취소</button>
+        <button type="button" onclick="applyPoints()" style="flex: 1; padding: 14px; background: #4caf50; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer;">적용</button>
+      </div>
     </div>
   </div>
 

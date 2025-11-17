@@ -328,42 +328,108 @@ function renderCart() {
 
   const pointSection = document.getElementById('point-section');
   const earnPointsInfo = document.getElementById('earn-points-info');
+  const pointsUsageSection = document.getElementById('points-usage-section');
+  const pointsApplied = document.getElementById('points-applied');
   
   if (currentUser && !isGuest) {
-    pointSection.style.display = 'block';
-    earnPointsInfo.style.display = 'block';
+    // 회원: 포인트 사용 섹션 표시
+    if (pointSection) pointSection.style.display = 'block';
+    if (pointsUsageSection) {
+      pointsUsageSection.style.display = 'block';
+      document.getElementById('available-points-display').textContent = currentUser.points.toLocaleString();
+      
+      if (usedPoints > 0) {
+        pointsApplied.style.display = 'block';
+        document.getElementById('used-points-display').textContent = '-' + usedPoints.toLocaleString() + 'P';
+      } else {
+        pointsApplied.style.display = 'none';
+      }
+    }
     
-    const maxPoints = Math.min(currentUser.points, itemsTotal);
-    document.getElementById('use-points').max = maxPoints;
-    document.getElementById('use-points').value = usedPoints;
+    earnPointsInfo.style.display = 'block';
     
     const finalAmount = itemsTotal - usedPoints;
     const earnPoints = Math.floor(finalAmount * 0.07);
     
-    document.getElementById('used-points-display').textContent = '-' + usedPoints.toLocaleString() + 'P';
-    document.getElementById('total-price').textContent = finalAmount.toLocaleString() + '원';
-    document.getElementById('earn-points').textContent = earnPoints.toLocaleString();
+    // 보유 포인트 표시 (이전 UI 호환)
+    const userPointsDisplay = document.getElementById('user-points-display');
+    if (userPointsDisplay) {
+      userPointsDisplay.textContent = currentUser.points.toLocaleString() + 'P';
+    }
+    
+    const totalPriceElem = document.getElementById('total-price') || document.getElementById('cart-total');
+    if (totalPriceElem) {
+      totalPriceElem.textContent = finalAmount.toLocaleString() + '원';
+    }
+    
+    const earnPointsElem = document.getElementById('earn-points');
+    if (earnPointsElem) {
+      earnPointsElem.textContent = earnPoints.toLocaleString();
+    }
   } else {
-    pointSection.style.display = 'none';
+    // 비회원: 포인트 섹션 숨김
+    if (pointSection) pointSection.style.display = 'none';
+    if (pointsUsageSection) pointsUsageSection.style.display = 'none';
     earnPointsInfo.style.display = 'none';
     usedPoints = 0;
-    document.getElementById('total-price').textContent = itemsTotal.toLocaleString() + '원';
+    
+    const totalPriceElem = document.getElementById('total-price') || document.getElementById('cart-total');
+    if (totalPriceElem) {
+      totalPriceElem.textContent = itemsTotal.toLocaleString() + '원';
+    }
   }
 }
 
-// Apply points
+// 포인트 사용 모달 열기
+function openPointsModal() {
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const maxPoints = Math.min(currentUser.points, itemsTotal);
+  
+  document.getElementById('modal-available-points').textContent = currentUser.points.toLocaleString();
+  document.getElementById('modal-max-points').textContent = maxPoints.toLocaleString();
+  document.getElementById('points-input').value = usedPoints || '';
+  document.getElementById('points-input').max = maxPoints;
+  document.getElementById('points-modal').style.display = 'flex';
+}
+
+// 포인트 사용 모달 닫기
+function closePointsModal() {
+  document.getElementById('points-modal').style.display = 'none';
+}
+
+// 포인트 금액 설정
+function setPointsAmount(amount) {
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const maxPoints = Math.min(currentUser.points, itemsTotal);
+  const input = document.getElementById('points-input');
+  
+  if (amount === 'max') {
+    input.value = maxPoints;
+  } else {
+    const current = parseInt(input.value) || 0;
+    const newAmount = Math.min(current + amount, maxPoints);
+    input.value = newAmount;
+  }
+}
+
+// 포인트 적용
 function applyPoints() {
-  const inputPoints = parseInt(document.getElementById('use-points').value) || 0;
+  const inputPoints = parseInt(document.getElementById('points-input').value) || 0;
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const maxPoints = Math.min(currentUser.points, itemsTotal);
 
   if (inputPoints > maxPoints) {
-    alert(`최대 ${maxPoints}P까지 사용 가능합니다.`);
-    usedPoints = maxPoints;
-  } else {
-    usedPoints = inputPoints;
+    alert(`최대 ${maxPoints.toLocaleString()}P까지 사용 가능합니다.`);
+    return;
+  }
+  
+  if (inputPoints < 0) {
+    alert('0P 이상 입력해주세요.');
+    return;
   }
 
+  usedPoints = inputPoints;
+  closePointsModal();
   renderCart();
 }
 

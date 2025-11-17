@@ -284,6 +284,29 @@ app.get('/api/points/:userId', async (req, res) => {
   }
 });
 
+// API: 주문 조회 (전화번호로 - 비회원용)
+app.get('/api/orders/phone/:phone', async (req, res) => {
+  try {
+    const phone = decodeURIComponent(req.params.phone);
+    const allOrders = await db.getAllOrders();
+    const orders = allOrders.filter(o => 
+      (o.customerphone === phone || o.phone === phone)
+    ).sort((a, b) => {
+      const timeA = a.createdat || a.createdAt || 0;
+      const timeB = b.createdat || b.createdAt || 0;
+      return timeB - timeA;
+    });
+    
+    if (orders.length === 0) {
+      return res.json({ success: false, error: '주문 내역이 없습니다.' });
+    }
+    
+    res.json({ success: true, orders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 서버 시작
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
