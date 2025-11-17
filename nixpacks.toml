@@ -1,14 +1,14 @@
 [phases.setup]
-nixPkgs = ["nodejs_18", "python3", "gcc", "gnumake"]
+nixPkgs = ["nodejs_18"]
 
 [phases.install]
 cmds = [
-  "cd backend && npm ci --build-from-source || npm install --build-from-source"
+  "cd backend && npm install"
 ]
 
 [phases.build]
-cmds = ["echo 'Build complete'"]
+cmds = ["echo 'PostgreSQL Build complete'"]
 
 [start]
-cmd = "node backend/server.js"
+cmd = "node backend/server-pg.js"
 

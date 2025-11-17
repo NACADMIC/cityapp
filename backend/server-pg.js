@@ -25,6 +25,7 @@ if (process.env.DATABASE_URL) {
 } else {
   console.log('⚠️ DATABASE_URL 없음 - Railway에서 PostgreSQL 추가 필요!');
 }
+
 let posClients = [];
 
 // 영업시간 체크 미들웨어
@@ -76,33 +77,27 @@ app.get('/api/menu', async (req, res) => {
 });
 
 // API: 회원가입
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
-    const { name, phone, password } = req.body;
+    const { phone, name, password } = req.body;
     
-    const existing = db.getUserByPhone(phone);
+    const existing = await db.getUserByPhone(phone);
     if (existing) {
       return res.json({ success: false, error: '이미 가입된 전화번호입니다.' });
     }
-
-    db.createUser({
-      name,
-      phone,
-      password,
-      createdAt: new Date().toISOString()
-    });
-
-    res.json({ success: true });
+    
+    const user = await db.createUser(phone, name, password);
+    res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // API: 로그인
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
-    const user = db.getUserByPhone(phone);
+    const user = await db.getUserByPhone(phone);
 
     if (!user || user.password !== password) {
       return res.json({ success: false, error: '전화번호 또는 비밀번호가 일치하지 않습니다.' });
@@ -111,7 +106,7 @@ app.post('/api/auth/login', (req, res) => {
     res.json({
       success: true,
       user: {
-        userId: user.userId,
+        userId: user.userid,
         name: user.name,
         phone: user.phone,
         points: user.points
@@ -123,9 +118,9 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // API: 회원 정보
-app.get('/api/auth/me/:userId', (req, res) => {
+app.get('/api/auth/me/:userId', async (req, res) => {
   try {
-    const user = db.getUserById(req.params.userId);
+    const user = await db.getUserById(req.params.userId);
     if (!user) {
       return res.json({ success: false, error: '회원을 찾을 수 없습니다.' });
     }
@@ -133,7 +128,7 @@ app.get('/api/auth/me/:userId', (req, res) => {
     res.json({
       success: true,
       user: {
-        userId: user.userId,
+        userId: user.userid,
         name: user.name,
         phone: user.phone,
         points: user.points
@@ -145,12 +140,12 @@ app.get('/api/auth/me/:userId', (req, res) => {
 });
 
 // API: 전화 인증 발송
-app.post('/api/phone/send-code', (req, res) => {
+app.post('/api/phone/send-code', async (req, res) => {
   try {
     const { phone } = req.body;
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
-    db.createVerification(phone, code);
+    await db.createVerification(phone, code);
     
     res.json({ success: true, code }); // 테스트용
   } catch (error) {
@@ -159,10 +154,10 @@ app.post('/api/phone/send-code', (req, res) => {
 });
 
 // API: 전화 인증 확인
-app.post('/api/phone/verify-code', (req, res) => {
+app.post('/api/phone/verify-code', async (req, res) => {
   try {
     const { phone, code } = req.body;
-    const isValid = db.verifyPhone(phone, code);
+    const isValid = await db.verifyPhone(phone, code);
     
     if (isValid) {
       res.json({ success: true });
@@ -185,7 +180,6 @@ app.post('/api/orders', async (req, res) => {
       items,
       totalAmount,
       usedPoints = 0,
-      paymentMethod,
       isGuest = false,
       phoneVerified = false
     } = req.body;
@@ -194,7 +188,7 @@ app.post('/api/orders', async (req, res) => {
     
     // 포인트 검증
     if (userId && usedPoints > 0) {
-      const user = db.getUserById(userId);
+      const user = await db.getUserById(userId);
       if (!user || user.points < usedPoints) {
         return res.json({ success: false, error: '포인트가 부족합니다.' });
       }
@@ -204,32 +198,27 @@ app.post('/api/orders', async (req, res) => {
     const earnedPoints = userId && !isGuest ? Math.floor(finalAmount * 0.07) : 0;
 
     // 주문 저장
-    db.createOrder({
+    await db.createOrder({
       orderId,
       userId,
       customerName,
-      phone,
+      customerPhone: phone,
       address,
-      items: JSON.stringify(items),
-      totalAmount: finalAmount,
+      items,
+      totalPrice: finalAmount,
       usedPoints,
       earnedPoints,
-      paymentMethod,
-      status: 'pending',
-      isGuest: isGuest ? 1 : 0,
-      phoneVerified: phoneVerified ? 1 : 0,
-      createdAt: new Date().toISOString()
+      isGuest,
+      phoneVerified
     });
 
     // 포인트 처리
     if (userId) {
       if (usedPoints > 0) {
-        db.addPoints(userId, -usedPoints);
-        db.addPointHistory(userId, orderId, -usedPoints, 'use');
+        await db.addPoints(userId, -usedPoints, 'use', `주문 사용: ${orderId}`);
       }
       if (earnedPoints > 0) {
-        db.addPoints(userId, earnedPoints);
-        db.addPointHistory(userId, orderId, earnedPoints, 'earn');
+        await db.addPoints(userId, earnedPoints, 'earn', `주문 적립: ${orderId}`);
       }
     }
 
@@ -241,7 +230,6 @@ app.post('/api/orders', async (req, res) => {
       address,
       items,
       totalAmount: finalAmount,
-      paymentMethod,
       createdAt: new Date().toISOString()
     };
 
@@ -258,9 +246,9 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // API: 주문 목록
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', async (req, res) => {
   try {
-    const orders = db.getAllOrders();
+    const orders = await db.getAllOrders();
     res.json({ success: true, orders });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -268,12 +256,12 @@ app.get('/api/orders', (req, res) => {
 });
 
 // API: 주문 상태 업데이트
-app.post('/api/orders/:orderId/status', (req, res) => {
+app.post('/api/orders/:orderId/status', async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
     
-    db.updateOrderStatus(orderId, status);
+    await db.updateOrderStatus(orderId, status);
     
     // POS에 상태 변경 알림
     io.emit('order-status-changed', { orderId, status });
@@ -285,9 +273,9 @@ app.post('/api/orders/:orderId/status', (req, res) => {
 });
 
 // API: 주문 조회 (주문번호로)
-app.get('/api/orders/:orderId', (req, res) => {
+app.get('/api/orders/:orderId', async (req, res) => {
   try {
-    const order = db.getOrderById(req.params.orderId);
+    const order = await db.getOrderById(req.params.orderId);
     if (!order) {
       return res.json({ success: false, error: '주문을 찾을 수 없습니다.' });
     }
@@ -298,9 +286,9 @@ app.get('/api/orders/:orderId', (req, res) => {
 });
 
 // API: 포인트 내역
-app.get('/api/points/:userId', (req, res) => {
+app.get('/api/points/:userId', async (req, res) => {
   try {
-    const history = db.getPointHistory(req.params.userId);
+    const history = await db.getPointHistory(req.params.userId);
     res.json({ success: true, history });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
