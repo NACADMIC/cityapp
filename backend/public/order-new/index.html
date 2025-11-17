@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order - City Restaurant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Auth Select Screen -->
+  <div id="auth-select-screen" class="screen active">
+    <div class="container">
+      <div class="logo">🏮</div>
+      <h1>시티반점</h1>
+      <p class="subtitle">맛있는 중국요리 배달</p>
+
+      <div class="auth-buttons">
+        <button class="btn btn-primary" onclick="showLogin()">
+          회원 로그인
+          <small>포인트 7% 적립</small>
+        </button>
+
+        <button class="btn btn-secondary" onclick="showGuestOrder()">
+          비회원 주문
+          <small>휴대폰 인증 필요</small>
+        </button>
+
+        <button class="btn btn-outline" onclick="showRegister()">
+          회원가입
+          <small>첫 주문시 포인트 적립</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
+      
+      <h2>로그인</h2>
+      
+      <form id="login-form" class="form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="login-phone" placeholder="010-1234-5678" required>
+        </div>
+
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="login-password" placeholder="비밀번호" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">로그인</button>
+      </form>
+
+      <p class="link-text">
+        계정이 없으신가요? <a href="#" onclick="showRegister(); return false;">회원가입</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Register Screen -->
+  <div id="register-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
+      
+      <h2>회원가입</h2>
+      
+      <form id="register-form" class="form">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="register-name" placeholder="홍길동" required>
+        </div>
+
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="register-phone" placeholder="010-1234-5678" required>
+        </div>
+
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="register-password" placeholder="비밀번호 (4자 이상)" required minlength="4">
+        </div>
+
+        <button type="submit" class="btn btn-primary">가입하기</button>
+      </form>
+
+      <p class="link-text">
+        이미 계정이 있으신가요? <a href="#" onclick="showLogin(); return false;">로그인</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Guest Phone Verification Screen -->
+  <div id="guest-verify-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
+      
+      <h2>비회원 주문</h2>
+      <p class="subtitle">휴대폰 인증이 필요합니다</p>
+      
+      <form id="guest-verify-form" class="form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <div class="input-with-button">
+            <input type="tel" id="guest-phone" placeholder="010-1234-5678" required>
+            <button type="button" class="btn-send-code" onclick="sendVerificationCode()">
+              인증번호 발송
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group" id="code-group" style="display: none;">
+          <label>인증번호</label>
+          <input type="text" id="verify-code" placeholder="6자리 인증번호" maxlength="6">
+          <small class="code-display">인증번호: <span id="code-display"></span></small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">인증 완료</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Menu Screen -->
+  <div id="menu-screen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="logout()">로그아웃</button>
+      <h1>🏮 시티반점</h1>
+      <button class="cart-btn" onclick="showCart()">
+        🛒 <span id="cart-count">0</span>
+      </button>
+    </div>
+
+    <div id="user-info" class="user-info" style="display: none;">
+      <div class="user-info-content">
+        <span id="user-name"></span>님
+        <span class="points">포인트: <strong id="user-points">0</strong>P</span>
+      </div>
+    </div>
+
+    <div class="category-tabs">
+      <button class="category-tab active" data-category="all">전체</button>
+      <button class="category-tab" data-category="면류">면류</button>
+      <button class="category-tab" data-category="요리">요리</button>
+      <button class="category-tab" data-category="밥류">밥류</button>
+    </div>
+
+    <div class="container">
+      <h2 class="section-title">메뉴</h2>
+      <div id="menu-list" class="menu-list">
+        <div class="loading">메뉴 불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Screen -->
+  <div id="cart-screen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showMenu()">← 메뉴</button>
+      <h1>장바구니</h1>
+      <div></div>
+    </div>
+
+    <div class="container">
+      <div id="cart-items" class="cart-items"></div>
+      
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>상품 금액</span>
+          <span id="items-total">0원</span>
+        </div>
+        
+        <div id="point-section" style="display: none;">
+          <div class="summary-row">
+            <span>포인트 사용</span>
+            <span id="used-points-display">0P</span>
+          </div>
+          <div class="form-group">
+            <input type="number" id="use-points" placeholder="사용할 포인트" min="0" max="0">
+            <button class="btn btn-small" onclick="applyPoints()">적용</button>
+          </div>
+        </div>
+
+        <div class="summary-total">
+          <span>총 결제 금액</span>
+          <span id="total-price" class="total-price">0원</span>
+        </div>
+
+        <div id="earn-points-info" class="earn-info" style="display: none;">
+          💰 <span id="earn-points">0</span>P 적립 예정
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="showCheckout()">주문하기</button>
+      <button class="btn btn-secondary" onclick="showMenu()">메뉴로 돌아가기</button>
+    </div>
+  </div>
+
+  <!-- Checkout Screen -->
+  <div id="checkout-screen" class="screen">
+    <div class="header">
+      <button class="back-btn" onclick="showCart()">← 뒤로</button>
+      <h1>주문 정보</h1>
+      <div></div>
+    </div>
+
+    <div class="container">
+      <form id="checkout-form" class="form">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="checkout-name" required>
+        </div>
+
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="checkout-phone" required>
+        </div>
+
+        <div class="form-group">
+          <label>배달 주소</label>
+          <textarea id="checkout-address" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>결제 방법</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="payment" value="cash" checked>
+              <span>현금</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="payment" value="card">
+              <span>카드</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="order-summary">
+          <h3>주문 내역</h3>
+          <div id="checkout-items"></div>
+          
+          <div class="summary-row">
+            <span>상품 금액</span>
+            <span id="checkout-items-total">0원</span>
+          </div>
+          
+          <div id="checkout-points-section" style="display: none;">
+            <div class="summary-row">
+              <span>포인트 사용</span>
+              <span id="checkout-used-points">0P</span>
+            </div>
+          </div>
+
+          <div class="summary-total">
+            <span>총 금액</span>
+            <span id="checkout-total" class="total-price">0원</span>
+          </div>
+
+          <div id="checkout-earn-info" class="earn-info" style="display: none;">
+            💰 <span id="checkout-earn-points">0</span>P 적립 예정
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">주문 확정</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Complete Screen -->
+  <div id="complete-screen" class="screen">
+    <div class="container text-center">
+      <div class="success-icon">✅</div>
+      <h2>주문이 완료되었습니다!</h2>
+      
+      <div class="order-info">
+        <p>주문번호</p>
+        <p id="complete-order-id" class="order-id"></p>
+      </div>
+
+      <div id="complete-points-info" style="display: none;">
+        <p class="points-earned">
+          🎉 <span id="complete-earned-points">0</span>P 적립되었습니다!
+        </p>
+      </div>
+
+      <p class="order-message">
+        주문하신 음식을 준비중입니다.<br>
+        약 30-40분 후 배달될 예정입니다.
+      </p>
+
+      <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <p style="font-size: 14px; color: #856404; text-align: center;">
+          💡 배달 현황은 주문번호로 조회할 수 있습니다
+        </p>
+      </div>
+
+      <button class="btn btn-primary" onclick="window.location.href='/track'">배달 현황 보기</button>
+      <button class="btn btn-secondary" onclick="location.reload()">홈으로 가기</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

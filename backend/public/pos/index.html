@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="header">
+    <h1>🏮 시티반점 POS</h1>
+    <div class="header-controls">
+      <label class="switch">
+        <input type="checkbox" id="voice-toggle" checked>
+        <span class="slider"></span>
+      </label>
+      <span>음성 알림</span>
+      <button class="btn-test" onclick="testSound()">소리 테스트</button>
+      <button class="btn-test" onclick="testOrder()">주문 테스트</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="today-orders">0</div>
+        <div class="stat-label">오늘 주문</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="pending-orders">0</div>
+        <div class="stat-label">대기중</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="today-revenue">0</div>
+        <div class="stat-label">매출 (원)</div>
+      </div>
+    </div>
+
+    <div class="orders-section">
+      <h2>최근 주문</h2>
+      <div id="orders-list" class="orders-list">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <p>아직 주문이 없습니다</p>
+          <small>주문이 실시간으로 표시됩니다</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+

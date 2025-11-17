@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주문 조회 - 시티반점</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .search-box {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #d32f2f;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(211, 47, 47, 0.4);
+    }
+
+    .order-result {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      display: none;
+    }
+
+    .order-result.show {
+      display: block;
+    }
+
+    .order-id {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #d32f2f;
+      margin-bottom: 20px;
+      font-family: monospace;
+    }
+
+    .status-tracker {
+      margin: 30px 0;
+    }
+
+    .status-step {
+      display: flex;
+      align-items: center;
+      margin: 15px 0;
+      position: relative;
+    }
+
+    .status-step::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 40px;
+      width: 2px;
+      height: 50px;
+      background: #e0e0e0;
+    }
+
+    .status-step:last-child::before {
+      display: none;
+    }
+
+    .status-step.active::before {
+      background: #4caf50;
+    }
+
+    .status-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .status-step.active .status-icon {
+      background: #4caf50;
+      color: white;
+    }
+
+    .status-step.current .status-icon {
+      background: #ffa000;
+      color: white;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .status-info h3 {
+      font-size: 1.1em;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .status-info p {
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    .order-details {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #f0f0f0;
+    }
+
+    .order-details h3 {
+      margin-bottom: 15px;
+      color: #d32f2f;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #d32f2f;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏮 주문 조회</h1>
+      <p>주문번호로 배달 상태를 확인하세요</p>
+    </div>
+
+    <div class="search-box">
+      <form id="search-form">
+        <div class="form-group">
+          <label>주문번호</label>
+          <input type="text" id="order-id-input" placeholder="ORD-1234567890" required>
+        </div>
+        <button type="submit" class="btn">조회하기</button>
+      </form>
+      
+      <div class="error-message" id="error-message">주문을 찾을 수 없습니다.</div>
+    </div>
+
+    <div class="order-result" id="order-result">
+      <div class="order-id" id="display-order-id"></div>
+
+      <div class="status-tracker" id="status-tracker">
+        <div class="status-step" data-status="pending">
+          <div class="status-icon">📝</div>
+          <div class="status-info">
+            <h3>주문 접수</h3>
+            <p>주문이 접수되었습니다</p>
+          </div>
+        </div>
+
+        <div class="status-step" data-status="preparing">
+          <div class="status-icon">👨‍🍳</div>
+          <div class="status-info">
+            <h3>조리중</h3>
+            <p>맛있게 조리하고 있습니다</p>
+          </div>
+        </div>
+
+        <div class="status-step" data-status="delivering">
+          <div class="status-icon">🚚</div>
+          <div class="status-info">
+            <h3>배달중</h3>
+            <p>배달원이 출발했습니다</p>
+          </div>
+        </div>
+
+        <div class="status-step" data-status="completed">
+          <div class="status-icon">✅</div>
+          <div class="status-info">
+            <h3>배달 완료</h3>
+            <p>맛있게 드세요!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-details" id="order-details"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    let currentOrderId = null;
+
+    // 주문 조회
+    document.getElementById('search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const orderId = document.getElementById('order-id-input').value.trim();
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          currentOrderId = orderId;
+          displayOrder(data.order);
+          document.getElementById('error-message').classList.remove('show');
+          document.getElementById('order-result').classList.add('show');
+        } else {
+          document.getElementById('error-message').classList.add('show');
+          document.getElementById('order-result').classList.remove('show');
+        }
+      } catch (err) {
+        alert('조회 오류: ' + err.message);
+      }
+    });
+
+    // 주문 표시
+    function displayOrder(order) {
+      document.getElementById('display-order-id').textContent = order.orderId;
+      
+      // 상태 업데이트
+      updateStatus(order.status);
+      
+      // 주문 상세
+      const items = JSON.parse(order.items);
+      const detailsHtml = `
+        <h3>주문 정보</h3>
+        <div class="detail-row">
+          <span>고객명</span>
+          <span>${order.customerName}</span>
+        </div>
+        <div class="detail-row">
+          <span>전화번호</span>
+          <span>${order.phone}</span>
+        </div>
+        <div class="detail-row">
+          <span>배달 주소</span>
+          <span>${order.address}</span>
+        </div>
+        <div class="detail-row">
+          <span>주문 메뉴</span>
+          <span>${items.map(i => `${i.name} x ${i.quantity}`).join(', ')}</span>
+        </div>
+        <div class="detail-row">
+          <span>결제 금액</span>
+          <span><strong>${order.totalAmount.toLocaleString()}원</strong></span>
+        </div>
+        <div class="detail-row">
+          <span>결제 방법</span>
+          <span>${order.paymentMethod === 'cash' ? '현금' : '카드'}</span>
+        </div>
+      `;
+      
+      document.getElementById('order-details').innerHTML = detailsHtml;
+    }
+
+    // 상태 업데이트
+    function updateStatus(status) {
+      const steps = document.querySelectorAll('.status-step');
+      const statusOrder = ['pending', 'preparing', 'delivering', 'completed'];
+      const currentIndex = statusOrder.indexOf(status);
+      
+      steps.forEach((step, index) => {
+        step.classList.remove('active', 'current');
+        
+        if (index < currentIndex) {
+          step.classList.add('active');
+        } else if (index === currentIndex) {
+          step.classList.add('active', 'current');
+        }
+      });
+    }
+
+    // 실시간 상태 업데이트
+    socket.on('order-status-changed', (data) => {
+      if (data.orderId === currentOrderId) {
+        updateStatus(data.status);
+      }
+    });
+  </script>
+</body>
+</html>
+

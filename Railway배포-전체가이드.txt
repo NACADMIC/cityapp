@@ -1,0 +1,161 @@
+# 🚀 Railway 배포 - 완전 가이드
+
+## ✅ 준비물
+- GitHub 계정 (있음!)
+- Git 설치
+
+---
+
+## 📋 단계별 실행
+
+### 1단계: Git 설치 확인
+```
+PowerShell 열고:
+git --version
+
+→ 버전 나오면 OK!
+→ 없으면: https://git-scm.com/download/win 에서 설치
+```
+
+---
+
+### 2단계: GitHub에 코드 업로드
+
+#### 방법 1: 간편 실행 (추천!)
+1. `GitHub업로드.bat` 더블클릭
+2. GitHub 이름, 이메일 입력
+3. 안내에 따라 진행
+
+#### 방법 2: 직접 실행
+PowerShell에서:
+```bash
+cd C:\Users\j\시티반점앱
+
+git config --global user.name "당신이름"
+git config --global user.email "당신이메일"
+
+git init
+git add .
+git commit -m "시티반점 앱 배포"
+```
+
+그 다음:
+1. https://github.com 로그인
+2. 우측 상단 **+** → **New repository**
+3. 이름: **citybanjeom-app**
+4. **Public** 선택
+5. **Create repository** 클릭
+6. 나온 주소 복사 (예: https://github.com/아이디/citybanjeom-app.git)
+
+PowerShell에서:
+```bash
+git remote add origin [복사한주소]
+git branch -M main
+git push -u origin main
+```
+
+GitHub에 코드 업로드 완료! ✅
+
+---
+
+### 3단계: Railway 배포
+
+1. **Railway 접속**
+   - https://railway.app
+   - **Login** → **GitHub로 로그인**
+
+2. **프로젝트 생성**
+   - **Start a New Project** 클릭
+   - **Deploy from GitHub repo** 선택
+   - **citybanjeom-app** 선택
+
+3. **자동 배포 시작!**
+   - 3-5분 대기
+   - 로그에서 "Deployed" 확인
+
+4. **도메인 받기**
+   - 프로젝트 클릭 → **Settings**
+   - **Domains** → **Generate Domain**
+   - 주소 나옴! 🎉
+
+예: `citybanjeom-production-abc123.up.railway.app`
+
+---
+
+## 📱 배포 완료 후 주소
+
+```
+✅ 고객 주문: https://당신주소.up.railway.app/order-new
+✅ POS 접속: https://당신주소.up.railway.app/pos/login.html
+✅ 주문 추적: https://당신주소.up.railway.app/track
+```
+
+---
+
+## 🔧 문제 해결
+
+### Git 명령어 실행 안 됨
+→ https://git-scm.com/download/win 에서 Git 설치
+
+### git push 비밀번호 요구
+→ Personal Access Token 필요
+1. GitHub → Settings → Developer settings
+2. Personal access tokens → Generate new token
+3. repo 권한 체크 → Generate
+4. 나온 토큰 복사
+5. git push 시 비밀번호 대신 토큰 입력
+
+### Railway 배포 실패
+→ Railway Deployments → Logs 확인
+→ 오류 메시지 복사해서 물어보기
+
+---
+
+## 💰 비용
+
+- **Railway 무료 플랜**
+  - 월 500시간 (하루 16시간+)
+  - 영업시간 12시간이면 충분!
+  
+- **초과 시**
+  - $5/월 유료 플랜
+
+---
+
+## 🎯 최종 확인
+
+1. ✅ GitHub에 코드 업로드
+2. ✅ Railway 배포
+3. ✅ 도메인 생성
+4. ✅ 영업시간 외 테스트: 주소 접속 → "현재 영업시간이 아닙니다" 표시
+5. ✅ 영업시간 내 테스트: 정상 주문 가능
+
+---
+
+## 📞 다음 단계
+
+1. 고객에게 주소 공유
+2. POS에서 주문 확인
+3. 배달 현황 관리
+4. 데이터 확인
+
+**완료! 24시간 작동하는 주문 시스템이 완성되었습니다!** 🎉
+
+---
+
+## 💡 추가 팁
+
+### 코드 수정 후 재배포
+```bash
+git add .
+git commit -m "수정 내용"
+git push
+```
+→ Railway가 자동으로 재배포! ✨
+
+### 영업시간 변경
+`backend/server.js` 수정 → GitHub 푸시 → 자동 재배포
+
+### 데이터베이스 확인
+Railway 대시보드 → Data → SQLite 파일 다운로드
+
