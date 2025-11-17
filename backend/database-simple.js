@@ -75,6 +75,7 @@ class DB {
   async createOrder(orderData) {
     const order = {
       id: this.orders.length + 1,
+      userid: orderData.userId || null,
       ...orderData,
       createdat: new Date()
     };

@@ -215,8 +215,12 @@ function updateUserInfo() {
     userInfoDiv.style.display = 'block';
     document.getElementById('user-name').textContent = currentUser.name;
     document.getElementById('user-points').textContent = currentUser.points;
+    
+    // sessionStorage에 저장 (마이페이지에서 사용)
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
   } else {
     userInfoDiv.style.display = 'none';
+    sessionStorage.removeItem('currentUser');
   }
 }
 
@@ -329,27 +333,42 @@ function renderCart() {
   const pointSection = document.getElementById('point-section');
   const earnPointsInfo = document.getElementById('earn-points-info');
   
-  if (currentUser && !isGuest) {
+  if (currentUser && !isGuest && pointSection && earnPointsInfo) {
     // 회원: 포인트 사용 섹션 표시
     pointSection.style.display = 'block';
     earnPointsInfo.style.display = 'block';
     
     const maxPoints = Math.min(currentUser.points, itemsTotal);
-    document.getElementById('use-points').max = maxPoints;
-    document.getElementById('use-points').value = usedPoints;
+    const usePointsInput = document.getElementById('use-points');
+    if (usePointsInput) {
+      usePointsInput.max = maxPoints;
+      usePointsInput.value = usedPoints;
+    }
     
     const finalAmount = itemsTotal - usedPoints;
     const earnPoints = Math.floor(finalAmount * 0.07);
     
     // 보유 포인트 표시
-    document.getElementById('user-points-display').textContent = currentUser.points.toLocaleString() + 'P';
-    document.getElementById('used-points-display').textContent = '-' + usedPoints.toLocaleString() + 'P';
+    const userPointsDisplay = document.getElementById('user-points-display');
+    if (userPointsDisplay) {
+      userPointsDisplay.textContent = currentUser.points.toLocaleString() + 'P';
+    }
+    
+    const usedPointsDisplay = document.getElementById('used-points-display');
+    if (usedPointsDisplay) {
+      usedPointsDisplay.textContent = '-' + usedPoints.toLocaleString() + 'P';
+    }
+    
     document.getElementById('total-price').textContent = finalAmount.toLocaleString() + '원';
-    document.getElementById('earn-points').textContent = earnPoints.toLocaleString();
+    
+    const earnPointsElem = document.getElementById('earn-points');
+    if (earnPointsElem) {
+      earnPointsElem.textContent = earnPoints.toLocaleString();
+    }
   } else {
     // 비회원: 포인트 섹션 숨김
-    pointSection.style.display = 'none';
-    earnPointsInfo.style.display = 'none';
+    if (pointSection) pointSection.style.display = 'none';
+    if (earnPointsInfo) earnPointsInfo.style.display = 'none';
     usedPoints = 0;
     document.getElementById('total-price').textContent = itemsTotal.toLocaleString() + '원';
   }
@@ -357,20 +376,41 @@ function renderCart() {
 
 // 포인트 적용
 function applyPoints() {
-  const inputPoints = parseInt(document.getElementById('use-points').value) || 0;
+  if (!currentUser || isGuest) {
+    alert('회원만 포인트를 사용할 수 있습니다.');
+    return;
+  }
+
+  const usePointsInput = document.getElementById('use-points');
+  if (!usePointsInput) {
+    console.error('❌ 포인트 입력 필드를 찾을 수 없습니다.');
+    return;
+  }
+
+  const inputPoints = parseInt(usePointsInput.value) || 0;
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const maxPoints = Math.min(currentUser.points, itemsTotal);
+
+  console.log('🔍 포인트 적용 시도:', {
+    입력포인트: inputPoints,
+    보유포인트: currentUser.points,
+    상품금액: itemsTotal,
+    최대사용가능: maxPoints
+  });
 
   if (inputPoints > maxPoints) {
     alert(`최대 ${maxPoints.toLocaleString()}P까지 사용 가능합니다.`);
     usedPoints = maxPoints;
+    usePointsInput.value = maxPoints;
   } else if (inputPoints < 0) {
     alert('0P 이상 입력해주세요.');
     usedPoints = 0;
+    usePointsInput.value = 0;
   } else {
     usedPoints = inputPoints;
   }
 
+  console.log('✅ 포인트 적용 완료:', usedPoints, 'P');
   renderCart();
 }
 

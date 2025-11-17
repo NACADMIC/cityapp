@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 주문 내역 - 시티반점</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 1.5em;
+      color: #d32f2f;
+    }
+
+    .back-btn {
+      background: #757575;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .user-info {
+      background: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      color: #e65100;
+    }
+
+    .user-info h2 {
+      font-size: 1.3em;
+      margin-bottom: 10px;
+    }
+
+    .user-info .points {
+      font-size: 2em;
+      font-weight: 700;
+      margin: 10px 0;
+    }
+
+    .orders-list {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+
+    .orders-list h2 {
+      color: #d32f2f;
+      margin-bottom: 20px;
+      font-size: 1.3em;
+    }
+
+    .order-card {
+      border: 2px solid #f0f0f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 15px;
+      transition: all 0.3s;
+    }
+
+    .order-card:hover {
+      border-color: #d32f2f;
+      box-shadow: 0 4px 15px rgba(211, 47, 47, 0.2);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 2px dashed #f0f0f0;
+    }
+
+    .order-id {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #d32f2f;
+      font-family: monospace;
+    }
+
+    .order-status {
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      font-weight: 600;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-accepted, .status-preparing {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-delivering {
+      background: #cfe2ff;
+      color: #084298;
+    }
+
+    .status-completed {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .order-info {
+      margin-bottom: 10px;
+      color: #666;
+    }
+
+    .order-items {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .order-item:last-child {
+      border-bottom: none;
+    }
+
+    .order-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 15px;
+      border-top: 2px solid #f0f0f0;
+      font-size: 1.2em;
+      font-weight: 700;
+    }
+
+    .btn-track {
+      background: #2196f3;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 10px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-icon {
+      font-size: 4em;
+      margin-bottom: 20px;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 1.1em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏮 내 주문 내역</h1>
+      <a href="/order-new" class="back-btn">← 메뉴로</a>
+    </div>
+
+    <div class="user-info">
+      <h2>👤 <span id="user-name">-</span>님</h2>
+      <div class="points">💰 <span id="user-points">0</span>P</div>
+      <p style="font-size: 0.9em;">다음 주문부터 사용 가능합니다!</p>
+    </div>
+
+    <div class="orders-list">
+      <h2>📦 주문 내역</h2>
+      <div id="orders-container">
+        <div class="loading">⏳ 주문 내역을 불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 로그인 확인
+    const currentUserData = sessionStorage.getItem('currentUser');
+    if (!currentUserData) {
+      alert('로그인이 필요합니다.');
+      window.location.href = '/order-new';
+    }
+
+    const currentUser = JSON.parse(currentUserData);
+
+    // 사용자 정보 표시
+    document.getElementById('user-name').textContent = currentUser.name;
+    document.getElementById('user-points').textContent = currentUser.points.toLocaleString();
+
+    // 상태 한글 변환
+    function getStatusText(status) {
+      const statusMap = {
+        'pending': '주문 접수',
+        'accepted': '주문 확인',
+        'preparing': '조리 중',
+        'delivering': '배달 중',
+        'completed': '배달 완료'
+      };
+      return statusMap[status] || status;
+    }
+
+    // 주문 내역 로드
+    async function loadOrders() {
+      try {
+        const res = await fetch(`/api/orders/user/${currentUser.userId}`);
+        const data = await res.json();
+
+        const container = document.getElementById('orders-container');
+
+        if (data.success && data.orders && data.orders.length > 0) {
+          container.innerHTML = data.orders.map(order => {
+            const orderId = order.orderid || order.orderId;
+            const status = order.status || 'pending';
+            const totalPrice = order.totalprice || order.totalAmount || 0;
+            const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+            const createdAt = new Date(order.createdat || order.createdAt);
+            const usedPoints = order.usedpoints || order.usedPoints || 0;
+            const earnedPoints = order.earnedpoints || order.earnedPoints || 0;
+
+            return `
+              <div class="order-card">
+                <div class="order-header">
+                  <div class="order-id">${orderId}</div>
+                  <div class="order-status status-${status}">${getStatusText(status)}</div>
+                </div>
+
+                <div class="order-info">
+                  📅 ${createdAt.toLocaleString('ko-KR')}
+                </div>
+
+                <div class="order-info">
+                  📍 ${order.address}
+                </div>
+
+                <div class="order-items">
+                  ${items.map(item => `
+                    <div class="order-item">
+                      <span>${item.name} x ${item.quantity}</span>
+                      <span>${((item.price || 0) * item.quantity).toLocaleString()}원</span>
+                    </div>
+                  `).join('')}
+                </div>
+
+                ${usedPoints > 0 ? `
+                  <div class="order-info" style="color: #f57c00; font-weight: 600;">
+                    💰 포인트 사용: -${usedPoints.toLocaleString()}P
+                  </div>
+                ` : ''}
+
+                ${earnedPoints > 0 ? `
+                  <div class="order-info" style="color: #4caf50; font-weight: 600;">
+                    🎁 포인트 적립: +${earnedPoints.toLocaleString()}P
+                  </div>
+                ` : ''}
+
+                <div class="order-total">
+                  <span>결제 금액</span>
+                  <span style="color: #d32f2f;">${totalPrice.toLocaleString()}원</span>
+                </div>
+
+                ${status !== 'completed' ? `
+                  <a href="/track?orderId=${orderId}" class="btn-track">🚚 배달 현황 보기</a>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        } else {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">📦</div>
+              <p>아직 주문 내역이 없습니다.</p>
+              <p style="margin-top: 10px; font-size: 0.9em;">첫 주문을 시작해보세요!</p>
+            </div>
+          `;
+        }
+      } catch (err) {
+        console.error('주문 내역 로드 오류:', err);
+        document.getElementById('orders-container').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <p>주문 내역을 불러올 수 없습니다.</p>
+          </div>
+        `;
+      }
+    }
+
+    // 페이지 로드 시 주문 내역 불러오기
+    loadOrders();
+  </script>
+</body>
+</html>
+

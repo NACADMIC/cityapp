@@ -387,9 +387,9 @@ function startNotificationLoop() {
   // 기존 반복 정지
   stopNotificationLoop();
   
-  console.log('🔁 알림 반복 시작 (15초 간격)');
+  console.log('🔁 알림 반복 시작 (5초 간격)');
   
-  // 15초마다 반복 (더 자주)
+  // 5초마다 반복
   notificationInterval = setInterval(() => {
     if (currentPendingOrder && voiceEnabled) {
       // 음성이 재생 중이어도 강제로 정지하고 다시 재생
@@ -400,7 +400,7 @@ function startNotificationLoop() {
       console.log('📢 대기 중인 주문:', orderQueue.length, '개');
       playVoiceFile(currentPendingOrder);
     }
-  }, 15000); // 15초로 단축
+  }, 5000); // 5초
 }
 
 // 알림 반복 정지

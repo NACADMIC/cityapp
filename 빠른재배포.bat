@@ -1,31 +1,21 @@
 @echo off
-chcp 65001 >nul 2>&1
-cls
+chcp 65001
 echo.
-echo ============================================
-echo   Quick Deploy
-echo ============================================
+echo ====================================
+echo 빠른 재배포
+echo ====================================
 echo.
 
-cd /d "%~dp0"
+cd /d "C:\Users\j\시티반점앱"
 
-echo [1] Git add...
-git add . 2>&1
-
-echo.
-echo [2] Git commit...
-git commit -m "Fix public path" 2>&1
+git add .
+git commit -m "음성5초+포인트수정"
+git push origin main
 
 echo.
-echo [3] Git push...
-git push 2>&1
-
-echo.
-echo ============================================
-echo DONE!
-echo ============================================
-echo.
-echo Railway auto-deploy in 2-3 minutes
+echo ====================================
+echo 재배포 완료!
+echo Railway에서 자동 배포 중...
+echo ====================================
 echo.
 pause
-

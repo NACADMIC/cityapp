@@ -304,6 +304,19 @@
     </div>
   </div>
 
+  <script>
+    // URL에서 orderId 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderIdParam = urlParams.get('orderId');
+    
+    if (orderIdParam) {
+      // orderId가 있으면 자동으로 입력하고 조회
+      window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('order-id-input').value = orderIdParam;
+        document.getElementById('search-form-orderid').dispatchEvent(new Event('submit'));
+      });
+    }
+  </script>
   <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
   <script>
     const socket = io();
