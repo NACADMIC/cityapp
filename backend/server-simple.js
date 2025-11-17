@@ -17,6 +17,11 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
+// 기본 경로 리다이렉트
+app.get('/', (req, res) => {
+  res.redirect('/order-new');
+});
+
 const db = new Database();
 
 console.log('✅ 메모리 DB 사용 (Railway 최적화)');

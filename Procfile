@@ -1,2 +1,1 @@
-web: node backend/server.js
-
+web: cd backend && node server-simple.js
