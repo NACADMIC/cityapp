@@ -14,7 +14,7 @@ git add . 2>&1
 
 echo.
 echo [2] Git commit...
-git commit -m "Fix root route" 2>&1
+git commit -m "Fix public path" 2>&1
 
 echo.
 echo [3] Git push...

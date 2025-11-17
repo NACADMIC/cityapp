@@ -6,6 +6,7 @@ const bodyParser = require('body-parser');
 const { v4: uuidv4 } = require('uuid');
 const Database = require('./database-simple');
 const os = require('os');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,7 +16,7 @@ const io = socketIo(server, {
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 기본 경로 리다이렉트
 app.get('/', (req, res) => {
