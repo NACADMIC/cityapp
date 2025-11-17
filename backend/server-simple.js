@@ -36,8 +36,10 @@ const businessHours = {
 };
 
 function isBusinessHours() {
+  // 한국 시간으로 변환 (UTC+9)
   const now = new Date();
-  const hour = now.getHours();
+  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const hour = koreaTime.getHours();
   return hour >= businessHours.open && hour < businessHours.close;
 }
 
