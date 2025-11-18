@@ -257,7 +257,11 @@ function renderMenu(category = 'all') {
   menuList.innerHTML = filtered.map(item => `
     <div class="menu-item" onclick="addToCart(${item.id})">
       ${item.bestseller ? '<span class="bestseller">인기</span>' : ''}
-      <div class="emoji">${item.emoji || '🍜'}</div>
+      ${item.image 
+        ? `<img src="${item.image}" alt="${item.name}" class="menu-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+           <div class="emoji" style="display:none;">${item.emoji || '🍜'}</div>`
+        : `<div class="emoji">${item.emoji || '🍜'}</div>`
+      }
       <h3>${item.name}</h3>
       <p class="price">${item.price.toLocaleString()}원</p>
     </div>
@@ -351,12 +355,19 @@ function renderCart() {
     // 보유 포인트 표시
     const userPointsDisplay = document.getElementById('user-points-display');
     if (userPointsDisplay) {
-      userPointsDisplay.textContent = currentUser.points.toLocaleString() + 'P';
+      userPointsDisplay.textContent = currentUser.points.toLocaleString();
     }
     
+    // 사용 포인트 표시
     const usedPointsDisplay = document.getElementById('used-points-display');
     if (usedPointsDisplay) {
-      usedPointsDisplay.textContent = '-' + usedPoints.toLocaleString() + 'P';
+      usedPointsDisplay.textContent = usedPoints.toLocaleString();
+    }
+    
+    // 최대 사용 가능 포인트 표시
+    const maxPointsDisplay = document.getElementById('max-points-display');
+    if (maxPointsDisplay) {
+      maxPointsDisplay.textContent = maxPoints.toLocaleString();
     }
     
     document.getElementById('total-price').textContent = finalAmount.toLocaleString() + '원';
@@ -371,6 +382,23 @@ function renderCart() {
     if (earnPointsInfo) earnPointsInfo.style.display = 'none';
     usedPoints = 0;
     document.getElementById('total-price').textContent = itemsTotal.toLocaleString() + '원';
+  }
+}
+
+// 빠른 포인트 입력
+function quickPoints(amount) {
+  if (!currentUser || isGuest) return;
+  
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const maxPoints = Math.min(currentUser.points, itemsTotal);
+  const usePointsInput = document.getElementById('use-points');
+  
+  if (amount === 'all') {
+    usePointsInput.value = maxPoints;
+  } else {
+    const current = parseInt(usePointsInput.value) || 0;
+    const newAmount = Math.min(current + amount, maxPoints);
+    usePointsInput.value = newAmount;
   }
 }
 

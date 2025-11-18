@@ -126,7 +126,7 @@
   <div id="menu-screen" class="screen">
     <div class="header">
       <button class="back-btn" onclick="logout()">로그아웃</button>
-      <h1>🏮 시티반점</h1>
+      <h1 onclick="location.reload()">🏮 시티반점</h1>
       <button class="cart-btn" onclick="showCart()">
         🛒 <span id="cart-count">0</span>
       </button>
@@ -142,9 +142,13 @@
 
     <div class="category-tabs">
       <button class="category-tab active" data-category="all">전체</button>
+      <button class="category-tab" data-category="오늘의메뉴">오늘의메뉴</button>
+      <button class="category-tab" data-category="추천메뉴">추천메뉴</button>
       <button class="category-tab" data-category="면류">면류</button>
-      <button class="category-tab" data-category="요리">요리</button>
       <button class="category-tab" data-category="밥류">밥류</button>
+      <button class="category-tab" data-category="디저트">디저트</button>
+      <button class="category-tab" data-category="음료">음료</button>
+      <button class="category-tab" data-category="주류">주류</button>
     </div>
 
     <div class="container">
@@ -158,7 +162,10 @@
   <!-- Cart Screen -->
   <div id="cart-screen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="showMenu()">← 메뉴</button>
+      <div class="header-btns">
+        <button class="back-btn" onclick="showMenu()">← 뒤로</button>
+        <button class="home-btn" onclick="location.reload()">🏠 홈</button>
+      </div>
       <h1>장바구니</h1>
       <div></div>
     </div>
@@ -172,24 +179,31 @@
           <span id="items-total">0원</span>
         </div>
         
-        <div id="point-section" style="display: none; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 20px; border-radius: 12px; margin: 15px 0; border: 2px solid #4caf50;">
-          <div style="text-align: center; margin-bottom: 15px;">
-            <p style="font-size: 14px; color: #2e7d32; margin-bottom: 5px;">💳 내 포인트</p>
-            <p style="font-size: 28px; font-weight: 700; color: #1b5e20; margin: 0;">
-              <span id="user-points-display">0P</span>
-            </p>
+        <div id="point-section" class="point-section" style="display: none;">
+          <div class="point-header">
+            <div>
+              <p class="point-label">💰 보유 포인트</p>
+              <p class="point-amount"><span id="user-points-display">0</span>P</p>
+            </div>
+            <div>
+              <p class="point-label" style="color: #FF6B6B;">사용할 포인트</p>
+              <p class="point-amount" style="color: #FF6B6B;"><span id="used-points-display">0</span>P</p>
+            </div>
           </div>
-          <div class="summary-row" style="margin-bottom: 10px;">
-            <span style="color: #d32f2f; font-weight: 600;">포인트 사용</span>
-            <span id="used-points-display" style="color: #d32f2f; font-weight: 600;">0P</span>
+          
+          <div class="point-input-group">
+            <input type="number" id="use-points" placeholder="포인트 입력" min="0" max="0">
+            <button onclick="applyPoints()" class="point-apply-btn">적용</button>
           </div>
-          <div class="form-group" style="display: flex; gap: 10px; margin: 0;">
-            <input type="number" id="use-points" placeholder="사용할 포인트 입력" min="0" max="0" style="flex: 1; padding: 12px; border: 2px solid #4caf50; border-radius: 8px; font-size: 16px;">
-            <button class="btn btn-small" onclick="applyPoints()" style="background: #4caf50; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap;">적용</button>
+          
+          <div class="point-quick-btns">
+            <button onclick="quickPoints(1000)">+1천</button>
+            <button onclick="quickPoints(3000)">+3천</button>
+            <button onclick="quickPoints(5000)">+5천</button>
+            <button onclick="quickPoints('all')">전액</button>
           </div>
-          <p style="font-size: 12px; color: #2e7d32; margin-top: 10px; text-align: center;">
-            💡 1P = 1원으로 사용 가능합니다
-          </p>
+          
+          <p class="point-info">💡 1P = 1원 | 최대 <span id="max-points-display">0</span>P 사용 가능</p>
         </div>
 
         <div class="summary-total">
@@ -210,7 +224,10 @@
   <!-- Checkout Screen -->
   <div id="checkout-screen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="showCart()">← 뒤로</button>
+      <div class="header-btns">
+        <button class="back-btn" onclick="showCart()">← 뒤로</button>
+        <button class="home-btn" onclick="location.reload()">🏠 홈</button>
+      </div>
       <h1>주문 정보</h1>
       <div></div>
     </div>
