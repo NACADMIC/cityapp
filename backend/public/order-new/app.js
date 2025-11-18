@@ -674,6 +674,48 @@ document.getElementById('reset-password-form').addEventListener('submit', async 
   }
 });
 
+// Bottom Navigation Functions
+function goHome() {
+  showMenu();
+  updateNavActive('home');
+}
+
+function goToCart() {
+  showCart();
+  updateNavActive('cart');
+}
+
+function goToMyPage() {
+  const currentUserData = sessionStorage.getItem('currentUser');
+  if (!currentUserData) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    const user = JSON.parse(currentUserData);
+    if (user && user.userId) {
+      window.location.href = '/mypage';
+    } else {
+      alert('로그인 정보가 올바르지 않습니다.');
+    }
+  } catch (e) {
+    alert('로그인이 필요합니다.');
+  }
+}
+
+function updateNavActive(active) {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  if (active === 'home') {
+    document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  } else if (active === 'cart') {
+    document.querySelectorAll('.nav-btn')[2].classList.add('active');
+  }
+}
+
 // Initial screen - 영업시간 체크 후 시작
 (async function init() {
   const isOpen = await checkBusinessHours();
