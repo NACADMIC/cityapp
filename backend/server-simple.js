@@ -381,6 +381,117 @@ app.get('/api/orders/user/:userId', async (req, res) => {
   }
 });
 
+// 테스트 데이터 생성 (Railway용)
+function generateTestData() {
+  console.log('🎲 테스트 데이터 생성 시작...\n');
+  
+  const names = ['김민수', '이영희', '박철수', '정수진', '최동욱', '강미정', '윤지훈', '임소연', '한준호', '오세영'];
+  const regions = [
+    { name: '공도읍', weight: 50 },
+    { name: '미양면', weight: 25 },
+    { name: '대덕면', weight: 15 },
+    { name: '양성면', weight: 10 }
+  ];
+  const addresses = {
+    '공도읍': ['경기도 안성시 공도읍 만정리 123-45', '경기도 안성시 공도읍 진사리 234-56'],
+    '미양면': ['경기도 안성시 미양면 개소리 111-22', '경기도 안성시 미양면 대신리 222-33'],
+    '대덕면': ['경기도 안성시 대덕면 모산리 444-55', '경기도 안성시 대덕면 건지리 555-66'],
+    '양성면': ['경기도 안성시 양성면 덕봉리 777-88', '경기도 안성시 양성면 동항리 888-99']
+  };
+  
+  function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+  
+  function selectRegion() {
+    const totalWeight = regions.reduce((sum, r) => sum + r.weight, 0);
+    let rand = random(1, totalWeight);
+    for (const region of regions) {
+      rand -= region.weight;
+      if (rand <= 0) return region.name;
+    }
+    return regions[0].name;
+  }
+  
+  // 회원 10명 생성
+  console.log('👥 회원 생성 중...');
+  const testUserIds = [];
+  for (let i = 0; i < 10; i++) {
+    const phone = `010-9000-${String(i + 1).padStart(4, '0')}`;
+    const name = names[i];
+    const user = db.createUser(phone, name);
+    testUserIds.push(user.id);
+    console.log(`✅ ${name} (${phone})`);
+  }
+  
+  // 주문 생성 (최근 60일)
+  console.log('\n📦 주문 생성 중...');
+  const menus = db.getAllMenu();
+  let totalOrders = 0;
+  
+  for (let day = 0; day < 60; day++) {
+    const ordersPerDay = random(3, 8);
+    
+    for (let i = 0; i < ordersPerDay; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - day);
+      date.setHours(random(11, 20), random(0, 59), random(0, 59));
+      
+      const region = selectRegion();
+      const address = addresses[region][random(0, addresses[region].length - 1)];
+      const customerName = names[random(0, names.length - 1)];
+      const phone = `010-${random(1000, 9999)}-${random(1000, 9999)}`;
+      const userId = random(0, 100) < 70 ? testUserIds[random(0, testUserIds.length - 1)] : null;
+      
+      // 랜덤 메뉴 선택
+      const itemCount = random(1, 4);
+      const items = [];
+      for (let j = 0; j < itemCount; j++) {
+        const menu = menus[random(0, menus.length - 1)];
+        items.push({
+          id: menu.id,
+          name: menu.name,
+          price: menu.price,
+          quantity: random(1, 3)
+        });
+      }
+      
+      const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const usedPoints = userId && random(0, 100) < 30 ? random(0, Math.min(3000, totalAmount)) : 0;
+      const finalAmount = totalAmount - usedPoints;
+      const earnedPoints = userId ? Math.floor(finalAmount * 0.10) : 0;
+      
+      const orderData = {
+        orderId: 'TEST-' + Date.now() + '-' + random(1000, 9999),
+        userId: userId,
+        customerName,
+        phone,
+        address,
+        items,
+        totalAmount: finalAmount,
+        usedPoints,
+        earnedPoints,
+        paymentMethod: random(0, 100) < 60 ? 'card' : 'cash',
+        status: 'completed',
+        createdAt: date.getTime()
+      };
+      
+      db.createOrder(orderData);
+      
+      if (userId && usedPoints > 0) {
+        db.addPoints(userId, -usedPoints);
+      }
+      if (userId && earnedPoints > 0) {
+        db.addPoints(userId, earnedPoints);
+      }
+      
+      totalOrders++;
+    }
+  }
+  
+  console.log(`\n✅ 완료! 총 ${totalOrders}건의 주문 생성됨\n`);
+}
+
 // 서버 시작
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
@@ -392,5 +503,10 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  환경:', process.env.RAILWAY_ENVIRONMENT || '로컬');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('\n');
+  
+  // Railway 환경에서만 테스트 데이터 생성
+  if (process.env.RAILWAY_ENVIRONMENT || process.env.PORT) {
+    generateTestData();
+  }
 });
 
