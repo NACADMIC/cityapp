@@ -441,6 +441,18 @@ app.get('/api/orders/user/:userId', async (req, res) => {
   }
 });
 
+// API: 포인트 내역 조회
+app.get('/api/points/history/:userId', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    const history = await db.getPointHistory(userId);
+    res.json({ success: true, history: history || [] });
+  } catch (error) {
+    console.error('포인트 내역 조회 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ========== 통계 및 분석 API ==========
 
 // API: 실시간 대시보드

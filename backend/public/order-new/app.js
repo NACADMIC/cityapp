@@ -800,13 +800,8 @@ function goToOrderHistory() {
   
   // 먼저 전역 변수 체크
   if (currentUser && currentUser.userId) {
-    console.log('✅ 전역 변수로 이동');
-    try {
-      window.location.assign('/mypage?tab=orders');
-    } catch (e) {
-      console.error('페이지 이동 오류:', e);
-      window.location.href = '/mypage';
-    }
+    console.log('✅ 전역 변수로 이동 - 주문내역');
+    window.location.href = '/mypage?tab=orders';
     return;
   }
   
@@ -821,13 +816,8 @@ function goToOrderHistory() {
   try {
     const user = JSON.parse(currentUserData);
     if (user && user.userId) {
-      console.log('✅ 세션 데이터로 이동');
-      try {
-        window.location.assign('/mypage?tab=orders');
-      } catch (e) {
-        console.error('페이지 이동 오류:', e);
-        window.location.href = '/mypage';
-      }
+      console.log('✅ 세션 데이터로 이동 - 주문내역');
+      window.location.href = '/mypage?tab=orders';
     } else {
       alert('로그인 정보가 올바르지 않습니다.');
     }

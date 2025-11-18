@@ -493,7 +493,7 @@
       <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
       <span class="nav-label">홈</span>
     </button>
-    <button type="button" class="nav-btn active" onclick="scrollToOrders()">
+    <button type="button" class="nav-btn" id="nav-orders" onclick="scrollToOrders()">
       <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
       <span class="nav-label">주문내역</span>
     </button>
@@ -501,7 +501,7 @@
       <span class="nav-icon"><i class="fa-solid fa-cart-shopping"></i></span>
       <span class="nav-label">장바구니</span>
     </button>
-    <button type="button" class="nav-btn" onclick="scrollToTop()">
+    <button type="button" class="nav-btn active" id="nav-profile" onclick="scrollToTop()">
       <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
       <span class="nav-label">마이시티</span>
     </button>
@@ -547,6 +547,16 @@
       try {
         // 사용자 정보 가져오기
         const userRes = await fetch(`/api/auth/me/${userId}`);
+        
+        // 응답이 JSON인지 확인
+        const contentType = userRes.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await userRes.text();
+          console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+          alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.');
+          return;
+        }
+        
         const userData = await userRes.json();
         
         if (!userData.success) {
@@ -574,25 +584,48 @@
 
         // 주문 내역 가져오기
         const ordersRes = await fetch(`/api/orders/user/${userId}`);
-        const ordersData = await ordersRes.json();
         
-        if (!ordersData.success) {
+        // 응답이 JSON인지 확인
+        const ordersContentType = ordersRes.headers.get('content-type');
+        if (!ordersContentType || !ordersContentType.includes('application/json')) {
+          const text = await ordersRes.text();
+          console.error('❌ 주문 내역 JSON이 아닌 응답:', text.substring(0, 200));
           document.getElementById('orders-list').innerHTML = '<div class="no-orders">주문 내역을 불러올 수 없습니다.</div>';
-          return;
+        } else {
+          const ordersData = await ordersRes.json();
+          
+          if (!ordersData.success) {
+            document.getElementById('orders-list').innerHTML = '<div class="no-orders">주문 내역을 불러올 수 없습니다.</div>';
+          } else {
+            displayOrders(ordersData.orders);
+          }
         }
         
-        displayOrders(ordersData.orders);
-        
         // 포인트 내역 가져오기
-        const pointHistoryRes = await fetch(`/api/points/history/${userId}`);
-        const pointHistoryData = await pointHistoryRes.json();
-        
-        if (pointHistoryData.success) {
-          displayPointHistory(pointHistoryData.history);
-        } else {
+        try {
+          const pointHistoryRes = await fetch(`/api/points/history/${userId}`);
+          
+          // 응답이 JSON인지 확인
+          const pointContentType = pointHistoryRes.headers.get('content-type');
+          if (!pointContentType || !pointContentType.includes('application/json')) {
+            const text = await pointHistoryRes.text();
+            console.error('❌ 포인트 내역 JSON이 아닌 응답:', text.substring(0, 200));
+            document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
+          } else {
+            const pointHistoryData = await pointHistoryRes.json();
+            
+            if (pointHistoryData.success) {
+              displayPointHistory(pointHistoryData.history);
+            } else {
+              document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
+            }
+          }
+        } catch (pointErr) {
+          console.error('포인트 내역 오류:', pointErr);
           document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
         }
       } catch (err) {
+        console.error('전체 오류:', err);
         alert('오류: ' + err.message);
       }
     }
@@ -732,42 +765,71 @@
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
       
       if (active === 'orders') {
-        document.querySelectorAll('.nav-btn')[1].classList.add('active');
+        const ordersBtn = document.getElementById('nav-orders');
+        if (ordersBtn) {
+          ordersBtn.classList.add('active');
+        } else {
+          // 폴백: 인덱스로 찾기
+          const navBtns = document.querySelectorAll('.nav-btn');
+          if (navBtns[1]) navBtns[1].classList.add('active');
+        }
       } else if (active === 'profile') {
-        document.querySelectorAll('.nav-btn')[3].classList.add('active');
+        const profileBtn = document.getElementById('nav-profile');
+        if (profileBtn) {
+          profileBtn.classList.add('active');
+        } else {
+          // 폴백: 인덱스로 찾기
+          const navBtns = document.querySelectorAll('.nav-btn');
+          if (navBtns[3]) navBtns[3].classList.add('active');
+        }
       }
     }
 
-    fetchUserData();
-    
-    // URL 파라미터 확인 후 스크롤
-    window.addEventListener('load', function() {
+    // URL 파라미터 확인 및 초기 탭 설정
+    function initTab() {
       const urlParams = new URLSearchParams(window.location.search);
       const tab = urlParams.get('tab');
       
+      console.log('🔍 URL 파라미터 tab:', tab);
+      
       if (tab === 'orders') {
-        // 주문내역 섹션으로 스크롤 및 탭 활성화
+        console.log('📦 주문내역 탭으로 이동');
         updateNavActive('orders');
+        // 데이터 로드 후 스크롤
         setTimeout(() => {
           const ordersSection = document.querySelector('.section-header');
           if (ordersSection) {
             ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
-        }, 500);
+        }, 1000);
       } else if (tab === 'points') {
-        // 포인트 내역 섹션으로 스크롤
+        console.log('💰 포인트 내역 탭으로 이동');
         updateNavActive('profile');
+        // 데이터 로드 후 스크롤
         setTimeout(() => {
           const pointHistorySection = document.querySelectorAll('.section-header')[1];
           if (pointHistorySection) {
             pointHistorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
-        }, 500);
+        }, 1000);
       } else {
+        console.log('👤 프로필 탭 (기본)');
         // tab=profile이면 기본 (맨 위)
         updateNavActive('profile');
       }
+    }
+    
+    fetchUserData();
+    
+    // 페이지 로드 시 탭 초기화
+    window.addEventListener('load', function() {
+      initTab();
     });
+    
+    // fetchUserData 완료 후에도 탭 초기화 (데이터 로드 대기)
+    setTimeout(() => {
+      initTab();
+    }, 1200);
     
     // 같은 메뉴 담기
     window.reorderSameMenu = async function(orderId) {
