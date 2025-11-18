@@ -25,11 +25,35 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3000;
 
-// 영업시간 설정
-const businessHours = {
+// 영업시간 설정 (기본값)
+let businessHours = {
   open: 9.5,  // 오전 9시 30분
   close: 21   // 오후 9시
 };
+
+// 영업시간을 DB에서 불러오기
+function loadBusinessHours() {
+  try {
+    // DB가 초기화되었는지 확인
+    if (db && typeof db.getBusinessHours === 'function') {
+      const saved = db.getBusinessHours();
+      if (saved && saved.open !== undefined && saved.close !== undefined) {
+        businessHours = saved;
+        console.log('✅ 영업시간 로드:', businessHours);
+        return;
+      }
+    }
+    console.log('⚠️ 영업시간 로드 실패, 기본값 사용:', businessHours);
+  } catch (e) {
+    console.log('⚠️ 영업시간 로드 오류:', e.message);
+    console.log('기본값 사용:', businessHours);
+  }
+}
+
+// DB 초기화 후 영업시간 로드 (약간의 딜레이)
+setTimeout(() => {
+  loadBusinessHours();
+}, 100);
 
 function isBusinessHours() {
   const now = new Date();
@@ -75,6 +99,29 @@ io.on('connection', (socket) => {
     });
   }
   
+  // 라이더 위치 업데이트
+  socket.on('rider-location', (data) => {
+    const { riderId, lat, lng } = data;
+    db.updateRiderLocation(riderId, lat, lng);
+    
+    // 해당 라이더가 배정된 주문 찾기
+    const orders = db.getAllOrders().filter(o => o.riderId == riderId && o.status === 'delivering');
+    orders.forEach(order => {
+      db.updateOrderRiderLocation(order.orderId, lat, lng);
+      // 예상 시간 계산 (간단한 예시)
+      const estimatedMinutes = Math.floor(Math.random() * 10) + 5;
+      db.updateOrderEstimatedTime(order.orderId, estimatedMinutes);
+      io.emit('rider-location-updated', { orderId: order.orderId, lat, lng, estimatedTime: estimatedMinutes });
+    });
+  });
+
+  // 라이더 상태 변경
+  socket.on('rider-status', (data) => {
+    const { riderId, status } = data;
+    db.updateRiderStatus(riderId, status);
+    io.emit('rider-status-changed', { riderId, status });
+  });
+  
   socket.on('disconnect', () => {
     console.log('❌ 클라이언트 연결 해제:', socket.id);
   });
@@ -89,11 +136,47 @@ app.get('/', (req, res) => {
 app.get('/api/business-hours', (req, res) => {
   const isOpen = isBusinessHours();
   const now = new Date();
+  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const hour = koreaTime.getHours();
+  const minute = koreaTime.getMinutes();
+  
+  // 시간 포맷팅
+  const formatTime = (time) => {
+    const h = Math.floor(time);
+    const m = Math.round((time - h) * 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+  
   res.json({
     isOpen,
-    currentTime: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
-    businessHours: `09:30 - 21:00`
+    currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+    businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
+    open: businessHours.open,
+    close: businessHours.close
   });
+});
+
+// API: 영업시간 설정
+app.post('/api/business-hours', (req, res) => {
+  try {
+    const { open, close } = req.body;
+    
+    if (typeof open !== 'number' || typeof close !== 'number') {
+      return res.status(400).json({ success: false, error: '잘못된 시간 형식입니다.' });
+    }
+    
+    if (open < 0 || open >= 24 || close < 0 || close > 24) {
+      return res.status(400).json({ success: false, error: '시간은 0-24 사이여야 합니다.' });
+    }
+    
+    businessHours = { open, close };
+    db.saveBusinessHours(businessHours);
+    
+    console.log('✅ 영업시간 업데이트:', businessHours);
+    res.json({ success: true, businessHours });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // API: 메뉴 조회
@@ -377,6 +460,19 @@ app.get('/api/orders/user/:userId', (req, res) => {
   }
 });
 
+// API: 라이더별 주문 조회
+app.get('/api/orders/rider/:riderId', (req, res) => {
+  try {
+    const riderId = req.params.riderId;
+    const allOrders = db.getAllOrders();
+    const orders = allOrders.filter(o => o.riderId == riderId && (o.status === 'delivering' || o.status === 'preparing'));
+    
+    res.json({ success: true, orders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 포인트 내역 조회
 app.get('/api/points/history/:userId', (req, res) => {
   try {
@@ -485,6 +581,141 @@ app.get('/api/stats/time-distribution', (req, res) => {
   try {
     const distribution = db.getTimeDistribution();
     res.json({ success: true, data: distribution });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 리 단위 통계
+app.get('/api/stats/ri', (req, res) => {
+  try {
+    const riStats = db.getOrdersByRi();
+    res.json({ success: true, data: riStats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 아파트 단지 단위 통계
+app.get('/api/stats/apartments', (req, res) => {
+  try {
+    const aptStats = db.getOrdersByApartment();
+    res.json({ success: true, data: aptStats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ========== 라이더 API ==========
+
+// API: 라이더 회원가입
+app.post('/api/riders/register', async (req, res) => {
+  try {
+    const { phone, name, password } = req.body;
+    const existing = db.getRiderByPhone(phone);
+    if (existing) {
+      return res.json({ success: false, error: '이미 등록된 전화번호입니다.' });
+    }
+    const rider = await db.createRider(phone, name, password);
+    res.json({ success: true, rider: { riderId: rider.riderId, name: rider.name, phone: rider.phone } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 라이더 로그인
+app.post('/api/riders/login', async (req, res) => {
+  try {
+    const { phone, password } = req.body;
+    const rider = db.getRiderByPhone(phone);
+    if (!rider) {
+      return res.json({ success: false, error: '등록되지 않은 라이더입니다.' });
+    }
+    const isValid = await db.verifyPassword(password, rider.password);
+    if (!isValid) {
+      return res.json({ success: false, error: '비밀번호가 일치하지 않습니다.' });
+    }
+    res.json({ success: true, rider: { riderId: rider.riderId, name: rider.name, phone: rider.phone } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 라이더 목록 조회
+app.get('/api/riders', (req, res) => {
+  try {
+    const riders = db.getAllRiders();
+    res.json({ success: true, riders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 라이더에게 배정 가능한 주문 목록
+app.get('/api/riders/orders', (req, res) => {
+  try {
+    const orders = db.getAllOrders().filter(o => 
+      o.status === 'preparing' && !o.riderId
+    );
+    res.json({ success: true, orders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 라이더 배정
+app.post('/api/orders/:orderId/assign-rider', (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { riderId } = req.body;
+    db.assignRiderToOrder(orderId, riderId);
+    db.updateRiderStatus(riderId, 'delivering');
+    io.emit('rider-assigned', { orderId, riderId });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 라이더 위치 업데이트
+app.post('/api/riders/:riderId/location', (req, res) => {
+  try {
+    const { riderId } = req.params;
+    const { lat, lng } = req.body;
+    db.updateRiderLocation(riderId, lat, lng);
+    
+    // 해당 라이더가 배정된 주문 찾기
+    const orders = db.getAllOrders().filter(o => o.riderId == riderId && o.status === 'delivering');
+    orders.forEach(order => {
+      db.updateOrderRiderLocation(order.orderId, lat, lng);
+      // 예상 시간 계산 (간단한 예시: 거리 기반)
+      const estimatedMinutes = Math.floor(Math.random() * 10) + 5; // 실제로는 거리 계산 필요
+      db.updateOrderEstimatedTime(order.orderId, estimatedMinutes);
+      io.emit('rider-location-updated', { orderId: order.orderId, lat, lng, estimatedTime: estimatedMinutes });
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 리뷰 작성
+app.post('/api/reviews', (req, res) => {
+  try {
+    const { orderId, userId, rating, comment } = req.body;
+    db.createReview(orderId, userId, rating, comment);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 주문별 리뷰 조회
+app.get('/api/reviews/order/:orderId', (req, res) => {
+  try {
+    const reviews = db.getReviewsByOrderId(req.params.orderId);
+    res.json({ success: true, reviews });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

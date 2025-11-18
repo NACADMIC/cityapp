@@ -88,6 +88,42 @@ class DB {
       )
     `);
 
+    // 라이더 테이블
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS riders (
+        riderId INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        password TEXT NOT NULL,
+        status TEXT DEFAULT 'offline',
+        currentLat REAL,
+        currentLng REAL,
+        createdAt TEXT NOT NULL
+      )
+    `);
+
+    // 주문에 라이더 정보 추가 (기존 테이블에 컬럼 추가는 SQLite에서 제한적이므로 별도 처리)
+    try {
+      this.db.exec('ALTER TABLE orders ADD COLUMN riderId INTEGER');
+      this.db.exec('ALTER TABLE orders ADD COLUMN riderLat REAL');
+      this.db.exec('ALTER TABLE orders ADD COLUMN riderLng REAL');
+      this.db.exec('ALTER TABLE orders ADD COLUMN estimatedTime INTEGER');
+    } catch (e) {
+      // 컬럼이 이미 존재하면 무시
+    }
+
+    // 리뷰 테이블
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS reviews (
+        reviewId INTEGER PRIMARY KEY AUTOINCREMENT,
+        orderId TEXT NOT NULL,
+        userId INTEGER,
+        rating INTEGER NOT NULL,
+        comment TEXT,
+        createdAt TEXT NOT NULL
+      )
+    `);
+
     // 기본 메뉴 데이터
     const count = this.db.prepare('SELECT COUNT(*) as count FROM menu').get();
     if (count.count === 0) {
@@ -185,6 +221,47 @@ class DB {
 
   addPoints(userId, points) {
     this.db.prepare('UPDATE users SET points = points + ? WHERE userId = ?').run(points, userId);
+  }
+
+  // 라이더
+  async createRider(phone, name, password) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const createdAt = new Date().toISOString();
+    const stmt = this.db.prepare('INSERT INTO riders (phone, name, password, status, createdAt) VALUES (?, ?, ?, ?, ?)');
+    const result = stmt.run(phone, name, hashedPassword, 'offline', createdAt);
+    return this.getRiderById(result.lastInsertRowid);
+  }
+
+  getRiderByPhone(phone) {
+    return this.db.prepare('SELECT * FROM riders WHERE phone = ?').get(phone);
+  }
+
+  getRiderById(riderId) {
+    return this.db.prepare('SELECT * FROM riders WHERE riderId = ?').get(riderId);
+  }
+
+  getAllRiders() {
+    return this.db.prepare('SELECT * FROM riders').all();
+  }
+
+  updateRiderLocation(riderId, lat, lng) {
+    return this.db.prepare('UPDATE riders SET currentLat = ?, currentLng = ? WHERE riderId = ?').run(lat, lng, riderId);
+  }
+
+  updateRiderStatus(riderId, status) {
+    return this.db.prepare('UPDATE riders SET status = ? WHERE riderId = ?').run(status, riderId);
+  }
+
+  assignRiderToOrder(orderId, riderId) {
+    return this.db.prepare('UPDATE orders SET riderId = ? WHERE orderId = ?').run(riderId, orderId);
+  }
+
+  updateOrderRiderLocation(orderId, lat, lng) {
+    return this.db.prepare('UPDATE orders SET riderLat = ?, riderLng = ? WHERE orderId = ?').run(lat, lng, orderId);
+  }
+
+  updateOrderEstimatedTime(orderId, minutes) {
+    return this.db.prepare('UPDATE orders SET estimatedTime = ? WHERE orderId = ?').run(minutes, orderId);
   }
 
   // 주문
@@ -404,6 +481,148 @@ class DB {
       delivering: delivering.count,
       recentOrders: recentOrders
     };
+  }
+
+  // 주소에서 리(里) 추출 (SQLite용)
+  extractRi(address) {
+    if (!address) return '기타';
+    const riMatch = address.match(/([가-힣]+리)(\s|$)/);
+    return riMatch ? riMatch[1] : '기타';
+  }
+
+  // 주소에서 아파트 단지명 추출 (SQLite용)
+  extractApartment(address) {
+    if (!address) return '기타';
+    const patterns = [
+      /([가-힣]+아파트)/, /([가-힣]+마을)/, /([가-힣]+힐스)/, /([가-힣]+타운)/,
+      /([가-힣]+빌라)/, /([가-힣]+주택)/, /([가-힣]+주공)/, /([가-힣]+단지)/,
+      /([가-힣]+APT)/i, /([가-힣]+apartment)/i
+    ];
+    for (const pattern of patterns) {
+      const match = address.match(pattern);
+      if (match) return match[1];
+    }
+    return this.extractRi(address);
+  }
+
+  // 리 단위 통계
+  getOrdersByRi() {
+    const orders = this.db.prepare(`
+      SELECT address, totalAmount, COUNT(*) as orderCount, SUM(totalAmount) as totalSales
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY address
+    `).all();
+    
+    const riMap = {};
+    orders.forEach(order => {
+      const ri = this.extractRi(order.address);
+      if (!riMap[ri]) {
+        riMap[ri] = { ri, orderCount: 0, totalSales: 0 };
+      }
+      riMap[ri].orderCount += order.orderCount;
+      riMap[ri].totalSales += order.totalSales || 0;
+    });
+    
+    return Object.values(riMap)
+      .map(r => ({
+        ...r,
+        avgOrderAmount: r.orderCount > 0 ? r.totalSales / r.orderCount : 0
+      }))
+      .sort((a, b) => b.orderCount - a.orderCount);
+  }
+
+  // 아파트 단지 단위 통계
+  getOrdersByApartment() {
+    const orders = this.db.prepare(`
+      SELECT address, customerphone, totalAmount, COUNT(*) as orderCount, SUM(totalAmount) as totalSales
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY address, customerphone
+    `).all();
+    
+    const aptMap = {};
+    const customerSet = {};
+    
+    orders.forEach(order => {
+      const apt = this.extractApartment(order.address);
+      if (!aptMap[apt]) {
+        aptMap[apt] = { apartment: apt, orderCount: 0, totalSales: 0, customerCount: new Set() };
+      }
+      aptMap[apt].orderCount += order.orderCount;
+      aptMap[apt].totalSales += order.totalSales || 0;
+      if (order.customerphone) {
+        aptMap[apt].customerCount.add(order.customerphone);
+      }
+    });
+    
+    return Object.values(aptMap)
+      .map(a => ({
+        apartment: a.apartment,
+        orderCount: a.orderCount,
+        totalSales: a.totalSales,
+        avgOrderAmount: a.orderCount > 0 ? a.totalSales / a.orderCount : 0,
+        customerCount: a.customerCount.size
+      }))
+      .sort((a, b) => b.orderCount - a.orderCount);
+  }
+
+  // 리뷰
+  createReview(orderId, userId, rating, comment) {
+    const stmt = this.db.prepare('INSERT INTO reviews (orderId, userId, rating, comment, createdAt) VALUES (?, ?, ?, ?, ?)');
+    return stmt.run(orderId, userId, rating, comment, new Date().toISOString());
+  }
+
+  getReviewsByOrderId(orderId) {
+    return this.db.prepare('SELECT * FROM reviews WHERE orderId = ? ORDER BY reviewId DESC').all(orderId);
+  }
+
+  getAverageRating() {
+    const result = this.db.prepare('SELECT AVG(rating) as avgRating, COUNT(*) as count FROM reviews').get();
+    return {
+      avgRating: result.avgRating || 0,
+      count: result.count || 0
+    };
+  }
+
+  // 영업시간 저장/조회
+  saveBusinessHours(hours) {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS business_hours (
+          id INTEGER PRIMARY KEY,
+          open_hour REAL NOT NULL,
+          close_hour REAL NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const existing = this.db.prepare('SELECT * FROM business_hours WHERE id = 1').get();
+      if (existing) {
+        this.db.prepare('UPDATE business_hours SET open_hour = ?, close_hour = ?, updated_at = ? WHERE id = 1')
+          .run(hours.open, hours.close, new Date().toISOString());
+      } else {
+        this.db.prepare('INSERT INTO business_hours (id, open_hour, close_hour, updated_at) VALUES (1, ?, ?, ?)')
+          .run(hours.open, hours.close, new Date().toISOString());
+      }
+    } catch (e) {
+      console.error('영업시간 저장 오류:', e);
+    }
+  }
+
+  getBusinessHours() {
+    try {
+      const result = this.db.prepare('SELECT * FROM business_hours WHERE id = 1').get();
+      if (result) {
+        return {
+          open: result.open_hour,
+          close: result.close_hour
+        };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 }
 

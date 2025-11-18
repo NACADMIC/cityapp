@@ -29,11 +29,35 @@ console.log('✅ 메모리 DB 사용 (Railway 최적화)');
 
 let posClients = [];
 
-// 영업시간 체크
-const businessHours = {
+// 영업시간 설정 (기본값)
+let businessHours = {
   open: 9.5,  // 오전 9시 30분
   close: 21   // 오후 9시
 };
+
+// 영업시간을 DB에서 불러오기
+function loadBusinessHours() {
+  try {
+    // DB가 초기화되었는지 확인
+    if (db && typeof db.getBusinessHours === 'function') {
+      const saved = db.getBusinessHours();
+      if (saved && saved.open !== undefined && saved.close !== undefined) {
+        businessHours = saved;
+        console.log('✅ 영업시간 로드:', businessHours);
+        return;
+      }
+    }
+    console.log('⚠️ 영업시간 로드 실패, 기본값 사용:', businessHours);
+  } catch (e) {
+    console.log('⚠️ 영업시간 로드 오류:', e.message);
+    console.log('기본값 사용:', businessHours);
+  }
+}
+
+// DB 초기화 후 영업시간 로드 (약간의 딜레이)
+setTimeout(() => {
+  loadBusinessHours();
+}, 100);
 
 function isBusinessHours() {
   // 한국 시간으로 변환 (UTC+9)
@@ -49,11 +73,47 @@ function isBusinessHours() {
 app.get('/api/business-hours', (req, res) => {
   const isOpen = isBusinessHours();
   const now = new Date();
+  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const hour = koreaTime.getHours();
+  const minute = koreaTime.getMinutes();
+  
+  // 시간 포맷팅
+  const formatTime = (time) => {
+    const h = Math.floor(time);
+    const m = Math.round((time - h) * 60);
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+  
   res.json({
     isOpen,
-    currentTime: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
-    businessHours: `09:30 - 21:00`
+    currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+    businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
+    open: businessHours.open,
+    close: businessHours.close
   });
+});
+
+// API: 영업시간 설정
+app.post('/api/business-hours', (req, res) => {
+  try {
+    const { open, close } = req.body;
+    
+    if (typeof open !== 'number' || typeof close !== 'number') {
+      return res.status(400).json({ success: false, error: '잘못된 시간 형식입니다.' });
+    }
+    
+    if (open < 0 || open >= 24 || close < 0 || close > 24) {
+      return res.status(400).json({ success: false, error: '시간은 0-24 사이여야 합니다.' });
+    }
+    
+    businessHours = { open, close };
+    db.saveBusinessHours(businessHours);
+    
+    console.log('✅ 영업시간 업데이트:', businessHours);
+    res.json({ success: true, businessHours });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Socket.io
@@ -464,6 +524,26 @@ app.get('/api/stats/time-distribution', (req, res) => {
   try {
     const distribution = db.getTimeDistribution();
     res.json({ success: true, data: distribution });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 리 단위 통계
+app.get('/api/stats/ri', (req, res) => {
+  try {
+    const riStats = db.getOrdersByRi();
+    res.json({ success: true, data: riStats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 아파트 단지 단위 통계
+app.get('/api/stats/apartments', (req, res) => {
+  try {
+    const aptStats = db.getOrdersByApartment();
+    res.json({ success: true, data: aptStats });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

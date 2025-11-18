@@ -6,6 +6,7 @@ class DB {
     this.orders = [];
     this.pointHistory = [];
     this.phoneVerification = [];
+    this.businessHours = null;
     this.initialized = false;
     this.init();
   }
@@ -508,6 +509,133 @@ class DB {
       delivering,
       recentOrders
     };
+  }
+
+  // 주소에서 리(里) 추출
+  extractRi(address) {
+    if (!address) return '기타';
+    
+    // 리 패턴 찾기: "만정리", "진사리", "개소리" 등
+    const riMatch = address.match(/([가-힣]+리)(\s|$)/);
+    if (riMatch) {
+      return riMatch[1]; // "만정리"
+    }
+    
+    return '기타';
+  }
+
+  // 주소에서 아파트 단지명 추출
+  extractApartment(address) {
+    if (!address) return '기타';
+    
+    // 아파트 패턴 찾기
+    const patterns = [
+      /([가-힣]+아파트)/,           // "공도아파트"
+      /([가-힣]+마을)/,              // "만정마을"
+      /([가-힣]+힐스)/,              // "공도힐스"
+      /([가-힣]+타운)/,              // "공도타운"
+      /([가-힣]+빌라)/,              // "공도빌라"
+      /([가-힣]+주택)/,              // "공도주택"
+      /([가-힣]+주공)/,              // "공도주공"
+      /([가-힣]+단지)/,              // "공도단지"
+      /([가-힣]+APT)/i,              // "공도APT"
+      /([가-힣]+apartment)/i         // "공도apartment"
+    ];
+    
+    for (const pattern of patterns) {
+      const match = address.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    
+    // 아파트 단지명이 없으면 리 단위로 분류
+    return this.extractRi(address);
+  }
+
+  // 리 단위 통계
+  getOrdersByRi() {
+    const riMap = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        const address = order.address || '';
+        const ri = this.extractRi(address);
+        
+        if (!riMap[ri]) {
+          riMap[ri] = {
+            ri,
+            orderCount: 0,
+            totalSales: 0,
+            avgOrderAmount: 0
+          };
+        }
+        
+        riMap[ri].orderCount++;
+        riMap[ri].totalSales += order.totalprice || order.totalAmount || 0;
+      });
+    
+    return Object.values(riMap)
+      .map(r => ({
+        ...r,
+        avgOrderAmount: r.orderCount > 0 ? r.totalSales / r.orderCount : 0
+      }))
+      .sort((a, b) => b.orderCount - a.orderCount);
+  }
+
+  // 아파트 단지 단위 통계
+  getOrdersByApartment() {
+    const aptMap = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        const address = order.address || '';
+        const apt = this.extractApartment(address);
+        
+        if (!aptMap[apt]) {
+          aptMap[apt] = {
+            apartment: apt,
+            orderCount: 0,
+            totalSales: 0,
+            avgOrderAmount: 0,
+            customerCount: new Set()
+          };
+        }
+        
+        aptMap[apt].orderCount++;
+        aptMap[apt].totalSales += order.totalprice || order.totalAmount || 0;
+        
+        // 고객 수 계산 (전화번호 기준)
+        const phone = order.customerphone || order.phone || '';
+        if (phone) {
+          aptMap[apt].customerCount.add(phone);
+        }
+      });
+    
+    return Object.values(aptMap)
+      .map(a => ({
+        apartment: a.apartment,
+        orderCount: a.orderCount,
+        totalSales: a.totalSales,
+        avgOrderAmount: a.orderCount > 0 ? a.totalSales / a.orderCount : 0,
+        customerCount: a.customerCount.size
+      }))
+      .sort((a, b) => b.orderCount - a.orderCount);
+  }
+
+  // 영업시간 저장/조회
+  saveBusinessHours(hours) {
+    if (!this.businessHours) {
+      this.businessHours = {};
+    }
+    this.businessHours = { ...hours };
+    console.log('✅ 영업시간 저장:', this.businessHours);
+  }
+
+  getBusinessHours() {
+    return this.businessHours || null;
   }
 }
 

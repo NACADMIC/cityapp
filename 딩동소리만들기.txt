@@ -48,3 +48,5 @@ C:\Users\j\시티반점앱\backend\public\pos\sounds\new-order.mp3
 
 파일 교체 후 POS 새로고침하면 바로 적용됩니다!
 
+
+

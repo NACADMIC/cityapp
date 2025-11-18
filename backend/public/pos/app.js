@@ -234,14 +234,20 @@ function formatPayment(method) {
 }
 
 // Get status buttons
-function getStatusButtons(orderId, status) {
-  const buttons = {
+function getStatusButtons(orderId, status, riderId) {
+  let buttons = {
     'pending': `<button class="btn btn-info" style="background: #ffc107; color: #000;" onclick="showPendingOrderPopup('${orderId}')">⏳ 수락 대기 중 (클릭)</button>`,
     'accepted': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'preparing')">✓ 조리 시작</button>`,
-    'preparing': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'delivering')">🚚 배달 출발</button>`,
+    'preparing': `<button class="btn btn-accept" onclick="assignRider('${orderId}')">🛵 라이더 배정</button>`,
     'delivering': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'completed')">✅ 배달 완료</button>`,
     'completed': `<button class="btn" style="background: #9e9e9e; cursor: not-allowed;" disabled>완료됨</button>`
   };
+  
+  // preparing 상태에서 라이더가 배정되어 있으면 배달 출발 버튼 표시
+  if (status === 'preparing' && riderId) {
+    buttons['preparing'] = `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'delivering')">🚚 배달 출발</button>`;
+  }
+  
   return buttons[status] || buttons['pending'];
 }
 
@@ -297,9 +303,10 @@ function renderOrders() {
       </div>
 
       <div class="order-actions">
-        ${getStatusButtons(order.orderId, order.status)}
+        ${getStatusButtons(order.orderId, order.status, order.riderId)}
         <button class="btn btn-print" onclick="printOrder('${order.orderId}')">🖨 인쇄</button>
       </div>
+      ${order.riderId ? `<div style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 5px; font-size: 14px; color: #1976d2;">🛵 라이더 배정됨 (ID: ${order.riderId})</div>` : ''}
     </div>
   `).join('');
 
@@ -549,6 +556,100 @@ function showPendingOrderPopup(orderId) {
   playNotification(order);
 }
 
+// 라이더 배정 (드롭다운 팝업)
+async function assignRider(orderId) {
+  try {
+    // 라이더 목록 가져오기
+    const res = await fetch('/api/riders');
+    const data = await res.json();
+    
+    if (!data.success || !data.riders || data.riders.length === 0) {
+      alert('등록된 라이더가 없습니다.');
+      return;
+    }
+
+    // 온라인 라이더 우선 표시
+    const onlineRiders = data.riders.filter(r => r.status === 'online');
+    const offlineRiders = data.riders.filter(r => r.status !== 'online');
+    const sortedRiders = [...onlineRiders, ...offlineRiders];
+
+    // 라이더 선택 팝업 생성
+    const popup = document.createElement('div');
+    popup.className = 'popup-overlay';
+    popup.style.display = 'flex';
+    popup.innerHTML = `
+      <div class="popup-content" style="max-width: 400px;">
+        <h2>🛵 라이더 배정</h2>
+        <div style="margin: 20px 0;">
+          <label style="display: block; margin-bottom: 10px; font-weight: 600;">라이더 선택:</label>
+          <select id="rider-select" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <option value="">-- 라이더 선택 --</option>
+            ${sortedRiders.map(r => `
+              <option value="${r.riderId}" ${r.status === 'online' ? 'style="background: #e8f5e9;"' : ''}>
+                ${r.name} (${r.phone}) - ${r.status === 'online' ? '🟢 온라인' : '⚫ 오프라인'}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="popup-actions">
+          <button class="btn btn-accept" onclick="confirmAssignRider('${orderId}')">배정</button>
+          <button class="btn btn-reject" onclick="closeRiderPopup()">취소</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(popup);
+    
+    // 전역 변수에 저장
+    window.currentRiderPopup = popup;
+    window.currentRiderOrderId = orderId;
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+}
+
+// 라이더 배정 확인
+async function confirmAssignRider(orderId) {
+  const select = document.getElementById('rider-select');
+  const riderId = select.value;
+  
+  if (!riderId) {
+    alert('라이더를 선택해주세요.');
+    return;
+  }
+
+  try {
+    const assignRes = await fetch(`/api/orders/${orderId}/assign-rider`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ riderId: parseInt(riderId) })
+    });
+
+    const assignData = await assignRes.json();
+    if (assignData.success) {
+      const order = orders.find(o => o.orderId === orderId);
+      if (order) {
+        order.riderId = parseInt(riderId);
+        renderOrders();
+      }
+      closeRiderPopup();
+      alert('라이더가 배정되었습니다!');
+    } else {
+      alert('라이더 배정 실패: ' + assignData.error);
+    }
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+}
+
+// 라이더 팝업 닫기
+function closeRiderPopup() {
+  if (window.currentRiderPopup) {
+    window.currentRiderPopup.remove();
+    window.currentRiderPopup = null;
+    window.currentRiderOrderId = null;
+  }
+}
+
 // 햄버거 메뉴 토글
 function toggleMenu() {
   const sideMenu = document.getElementById('side-menu');
@@ -563,9 +664,107 @@ function toggleMenu() {
   }
 }
 
+// 영업시간 상태 업데이트
+async function updateBusinessStatus() {
+  try {
+    const res = await fetch('/api/business-hours');
+    const data = await res.json();
+    
+    const statusEl = document.getElementById('business-status');
+    const statusText = document.getElementById('status-text');
+    
+    if (data.isOpen) {
+      statusEl.style.background = '#4caf50';
+      statusEl.style.color = 'white';
+      statusText.textContent = `🟢 영업중 (${data.businessHours})`;
+    } else {
+      statusEl.style.background = '#ff9800';
+      statusEl.style.color = 'white';
+      statusText.textContent = `🔴 영업시간 아님 (${data.businessHours})`;
+    }
+  } catch (err) {
+    console.error('영업시간 상태 업데이트 오류:', err);
+  }
+}
+
+// 영업시간 설정 팝업 열기
+async function openBusinessHoursSettings() {
+  try {
+    const res = await fetch('/api/business-hours');
+    const data = await res.json();
+    
+    // 현재 설정값으로 입력 필드 채우기
+    const openHour = Math.floor(data.open);
+    const openMinute = Math.round((data.open - openHour) * 60);
+    const closeHour = Math.floor(data.close);
+    const closeMinute = Math.round((data.close - closeHour) * 60);
+    
+    document.getElementById('open-hour').value = openHour;
+    document.getElementById('open-minute').value = openMinute;
+    document.getElementById('close-hour').value = closeHour;
+    document.getElementById('close-minute').value = closeMinute;
+    
+    // 현재 설정 표시
+    document.getElementById('current-hours-display').textContent = data.businessHours;
+    document.getElementById('current-time-display').textContent = data.currentTime;
+    
+    // 팝업 표시
+    document.getElementById('business-hours-popup').style.display = 'flex';
+  } catch (err) {
+    alert('영업시간 정보를 불러오는 중 오류가 발생했습니다: ' + err.message);
+  }
+}
+
+// 영업시간 설정 팝업 닫기
+function closeBusinessHoursSettings() {
+  document.getElementById('business-hours-popup').style.display = 'none';
+}
+
+// 영업시간 저장
+async function saveBusinessHours() {
+  try {
+    const openHour = parseInt(document.getElementById('open-hour').value);
+    const openMinute = parseInt(document.getElementById('open-minute').value);
+    const closeHour = parseInt(document.getElementById('close-hour').value);
+    const closeMinute = parseInt(document.getElementById('close-minute').value);
+    
+    if (isNaN(openHour) || isNaN(openMinute) || isNaN(closeHour) || isNaN(closeMinute)) {
+      alert('모든 시간을 입력해주세요.');
+      return;
+    }
+    
+    const open = openHour + openMinute / 60;
+    const close = closeHour + closeMinute / 60;
+    
+    if (open >= close) {
+      alert('오픈 시간은 마감 시간보다 빨라야 합니다.');
+      return;
+    }
+    
+    const res = await fetch('/api/business-hours', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ open, close })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('영업시간이 저장되었습니다!');
+      closeBusinessHoursSettings();
+      updateBusinessStatus();
+    } else {
+      alert('저장 실패: ' + data.error);
+    }
+  } catch (err) {
+    alert('저장 오류: ' + err.message);
+  }
+}
+
 // Initial render
 renderOrders();
 updateStats();
+updateBusinessStatus();
+setInterval(updateBusinessStatus, 60000); // 1분마다 영업시간 상태 업데이트
 
 console.log('🏮 POS 시스템 준비 완료!');
 

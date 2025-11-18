@@ -283,6 +283,8 @@
       <button class="tab-btn" onclick="switchTab('settlement')">💰 정산 정보</button>
       <button class="tab-btn" onclick="switchTab('customers')">👥 고객 분석</button>
       <button class="tab-btn" onclick="switchTab('regions')">📍 지역 분석</button>
+      <button class="tab-btn" onclick="switchTab('ri')">🏘️ 리 단위 통계</button>
+      <button class="tab-btn" onclick="switchTab('apartments')">🏢 아파트 단지 통계</button>
     </div>
 
     <!-- 매출 통계 탭 -->
@@ -522,6 +524,91 @@
           </thead>
           <tbody id="regions-table">
             <tr><td colspan="5" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 리 단위 통계 탭 -->
+    <div id="ri-tab" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card-large">
+          <div class="stat-label">총 리 개수</div>
+          <div class="stat-value" id="total-ri-count">-</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">최다 주문 리</div>
+          <div class="stat-value" id="top-ri-name">-</div>
+          <div class="stat-sub" id="top-ri-orders">0건</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>🏘️ 리 단위 주문 분포</h3>
+        <div class="chart-wrapper">
+          <canvas id="riChart"></canvas>
+        </div>
+      </div>
+
+      <div class="table-container" style="margin-top: 30px;">
+        <h3>📊 리 단위 상세 통계</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>리명</th>
+              <th>주문 건수</th>
+              <th>총 매출</th>
+              <th>평균 주문금액</th>
+              <th>비율</th>
+            </tr>
+          </thead>
+          <tbody id="ri-table">
+            <tr><td colspan="5" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 아파트 단지 통계 탭 -->
+    <div id="apartments-tab" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card-large">
+          <div class="stat-label">총 단지 개수</div>
+          <div class="stat-value" id="total-apt-count">-</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">최다 주문 단지</div>
+          <div class="stat-value" id="top-apt-name">-</div>
+          <div class="stat-sub" id="top-apt-orders">0건</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">총 고객 수</div>
+          <div class="stat-value" id="total-apt-customers">-</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>🏢 아파트 단지별 주문 분포</h3>
+        <div class="chart-wrapper">
+          <canvas id="apartmentChart"></canvas>
+        </div>
+      </div>
+
+      <div class="table-container" style="margin-top: 30px;">
+        <h3>📊 아파트 단지 상세 통계</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>단지명</th>
+              <th>주문 건수</th>
+              <th>총 매출</th>
+              <th>평균 주문금액</th>
+              <th>고객 수</th>
+              <th>비율</th>
+            </tr>
+          </thead>
+          <tbody id="apartments-table">
+            <tr><td colspan="6" class="loading">로딩 중...</td></tr>
           </tbody>
         </table>
       </div>

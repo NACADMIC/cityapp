@@ -17,11 +17,15 @@
       <h1>🏮 시티반점 POS</h1>
     </div>
     <div class="header-controls">
+      <div id="business-status" style="padding: 8px 16px; border-radius: 8px; margin-right: 10px; font-weight: 600; font-size: 14px;">
+        <span id="status-text">영업중</span>
+      </div>
       <label class="switch">
         <input type="checkbox" id="voice-toggle" checked>
         <span class="slider"></span>
       </label>
       <span>음성 알림</span>
+      <button class="btn-test" onclick="openBusinessHoursSettings()">⏰ 영업시간 설정</button>
       <button class="btn-test" onclick="testSound()">소리 테스트</button>
       <button class="btn-test" onclick="testOrder()">주문 테스트</button>
     </div>
@@ -116,6 +120,41 @@
       <div class="popup-actions">
         <button class="btn btn-accept" onclick="acceptOrder()">✓ 수락</button>
         <button class="btn btn-reject" onclick="rejectOrder()">✕ 거절</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 영업시간 설정 팝업 -->
+  <div id="business-hours-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content" style="max-width: 500px;">
+      <h2>⏰ 영업시간 설정</h2>
+      <div style="margin: 20px 0;">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">오픈 시간:</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="open-hour" min="0" max="23" value="9" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">시</span>
+            <input type="number" id="open-minute" min="0" max="59" step="30" value="30" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">분</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">마감 시간:</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="close-hour" min="0" max="23" value="21" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">시</span>
+            <input type="number" id="close-minute" min="0" max="59" step="30" value="0" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">분</span>
+          </div>
+        </div>
+        <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #1976d2; font-weight: 600;">현재 설정: <span id="current-hours-display">-</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">현재 시간: <span id="current-time-display">-</span></p>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="saveBusinessHours()">저장</button>
+        <button class="btn btn-reject" onclick="closeBusinessHoursSettings()">취소</button>
       </div>
     </div>
   </div>

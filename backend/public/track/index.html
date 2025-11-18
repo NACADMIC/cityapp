@@ -327,6 +327,15 @@
       </div>
 
       <div class="order-details" id="order-details"></div>
+
+      <!-- 라이더 위치 지도 -->
+      <div id="rider-map-container" style="display: none; margin-top: 30px;">
+        <h3 style="margin-bottom: 15px; color: #d32f2f;">🚚 배달원 위치</h3>
+        <div id="rider-map" style="width: 100%; height: 300px; border-radius: 10px; overflow: hidden;"></div>
+        <div id="estimated-time" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+          <p style="color: #1976d2; font-weight: 600; margin: 0;">예상 도착 시간: <span id="time-value">-</span>분</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -344,9 +353,13 @@
     }
   </script>
   <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_APP_KEY&autoload=false"></script>
   <script>
     const socket = io();
     let currentOrderId = null;
+    let map = null;
+    let riderMarker = null;
+    let destinationMarker = null;
 
     // 탭 전환
     function showTab(tab) {
@@ -430,6 +443,13 @@
       // 상태 업데이트
       updateStatus(order.status || 'pending');
       
+      // 배달 중이면 지도 표시
+      if (order.status === 'delivering' && order.riderLat && order.riderLng) {
+        showRiderMap(order);
+      } else {
+        document.getElementById('rider-map-container').style.display = 'none';
+      }
+      
       // 주문 상세
       let items = [];
       try {
@@ -469,6 +489,131 @@
       document.getElementById('order-details').innerHTML = detailsHtml;
     }
 
+    // 라이더 지도 표시
+    function showRiderMap(order) {
+      const container = document.getElementById('rider-map-container');
+      container.style.display = 'block';
+
+      // 안성 공도읍 기본 좌표
+      const defaultLat = 37.0047;
+      const defaultLng = 127.2796;
+
+      // 주소를 좌표로 변환 (간단한 예시 - 실제로는 Geocoding API 사용)
+      // 안성 지역 주소 파싱
+      let destLat = defaultLat;
+      let destLng = defaultLng;
+      
+      // 주소에서 좌표 추정 (간단한 로직)
+      if (order.address) {
+        // 공도읍 중심 좌표
+        if (order.address.includes('공도')) {
+          destLat = 37.0047;
+          destLng = 127.2796;
+        }
+        // 미양면
+        else if (order.address.includes('미양')) {
+          destLat = 37.0150;
+          destLng = 127.2900;
+        }
+        // 대덕면
+        else if (order.address.includes('대덕')) {
+          destLat = 36.9900;
+          destLng = 127.2700;
+        }
+        // 양성면
+        else if (order.address.includes('양성')) {
+          destLat = 37.0200;
+          destLng = 127.3000;
+        }
+      }
+
+      // Kakao Map 초기화
+      if (typeof kakao !== 'undefined' && kakao.maps) {
+        kakao.maps.load(() => {
+          const mapContainer = document.getElementById('rider-map');
+          const mapOption = {
+            center: new kakao.maps.LatLng(defaultLat, defaultLng),
+            level: 4
+          };
+          map = new kakao.maps.Map(mapContainer, mapOption);
+
+          // 배달지 마커
+          const destPosition = new kakao.maps.LatLng(destLat, destLng);
+          destinationMarker = new kakao.maps.Marker({
+            position: destPosition,
+            map: map,
+            image: new kakao.maps.MarkerImage(
+              'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_blue.png',
+              new kakao.maps.Size(50, 50),
+              { offset: new kakao.maps.Point(25, 50) }
+            )
+          });
+
+          // 배달지 인포윈도우
+          const destInfoWindow = new kakao.maps.InfoWindow({
+            content: `<div style="padding: 5px; font-weight: 600;">📍 배달지<br>${order.address}</div>`
+          });
+          destInfoWindow.open(map, destinationMarker);
+
+          // 라이더 위치 마커
+          if (order.riderLat && order.riderLng) {
+            const riderPosition = new kakao.maps.LatLng(order.riderLat, order.riderLng);
+            riderMarker = new kakao.maps.Marker({
+              position: riderPosition,
+              map: map,
+              image: new kakao.maps.MarkerImage(
+                'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                new kakao.maps.Size(50, 50),
+                { offset: new kakao.maps.Point(25, 50) }
+              )
+            });
+
+            // 라이더 인포윈도우
+            const riderInfoWindow = new kakao.maps.InfoWindow({
+              content: '<div style="padding: 5px; font-weight: 600;">🛵 배달원 위치</div>'
+            });
+            riderInfoWindow.open(map, riderMarker);
+
+            // 두 마커 사이 선 그리기
+            const polyline = new kakao.maps.Polyline({
+              path: [riderPosition, destPosition],
+              strokeWeight: 3,
+              strokeColor: '#FF6B6B',
+              strokeOpacity: 0.7,
+              strokeStyle: 'dashed'
+            });
+            polyline.setMap(map);
+
+            // 지도 중심을 두 마커 중간으로
+            const bounds = new kakao.maps.LatLngBounds();
+            bounds.extend(riderPosition);
+            bounds.extend(destPosition);
+            map.setBounds(bounds);
+          } else {
+            // 라이더 위치가 없으면 배달지만 표시
+            map.setCenter(destPosition);
+          }
+        });
+      } else {
+        // 카카오맵이 없으면 간단한 메시지
+        document.getElementById('rider-map').innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f5f5f5; color: #666;">
+            <div style="text-align: center;">
+              <p style="font-size: 18px; margin-bottom: 10px;">🗺️ 지도 로딩 중...</p>
+              <p style="font-size: 14px;">카카오맵 API 키가 필요합니다</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // 예상 시간 표시
+      if (order.estimatedTime) {
+        document.getElementById('time-value').textContent = order.estimatedTime;
+      } else {
+        document.getElementById('time-value').textContent = '계산 중...';
+      }
+    }
+
     // 상태 업데이트
     function updateStatus(status) {
       const steps = document.querySelectorAll('.status-step');
@@ -501,10 +646,67 @@
         console.log('✅ 현재 주문 상태 업데이트:', data.status);
         updateStatus(data.status);
         
+        // 배달 중이면 주문 정보 다시 로드
+        if (data.status === 'delivering') {
+          fetch(`/api/orders/${currentOrderId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                displayOrder(data.order);
+              }
+            });
+        }
+        
         // 알림 표시
         showNotification(data.status);
       }
     });
+
+    // 라이더 위치 업데이트
+    socket.on('rider-location-updated', (data) => {
+      if (data.orderId === currentOrderId) {
+        if (map && riderMarker && typeof kakao !== 'undefined' && kakao.maps) {
+          const position = new kakao.maps.LatLng(data.lat, data.lng);
+          riderMarker.setPosition(position);
+          
+          // 배달지와의 거리 계산하여 예상 시간 업데이트
+          if (destinationMarker) {
+            const destPos = destinationMarker.getPosition();
+            const distance = calculateDistance(data.lat, data.lng, destPos.getLat(), destPos.getLng());
+            const estimatedMinutes = Math.ceil(distance / 0.5); // km를 분으로 변환 (대략 30km/h 가정)
+            
+            if (data.estimatedTime) {
+              document.getElementById('time-value').textContent = data.estimatedTime;
+            } else {
+              document.getElementById('time-value').textContent = estimatedMinutes;
+            }
+            
+            // 지도 중심 조정
+            const bounds = new kakao.maps.LatLngBounds();
+            bounds.extend(position);
+            bounds.extend(destPos);
+            map.setBounds(bounds);
+          }
+        }
+        
+        if (data.estimatedTime) {
+          document.getElementById('time-value').textContent = data.estimatedTime;
+        }
+      }
+    });
+
+    // 두 좌표 간 거리 계산 (Haversine 공식)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // 지구 반지름 (km)
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
     
     // 상태 변경 알림
     function showNotification(status) {

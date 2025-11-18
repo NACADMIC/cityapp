@@ -213,3 +213,5 @@ copy backend\restaurant.db %backup_folder%\
 
 **이제 실제 운영 가능한 안전한 시스템입니다!** 🎉🔒
 
+
+

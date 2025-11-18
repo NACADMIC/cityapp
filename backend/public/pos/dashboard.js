@@ -39,6 +39,10 @@ function switchTab(tabName) {
     loadCustomersTab();
   } else if (tabName === 'regions') {
     loadRegionsTab();
+  } else if (tabName === 'ri') {
+    loadRiTab();
+  } else if (tabName === 'apartments') {
+    loadApartmentsTab();
   }
 }
 
@@ -588,6 +592,200 @@ setInterval(async () => {
     }
   }
 }, 5000);
+
+// ========== 리 단위 통계 탭 ==========
+async function loadRiTab() {
+  try {
+    const res = await fetch('/api/stats/ri');
+    const data = await res.json();
+    
+    if (data.success && data.data.length > 0) {
+      const riStats = data.data;
+      
+      // 통계 카드 업데이트
+      document.getElementById('total-ri-count').textContent = `${riStats.length}개`;
+      
+      if (riStats.length > 0) {
+        const topRi = riStats[0];
+        document.getElementById('top-ri-name').textContent = topRi.ri;
+        document.getElementById('top-ri-orders').textContent = `${formatNumber(topRi.orderCount)}건`;
+      }
+      
+      // 차트 렌더링
+      renderRiChart(riStats);
+      
+      // 테이블 렌더링
+      renderRiTable(riStats);
+    } else {
+      document.getElementById('ri-table').innerHTML = '<tr><td colspan="5" class="loading">데이터가 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('리 단위 통계 로드 오류:', error);
+  }
+}
+
+function renderRiChart(data) {
+  const ctx = document.getElementById('riChart');
+  if (!ctx) return;
+  
+  if (charts.ri) {
+    charts.ri.destroy();
+  }
+  
+  const top10 = data.slice(0, 10);
+  
+  charts.ri = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top10.map(r => r.ri),
+      datasets: [{
+        label: '주문 건수',
+        data: top10.map(r => r.orderCount),
+        backgroundColor: 'rgba(25, 118, 210, 0.7)',
+        borderColor: 'rgba(25, 118, 210, 1)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return formatNumber(value);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderRiTable(data) {
+  const tbody = document.getElementById('ri-table');
+  if (!tbody) return;
+  
+  const totalOrders = data.reduce((sum, r) => sum + r.orderCount, 0);
+  
+  tbody.innerHTML = data.map(r => {
+    const ratio = totalOrders > 0 ? ((r.orderCount / totalOrders) * 100).toFixed(1) : 0;
+    return `
+      <tr>
+        <td><strong>${r.ri}</strong></td>
+        <td>${formatNumber(r.orderCount)}건</td>
+        <td>${formatCurrency(r.totalSales)}</td>
+        <td>${formatCurrency(Math.round(r.avgOrderAmount))}</td>
+        <td>${ratio}%</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ========== 아파트 단지 통계 탭 ==========
+async function loadApartmentsTab() {
+  try {
+    const res = await fetch('/api/stats/apartments');
+    const data = await res.json();
+    
+    if (data.success && data.data.length > 0) {
+      const aptStats = data.data;
+      
+      // 통계 카드 업데이트
+      document.getElementById('total-apt-count').textContent = `${aptStats.length}개`;
+      
+      if (aptStats.length > 0) {
+        const topApt = aptStats[0];
+        document.getElementById('top-apt-name').textContent = topApt.apartment;
+        document.getElementById('top-apt-orders').textContent = `${formatNumber(topApt.orderCount)}건`;
+      }
+      
+      const totalCustomers = aptStats.reduce((sum, a) => sum + a.customerCount, 0);
+      document.getElementById('total-apt-customers').textContent = `${formatNumber(totalCustomers)}명`;
+      
+      // 차트 렌더링
+      renderApartmentChart(aptStats);
+      
+      // 테이블 렌더링
+      renderApartmentTable(aptStats);
+    } else {
+      document.getElementById('apartments-table').innerHTML = '<tr><td colspan="6" class="loading">데이터가 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('아파트 단지 통계 로드 오류:', error);
+  }
+}
+
+function renderApartmentChart(data) {
+  const ctx = document.getElementById('apartmentChart');
+  if (!ctx) return;
+  
+  if (charts.apartment) {
+    charts.apartment.destroy();
+  }
+  
+  const top15 = data.slice(0, 15);
+  
+  charts.apartment = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top15.map(a => a.apartment),
+      datasets: [{
+        label: '주문 건수',
+        data: top15.map(a => a.orderCount),
+        backgroundColor: 'rgba(76, 175, 80, 0.7)',
+        borderColor: 'rgba(76, 175, 80, 1)',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return formatNumber(value);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderApartmentTable(data) {
+  const tbody = document.getElementById('apartments-table');
+  if (!tbody) return;
+  
+  const totalOrders = data.reduce((sum, a) => sum + a.orderCount, 0);
+  
+  tbody.innerHTML = data.map(a => {
+    const ratio = totalOrders > 0 ? ((a.orderCount / totalOrders) * 100).toFixed(1) : 0;
+    return `
+      <tr>
+        <td><strong>${a.apartment}</strong></td>
+        <td>${formatNumber(a.orderCount)}건</td>
+        <td>${formatCurrency(a.totalSales)}</td>
+        <td>${formatCurrency(Math.round(a.avgOrderAmount))}</td>
+        <td>${formatNumber(a.customerCount)}명</td>
+        <td>${ratio}%</td>
+      </tr>
+    `;
+  }).join('');
+}
 
 console.log('📊 대시보드 준비 완료!');
 
