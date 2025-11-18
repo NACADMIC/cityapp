@@ -380,71 +380,96 @@ async function loadRegionsTab() {
 
 // 안성 지도 업데이트 (주문량에 따라 색상 진하기 조절)
 function updateAnseongMap(regions) {
-  if (!regions || regions.length === 0) return;
+  if (!regions || regions.length === 0) {
+    // 데이터가 없으면 기본 색상 유지
+    return;
+  }
   
   // 최대 주문량 찾기
-  const maxOrders = Math.max(...regions.map(r => r.orderCount));
+  const maxOrders = Math.max(...regions.map(r => r.orderCount || 0));
   
   // 지역별 색상 매핑
   const regionMap = {
-    '공도읍': 'region-gongdo',
-    '미양면': 'region-miyang',
-    '대덕면': 'region-daedeok',
-    '양성면': 'region-yangseong'
+    '공도읍': { id: 'region-gongdo', countId: 'gongdo-count' },
+    '미양면': { id: 'region-miyang', countId: 'miyang-count' },
+    '대덕면': { id: 'region-daedeok', countId: 'daedeok-count' },
+    '양성면': { id: 'region-yangseong', countId: 'yangseong-count' }
   };
   
   // 각 지역별로 색상 적용
   regions.forEach(region => {
-    const regionId = regionMap[region.region];
-    if (!regionId) return;
+    const regionInfo = regionMap[region.region];
+    if (!regionInfo) return;
     
-    const element = document.getElementById(regionId);
+    const element = document.getElementById(regionInfo.id);
     if (!element) return;
     
-    const rect = element.querySelector('rect');
-    if (!rect) return;
+    const ellipse = element.querySelector('ellipse');
+    if (!ellipse) return;
     
     // 주문량 비율 계산 (0~1)
-    const ratio = maxOrders > 0 ? region.orderCount / maxOrders : 0;
+    const ratio = maxOrders > 0 ? (region.orderCount || 0) / maxOrders : 0;
     
     // 색상 진하기 결정
-    let fillColor, strokeColor;
+    let fillColor, strokeColor, strokeWidth;
     if (ratio === 0) {
       fillColor = '#f5f5f5'; // 매우 연한 회색
       strokeColor = '#ccc';
+      strokeWidth = '1';
     } else if (ratio < 0.25) {
       fillColor = '#e3f2fd'; // 연한 파랑
       strokeColor = '#64b5f6';
+      strokeWidth = '2';
     } else if (ratio < 0.5) {
       fillColor = '#90caf9'; // 중간 파랑
       strokeColor = '#42a5f5';
+      strokeWidth = '2.5';
     } else if (ratio < 0.75) {
       fillColor = '#64b5f6'; // 진한 파랑
       strokeColor = '#1976d2';
+      strokeWidth = '3';
     } else {
       fillColor = '#1976d2'; // 매우 진한 파랑
       strokeColor = '#0d47a1';
+      strokeWidth = '4';
     }
     
-    rect.setAttribute('fill', fillColor);
-    rect.setAttribute('stroke', strokeColor);
-    rect.setAttribute('stroke-width', ratio > 0.5 ? '3' : '2');
+    ellipse.setAttribute('fill', fillColor);
+    ellipse.setAttribute('stroke', strokeColor);
+    ellipse.setAttribute('stroke-width', strokeWidth);
     
-    // 호버 효과 (그룹 요소에 적용)
-    element.addEventListener('mouseenter', () => {
-      element.setAttribute('transform', 'scale(1.05)');
-      rect.style.filter = 'brightness(1.1)';
-      element.style.cursor = 'pointer';
+    // 주문 건수 표시 업데이트
+    const countText = document.getElementById(regionInfo.countId);
+    if (countText) {
+      countText.textContent = `${formatNumber(region.orderCount || 0)}건`;
+    }
+    
+    // 기존 이벤트 리스너 제거 (중복 방지)
+    const newElement = element.cloneNode(true);
+    element.parentNode.replaceChild(newElement, element);
+    
+    // 호버 효과
+    newElement.addEventListener('mouseenter', () => {
+      const currentTransform = newElement.getAttribute('transform') || 'translate(0,0)';
+      const scale = currentTransform.includes('scale') ? currentTransform : currentTransform + ' scale(1.1)';
+      newElement.setAttribute('transform', scale);
+      const ellipse = newElement.querySelector('ellipse');
+      if (ellipse) ellipse.style.filter = 'brightness(1.15) drop-shadow(0 0 10px rgba(25, 118, 210, 0.5))';
     });
-    element.addEventListener('mouseleave', () => {
-      element.setAttribute('transform', 'scale(1)');
-      rect.style.filter = 'brightness(1)';
+    
+    newElement.addEventListener('mouseleave', () => {
+      const baseTransform = newElement.getAttribute('transform').replace(/scale\([^)]*\)/g, '').trim();
+      newElement.setAttribute('transform', baseTransform);
+      const ellipse = newElement.querySelector('ellipse');
+      if (ellipse) ellipse.style.filter = 'brightness(1)';
     });
     
     // 클릭 시 상세 정보 표시
-    element.addEventListener('click', () => {
-      alert(`${region.region}\n주문: ${formatNumber(region.orderCount)}건\n매출: ${formatCurrency(region.totalSales)}`);
+    newElement.addEventListener('click', () => {
+      alert(`${region.region}\n주문: ${formatNumber(region.orderCount || 0)}건\n매출: ${formatCurrency(region.totalSales || 0)}\n평균: ${formatCurrency(Math.round(region.avgOrderAmount || 0))}`);
     });
+    
+    newElement.style.cursor = 'pointer';
   });
 }
 

@@ -139,12 +139,23 @@ class DB {
     return this.pointHistory.filter(p => p.userid == userId);
   }
 
-  async createOrder(orderData) {
+  createOrder(orderData) {
     const order = {
       id: this.orders.length + 1,
       userid: orderData.userId || null,
-      ...orderData,
-      createdat: new Date()
+      orderid: orderData.orderId,
+      customername: orderData.customerName,
+      customerphone: orderData.phone,
+      address: orderData.address,
+      items: JSON.stringify(orderData.items),
+      totalprice: orderData.totalAmount,
+      usedpoints: orderData.usedPoints || 0,
+      earnedpoints: orderData.earnedPoints || 0,
+      paymentmethod: orderData.paymentMethod || 'cash',
+      status: orderData.status || 'pending',
+      isguest: orderData.userId ? 0 : 1,
+      phoneverified: 1,
+      createdat: orderData.createdAt || new Date().getTime()
     };
     this.orders.push(order);
     return order;
@@ -191,6 +202,312 @@ class DB {
     
     verification.verified = true;
     return true;
+  }
+
+  // ========== 통계 및 분석 ==========
+  
+  // 지역별 주문 분석
+  getOrdersByRegion() {
+    const regionMap = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        const address = order.address || '';
+        let region = '기타';
+        
+        if (address.includes('공도') || address.includes('공도읍')) {
+          region = '공도읍';
+        } else if (address.includes('미양') || address.includes('미양면')) {
+          region = '미양면';
+        } else if (address.includes('대덕') || address.includes('대덕면')) {
+          region = '대덕면';
+        } else if (address.includes('양성') || address.includes('양성면')) {
+          region = '양성면';
+        }
+        
+        if (!regionMap[region]) {
+          regionMap[region] = {
+            region,
+            orderCount: 0,
+            totalSales: 0,
+            avgOrderAmount: 0
+          };
+        }
+        
+        regionMap[region].orderCount++;
+        regionMap[region].totalSales += order.totalprice || order.totalAmount || 0;
+      });
+    
+    const result = Object.values(regionMap).map(r => ({
+      ...r,
+      avgOrderAmount: r.orderCount > 0 ? r.totalSales / r.orderCount : 0
+    }));
+    
+    return result.sort((a, b) => b.orderCount - a.orderCount);
+  }
+
+  // 일별 매출
+  getDailySales(days = 30) {
+    const now = new Date();
+    const result = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        const orderDate = new Date(order.createdat || order.createdAt);
+        const daysAgo = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysAgo < days) {
+          const dateKey = orderDate.toISOString().split('T')[0];
+          
+          if (!result[dateKey]) {
+            result[dateKey] = {
+              date: dateKey,
+              orderCount: 0,
+              totalSales: 0,
+              totalPointsUsed: 0,
+              totalPointsEarned: 0,
+              cardSales: 0,
+              cashSales: 0
+            };
+          }
+          
+          result[dateKey].orderCount++;
+          result[dateKey].totalSales += order.totalprice || order.totalAmount || 0;
+          result[dateKey].totalPointsUsed += order.usedpoints || order.usedPoints || 0;
+          result[dateKey].totalPointsEarned += order.earnedpoints || order.earnedPoints || 0;
+          
+          if ((order.paymentmethod || order.paymentMethod) === 'card') {
+            result[dateKey].cardSales += order.totalprice || order.totalAmount || 0;
+          } else {
+            result[dateKey].cashSales += order.totalprice || order.totalAmount || 0;
+          }
+        }
+      });
+    
+    return Object.values(result).sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  // 월별 매출
+  getMonthlySales(months = 12) {
+    const result = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        const orderDate = new Date(order.createdat || order.createdAt);
+        const monthKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!result[monthKey]) {
+          result[monthKey] = {
+            month: monthKey,
+            orderCount: 0,
+            totalSales: 0,
+            avgOrderAmount: 0
+          };
+        }
+        
+        result[monthKey].orderCount++;
+        result[monthKey].totalSales += order.totalprice || order.totalAmount || 0;
+      });
+    
+    return Object.values(result)
+      .map(r => ({
+        ...r,
+        avgOrderAmount: r.orderCount > 0 ? r.totalSales / r.orderCount : 0
+      }))
+      .sort((a, b) => b.month.localeCompare(a.month))
+      .slice(0, months);
+  }
+
+  // 오늘 통계
+  getTodayStats() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayOrders = this.orders.filter(o => {
+      const orderDate = new Date(o.createdat || o.createdAt).toISOString().split('T')[0];
+      return orderDate === today && o.status === 'completed';
+    });
+    
+    const totalSales = todayOrders.reduce((sum, o) => sum + (o.totalprice || o.totalAmount || 0), 0);
+    const amounts = todayOrders.map(o => o.totalprice || o.totalAmount || 0).filter(a => a > 0);
+    
+    return {
+      orderCount: todayOrders.length,
+      totalSales,
+      avgOrderAmount: amounts.length > 0 ? totalSales / amounts.length : 0,
+      maxOrderAmount: amounts.length > 0 ? Math.max(...amounts) : 0,
+      minOrderAmount: amounts.length > 0 ? Math.min(...amounts) : 0
+    };
+  }
+
+  // 정산 정보
+  getSettlement(startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    const orders = this.orders.filter(o => {
+      const orderDate = new Date(o.createdat || o.createdAt);
+      return orderDate >= start && orderDate <= end && o.status === 'completed';
+    });
+    
+    const grossSales = orders.reduce((sum, o) => sum + (o.totalprice || o.totalAmount || 0), 0);
+    const pointsRedeemed = orders.reduce((sum, o) => sum + (o.usedpoints || o.usedPoints || 0), 0);
+    const pointsIssued = orders.reduce((sum, o) => sum + (o.earnedpoints || o.earnedPoints || 0), 0);
+    
+    const cardPayments = orders
+      .filter(o => (o.paymentmethod || o.paymentMethod) === 'card')
+      .reduce((sum, o) => sum + (o.totalprice || o.totalAmount || 0), 0);
+    
+    const cashPayments = orders
+      .filter(o => (o.paymentmethod || o.paymentMethod) !== 'card')
+      .reduce((sum, o) => sum + (o.totalprice || o.totalAmount || 0), 0);
+    
+    return {
+      totalOrders: orders.length,
+      grossSales,
+      pointsRedeemed,
+      pointsIssued,
+      cardPayments,
+      cashPayments
+    };
+  }
+
+  // 상위 고객
+  getTopCustomers(limit = 10) {
+    const customerMap = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed' && o.userid)
+      .forEach(order => {
+        const userId = order.userid;
+        
+        if (!customerMap[userId]) {
+          customerMap[userId] = {
+            userId,
+            customerName: order.customername || order.customerName,
+            phone: order.customerphone || order.phone,
+            orderCount: 0,
+            totalSpent: 0,
+            avgOrderAmount: 0,
+            lastOrderDate: order.createdat || order.createdAt
+          };
+        }
+        
+        customerMap[userId].orderCount++;
+        customerMap[userId].totalSpent += order.totalprice || order.totalAmount || 0;
+        
+        const orderDate = new Date(order.createdat || order.createdAt);
+        const lastDate = new Date(customerMap[userId].lastOrderDate);
+        if (orderDate > lastDate) {
+          customerMap[userId].lastOrderDate = order.createdat || order.createdAt;
+        }
+      });
+    
+    return Object.values(customerMap)
+      .map(c => ({
+        ...c,
+        avgOrderAmount: c.orderCount > 0 ? c.totalSpent / c.orderCount : 0
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, limit);
+  }
+
+  // 인기 메뉴
+  getPopularMenus(limit = 10) {
+    const menuMap = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        try {
+          const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+          
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              const menuName = item.name;
+              
+              if (!menuMap[menuName]) {
+                menuMap[menuName] = {
+                  menuName,
+                  totalQuantity: 0,
+                  totalRevenue: 0,
+                  orderCount: 0
+                };
+              }
+              
+              menuMap[menuName].totalQuantity += item.quantity || 1;
+              menuMap[menuName].totalRevenue += (item.price || 0) * (item.quantity || 1);
+              menuMap[menuName].orderCount++;
+            });
+          }
+        } catch (e) {
+          // JSON 파싱 오류 무시
+        }
+      });
+    
+    return Object.values(menuMap)
+      .sort((a, b) => b.totalQuantity - a.totalQuantity)
+      .slice(0, limit);
+  }
+
+  // 시간대별 주문
+  getTimeDistribution() {
+    const hourMap = {};
+    
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        const orderDate = new Date(o.createdat || o.createdAt);
+        const hour = orderDate.getHours();
+        
+        if (!hourMap[hour]) {
+          hourMap[hour] = {
+            hour,
+            orderCount: 0,
+            totalSales: 0
+          };
+        }
+        
+        hourMap[hour].orderCount++;
+        hourMap[hour].totalSales += order.totalprice || order.totalAmount || 0;
+      });
+    
+    return Object.values(hourMap).sort((a, b) => a.hour - b.hour);
+  }
+
+  // 실시간 통계
+  getRealTimeStats() {
+    const today = this.getTodayStats();
+    
+    const pending = this.orders.filter(o => o.status === 'pending' || o.status === 'accepted').length;
+    const preparing = this.orders.filter(o => o.status === 'preparing').length;
+    const delivering = this.orders.filter(o => o.status === 'delivering').length;
+    
+    const recentOrders = this.orders
+      .slice()
+      .sort((a, b) => {
+        const timeA = a.createdat || a.createdAt || 0;
+        const timeB = b.createdat || b.createdAt || 0;
+        return timeB - timeA;
+      })
+      .slice(0, 5)
+      .map(o => ({
+        orderId: o.orderid || o.orderId,
+        customerName: o.customername || o.customerName,
+        totalAmount: o.totalprice || o.totalAmount,
+        status: o.status,
+        createdAt: o.createdat || o.createdAt
+      }));
+    
+    return {
+      today,
+      pending,
+      preparing,
+      delivering,
+      recentOrders
+    };
   }
 }
 
