@@ -417,15 +417,25 @@ async function generateTestData() {
   console.log('👥 회원 생성 중...');
   const testUserIds = [];
   for (let i = 0; i < 10; i++) {
-    const phone = `010-9000-${String(i + 1).padStart(4, '0')}`;
-    const name = names[i];
-    const email = `test${i + 1}@test.com`;
-    const address = addresses[selectRegion()][random(0, addresses[selectRegion()].length - 1)];
-    const password = '1234';
-    const user = await db.createUser(phone, name, email, address, password);
-    testUserIds.push(user.userid);
-    console.log(`✅ ${name} (${phone})`);
+    try {
+      const phone = `010-9000-${String(i + 1).padStart(4, '0')}`;
+      const name = names[i];
+      const email = `test${i + 1}@test.com`;
+      const region = selectRegion();
+      const address = addresses[region][random(0, addresses[region].length - 1)];
+      const password = '1234';
+      const user = await db.createUser(phone, name, email, address, password);
+      if (user && user.userid) {
+        testUserIds.push(user.userid);
+        console.log(`✅ ${name} (${phone})`);
+      } else {
+        console.warn(`⚠️ 회원 생성 실패: ${name}`);
+      }
+    } catch (error) {
+      console.error(`❌ 회원 생성 오류 (${names[i]}):`, error.message);
+    }
   }
+  console.log(`✅ 총 ${testUserIds.length}명의 회원 생성 완료`);
   
   // 주문 생성 (최근 60일)
   console.log('\n📦 주문 생성 중...');
@@ -508,20 +518,33 @@ async function generateTestData() {
         createdAt: date.getTime()
       };
       
-      db.createOrder(orderData);
-      
-      if (userId && usedPoints > 0) {
-        db.addPoints(userId, -usedPoints);
+      try {
+        db.createOrder(orderData);
+        
+        if (userId && usedPoints > 0) {
+          db.addPoints(userId, -usedPoints);
+        }
+        if (userId && earnedPoints > 0) {
+          db.addPoints(userId, earnedPoints);
+        }
+        
+        totalOrders++;
+        
+        // 50건마다 진행 상황 출력
+        if (totalOrders % 50 === 0) {
+          console.log(`  📊 진행 중: ${totalOrders}건 생성됨...`);
+        }
+      } catch (error) {
+        console.error(`❌ 주문 생성 오류:`, error.message);
       }
-      if (userId && earnedPoints > 0) {
-        db.addPoints(userId, earnedPoints);
-      }
-      
-      totalOrders++;
     }
   }
   
-  console.log(`\n✅ 완료! 총 ${totalOrders}건의 주문 생성됨\n`);
+  console.log(`\n✅ 완료! 총 ${totalOrders}건의 주문 생성됨`);
+  console.log(`📊 생성된 데이터:`);
+  console.log(`   - 회원: ${testUserIds.length}명`);
+  console.log(`   - 주문: ${totalOrders}건`);
+  console.log(`   - 메뉴: ${validMenus.length}개\n`);
 }
 
 // 서버 시작
@@ -538,13 +561,22 @@ server.listen(PORT, '0.0.0.0', () => {
   
   // Railway 환경에서만 테스트 데이터 생성 (비동기로 처리하여 서버 시작을 막지 않음)
   if (process.env.RAILWAY_ENVIRONMENT || process.env.PORT) {
-    // 서버 시작 후 백그라운드에서 데이터 생성
-    setTimeout(() => {
-      generateTestData().catch(error => {
+    // DB 초기화 완료 대기 후 데이터 생성
+    setTimeout(async () => {
+      try {
+        console.log('⏳ DB 초기화 대기 중...');
+        // DB가 완전히 초기화될 때까지 대기
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        console.log('🎲 테스트 데이터 생성 시작...');
+        await generateTestData();
+        console.log('✅ 테스트 데이터 생성 완료!\n');
+      } catch (error) {
         console.error('❌ 테스트 데이터 생성 오류:', error);
+        console.error('스택:', error.stack);
         console.log('⚠️ 테스트 데이터 없이 계속 진행합니다...\n');
-      });
-    }, 1000); // 1초 후 실행
+      }
+    }, 2000); // 2초 후 실행 (DB 초기화 완료 대기)
   }
 });
 
