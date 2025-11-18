@@ -125,7 +125,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const data = await res.json();
 
     if (data.success) {
-      alert('회원가입 완료! 로그인해주세요.');
+      alert(data.message || '회원가입 완료! 로그인해주세요.');
       showLogin();
       document.getElementById('login-phone').value = phone;
     } else {

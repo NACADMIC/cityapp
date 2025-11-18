@@ -31,8 +31,8 @@ let posClients = [];
 
 // 영업시간 체크
 const businessHours = {
-  open: 11,
-  close: 23
+  open: 9.5,  // 오전 9시 30분
+  close: 21   // 오후 9시
 };
 
 function isBusinessHours() {
@@ -40,7 +40,10 @@ function isBusinessHours() {
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   const hour = koreaTime.getHours();
-  return hour >= businessHours.open && hour < businessHours.close;
+  const minute = koreaTime.getMinutes();
+  const currentTime = hour + minute / 60; // 9시 30분 = 9.5
+  
+  return currentTime >= businessHours.open && currentTime < businessHours.close;
 }
 
 app.get('/api/business-hours', (req, res) => {
@@ -49,7 +52,7 @@ app.get('/api/business-hours', (req, res) => {
   res.json({
     isOpen,
     currentTime: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
-    businessHours: `${businessHours.open}:00 - ${businessHours.close}:00`
+    businessHours: `09:30 - 21:00`
   });
 });
 
@@ -100,7 +103,10 @@ app.post('/api/auth/register', async (req, res) => {
       return res.json({ success: false, error: '이미 가입된 전화번호입니다.' });
     }
     const user = await db.createUser(phone, name, password);
-    res.json({ success: true, user });
+    res.json({ 
+      success: true, 
+      message: '🎉 회원가입 완료! 환영 포인트 10,000P가 지급되었습니다!' 
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

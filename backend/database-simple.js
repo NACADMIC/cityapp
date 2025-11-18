@@ -38,10 +38,21 @@ class DB {
       phone,
       name,
       password,
-      points: 0,
+      points: 10000, // 🎁 회원가입 시 10,000P 지급!
       createdat: new Date()
     };
     this.users.push(user);
+    
+    // 포인트 내역 추가
+    this.pointHistory.push({
+      id: this.pointHistory.length + 1,
+      userid: user.userid,
+      points: 10000,
+      type: 'earn',
+      description: '회원가입 축하 포인트',
+      createdat: new Date()
+    });
+    
     return user;
   }
 
