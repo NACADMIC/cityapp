@@ -6,6 +6,23 @@ let cart = [];
 let menuItems = [];
 let usedPoints = 0;
 
+// Privacy Accordion Toggle
+function togglePrivacy(type) {
+  const content = document.getElementById(`${type}-content`);
+  const arrow = document.getElementById(`${type}-arrow`);
+  const header = content.previousElementSibling;
+  
+  if (content.classList.contains('active')) {
+    content.classList.remove('active');
+    arrow.classList.remove('active');
+    header.classList.remove('active');
+  } else {
+    content.classList.add('active');
+    arrow.classList.add('active');
+    header.classList.add('active');
+  }
+}
+
 // 영업시간 체크
 async function checkBusinessHours() {
   try {
@@ -48,6 +65,18 @@ function showAuthSelect() {
 
 function showLogin() {
   showScreen('login-screen');
+}
+
+function showFindId() {
+  showScreen('find-id-screen');
+  document.getElementById('find-id-result').style.display = 'none';
+  document.getElementById('find-id-form').reset();
+}
+
+function showFindPassword() {
+  showScreen('find-password-screen');
+  document.getElementById('find-password-result').style.display = 'none';
+  document.getElementById('find-password-form').reset();
 }
 
 function showRegister() {
@@ -155,9 +184,15 @@ document.getElementById('guest-verify-form').addEventListener('submit', async (e
   e.preventDefault();
   
   const phone = document.getElementById('guest-phone').value.trim();
+  const privacyAgree = document.getElementById('guest-privacy').checked;
   
   if (!phone) {
     alert('전화번호를 입력해주세요.');
+    return;
+  }
+  
+  if (!privacyAgree) {
+    alert('개인정보 수집 및 이용에 동의해주세요.');
     return;
   }
   
@@ -550,11 +585,139 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
   }
 });
 
+// Find ID
+document.getElementById('find-id-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const name = document.getElementById('find-id-name').value.trim();
+  
+  try {
+    const res = await fetch('/api/auth/find-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      // 전화번호 일부 마스킹
+      const phone = data.phone;
+      const masked = phone.substring(0, 7) + '****';
+      document.getElementById('found-phone').textContent = masked;
+      document.getElementById('find-id-result').style.display = 'block';
+    } else {
+      alert(data.error || '가입된 정보가 없습니다.');
+    }
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+});
+
+// Find Password
+document.getElementById('find-password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const phone = document.getElementById('find-pw-phone').value.trim();
+  const name = document.getElementById('find-pw-name').value.trim();
+  
+  try {
+    const res = await fetch('/api/auth/verify-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, name })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      document.getElementById('find-password-result').style.display = 'block';
+      document.getElementById('find-password-form').style.display = 'none';
+    } else {
+      alert(data.error || '가입 정보가 일치하지 않습니다.');
+    }
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+});
+
+// Reset Password
+document.getElementById('reset-password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const phone = document.getElementById('find-pw-phone').value.trim();
+  const newPassword = document.getElementById('new-password').value.trim();
+  const newPasswordConfirm = document.getElementById('new-password-confirm').value.trim();
+  
+  if (newPassword !== newPasswordConfirm) {
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, newPassword })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      alert('비밀번호가 변경되었습니다. 로그인해주세요.');
+      showLogin();
+    } else {
+      alert(data.error || '비밀번호 변경 실패');
+    }
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+});
+
 // Initial screen - 영업시간 체크 후 시작
 (async function init() {
   const isOpen = await checkBusinessHours();
   if (isOpen) {
-    showAuthSelect();
+    // 재주문 체크
+    const reorderItems = localStorage.getItem('reorder-items');
+    const quickCheckout = localStorage.getItem('quick-checkout');
+    
+    if (reorderItems) {
+      const items = JSON.parse(reorderItems);
+      
+      // 현재 사용자 체크
+      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+      
+      if (currentUser) {
+        // 장바구니에 추가
+        cart.length = 0; // 기존 장바구니 비우기
+        items.forEach(item => {
+          cart.push({
+            id: item.menuId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity
+          });
+        });
+        
+        localStorage.removeItem('reorder-items');
+        
+        if (quickCheckout === 'true') {
+          localStorage.removeItem('quick-checkout');
+          showMenu();
+          setTimeout(() => showCheckout(), 100);
+        } else {
+          showMenu();
+          alert('장바구니에 메뉴를 담았습니다!');
+        }
+      } else {
+        localStorage.removeItem('reorder-items');
+        localStorage.removeItem('quick-checkout');
+        showAuthSelect();
+      }
+    } else {
+      showAuthSelect();
+    }
   }
 })();
 

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>마이배민 - 시티반점</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 900;
+      color: white;
+      text-align: center;
+      margin: 20px 0 30px 0;
+      letter-spacing: -1px;
+    }
+
+    .back-btn, .home-btn {
+      position: fixed;
+      top: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s;
+    }
+
+    .back-btn {
+      left: 20px;
+    }
+
+    .home-btn {
+      right: 20px;
+    }
+
+    .back-btn:hover, .home-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    
+    /* 포인트 카드 */
+    .point-card {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      border-radius: 24px;
+      padding: 30px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(255, 215, 0, 0.4);
+      animation: slideIn 0.5s ease;
+    }
+    
+    .point-icon {
+      font-size: 48px;
+      animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .point-info {
+      flex: 1;
+    }
+    
+    .point-label {
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.7);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .point-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: -1px;
+    }
+
+    .user-info {
+      margin-bottom: 30px;
+    }
+    
+    /* 섹션 헤더 */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 40px 0 20px 0;
+    }
+    
+    .section-header h3 {
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+    }
+    
+    .order-count {
+      font-size: 14px;
+      font-weight: 600;
+      color: #FFD700;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .order-item {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      animation: slideIn 0.3s ease;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .order-id {
+      font-weight: 700;
+      color: #667eea;
+      font-size: 14px;
+    }
+
+    .order-date {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .order-status {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-accepted {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-preparing {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-delivering {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .order-items {
+      margin-bottom: 15px;
+    }
+
+    .order-item-detail {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .item-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .item-quantity {
+      color: #666;
+      margin-right: 15px;
+    }
+
+    .item-price {
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .order-total {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-top: 2px solid #eee;
+      font-size: 18px;
+      font-weight: 800;
+      color: #1a1a1a;
+    }
+
+    .order-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .order-actions button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+
+    .btn-track {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-track:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-reorder {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+    
+    .btn-reorder:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+    }
+    
+    .btn-same-menu {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+    
+    .btn-same-menu:hover {
+      background: #667eea;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .no-orders {
+      text-align: center;
+      padding: 60px 20px;
+      color: white;
+      font-size: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="back-btn" onclick="history.back()">← 뒤로</button>
+    <button class="home-btn" onclick="window.location.href='/order-new'">🏠 홈</button>
+    
+    <h2>마이배민</h2>
+    
+    <!-- 포인트 카드 -->
+    <div class="point-card" id="point-card">
+      <div class="point-icon">💰</div>
+      <div class="point-info">
+        <div class="point-label">보유 포인트</div>
+        <div class="point-value" id="user-points">0원</div>
+      </div>
+    </div>
+    
+    <!-- 사용자 정보 -->
+    <div id="user-info" class="user-info"></div>
+    
+    <!-- 주문 내역 섹션 -->
+    <div class="section-header">
+      <h3>주문 내역</h3>
+      <span class="order-count" id="order-count">0건</span>
+    </div>
+    <div id="orders-list" class="orders-list"></div>
+  </div>
+
+  <script>
+    const statusText = {
+      'pending': '주문 대기',
+      'accepted': '주문 수락',
+      'preparing': '조리 중',
+      'delivering': '배달 중',
+      'completed': '배달 완료',
+      'rejected': '주문 거절'
+    };
+
+    async function fetchUserData() {
+      const userId = sessionStorage.getItem('currentUserId');
+      
+      if (!userId) {
+        alert('로그인이 필요합니다.');
+        window.location.href = '/order-new';
+        return;
+      }
+
+      try {
+        // 사용자 정보 가져오기
+        const userRes = await fetch(`/api/auth/me/${userId}`);
+        const userData = await userRes.json();
+        
+        if (!userData.success) {
+          alert('사용자 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const user = userData.user;
+        
+        // 포인트 표시
+        document.getElementById('user-points').textContent = 
+          `${(user.points || 0).toLocaleString()}원`;
+        
+        const userInfo = document.getElementById('user-info');
+        userInfo.innerHTML = `
+          <div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 16px;">
+            <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 10px;">
+              ${user.name}님 👋
+            </div>
+            <div style="font-size: 16px; color: rgba(255,255,255,0.9);">
+              📱 ${user.phone}
+            </div>
+          </div>
+        `;
+
+        // 주문 내역 가져오기
+        const ordersRes = await fetch(`/api/orders/user/${userId}`);
+        const ordersData = await ordersRes.json();
+        
+        if (!ordersData.success) {
+          document.getElementById('orders-list').innerHTML = '<div class="no-orders">주문 내역을 불러올 수 없습니다.</div>';
+          return;
+        }
+        
+        displayOrders(ordersData.orders);
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    }
+
+    function displayOrders(orders) {
+      const ordersList = document.getElementById('orders-list');
+      document.getElementById('order-count').textContent = `${orders.length}건`;
+      
+      if (orders.length === 0) {
+        ordersList.innerHTML = '<div class="no-orders">아직 주문 내역이 없습니다</div>';
+        return;
+      }
+
+      ordersList.innerHTML = orders.map(order => {
+        const statusClass = `status-${order.status}`;
+        const date = new Date(order.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        return `
+          <div class="order-item">
+            <div class="order-header">
+              <div>
+                <div class="order-id">주문번호: ${order.orderId}</div>
+                <div class="order-date">${date}</div>
+              </div>
+              <span class="order-status ${statusClass}">${statusText[order.status] || order.status}</span>
+            </div>
+            
+            <div class="order-items">
+              ${order.items.map(item => `
+                <div class="order-item-detail">
+                  <span class="item-name">${item.name}</span>
+                  <div>
+                    <span class="item-quantity">x${item.quantity}</span>
+                    <span class="item-price">${(item.price * item.quantity).toLocaleString()}원</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="order-total">
+              <span>총 결제금액</span>
+              <span>${order.totalAmount.toLocaleString()}원</span>
+            </div>
+            
+            <div class="order-actions">
+              <button class="btn-same-menu" onclick="reorderSameMenu('${order.orderId}')">
+                같은 메뉴 담기
+              </button>
+              <button class="btn-reorder" onclick="quickReorder('${order.orderId}')">
+                바로 주문
+              </button>
+            </div>
+            <div class="order-actions" style="margin-top: 8px;">
+              <button class="btn-track" onclick="window.location.href='/track?orderId=${order.orderId}'">
+                배달 현황 보기
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    fetchUserData();
+    
+    // 같은 메뉴 담기
+    window.reorderSameMenu = async function(orderId) {
+      if (!confirm('같은 메뉴를 장바구니에 담으시겠습니까?')) return;
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          const order = data.order;
+          
+          // 장바구니에 아이템 추가
+          const items = order.items;
+          localStorage.setItem('reorder-items', JSON.stringify(items));
+          
+          alert('장바구니에 담았습니다!');
+          window.location.href = '/order-new';
+        } else {
+          alert('주문 정보를 불러올 수 없습니다.');
+        }
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    };
+    
+    // 바로 주문
+    window.quickReorder = async function(orderId) {
+      if (!confirm('이전 주문과 동일하게 바로 주문하시겠습니까?')) return;
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          const order = data.order;
+          
+          // 장바구니에 아이템 추가하고 체크아웃으로 이동
+          const items = order.items;
+          localStorage.setItem('reorder-items', JSON.stringify(items));
+          localStorage.setItem('quick-checkout', 'true');
+          
+          window.location.href = '/order-new';
+        } else {
+          alert('주문 정보를 불러올 수 없습니다.');
+        }
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    };
+  </script>
+</body>
+</html>
+

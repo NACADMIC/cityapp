@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3');
+const bcrypt = require('bcrypt');
 const path = require('path');
 
 class DB {
@@ -36,8 +37,10 @@ class DB {
         userId INTEGER PRIMARY KEY AUTOINCREMENT,
         phone TEXT UNIQUE NOT NULL,
         name TEXT NOT NULL,
+        email TEXT,
+        address TEXT,
         password TEXT NOT NULL,
-        points INTEGER DEFAULT 0,
+        points INTEGER DEFAULT 10000,
         createdAt TEXT NOT NULL
       )
     `);
@@ -90,12 +93,50 @@ class DB {
     if (count.count === 0) {
       const insert = this.db.prepare('INSERT INTO menu (name, category, price, emoji, bestseller) VALUES (?, ?, ?, ?, ?)');
       
-      insert.run('짜장면', '면류', 6000, '🍜', 1);
-      insert.run('짬뽕', '면류', 7000, '🍲', 1);
-      insert.run('탕수육', '요리', 15000, '🍖', 1);
+      // 오늘의 메뉴
+      insert.run('짜장면', '오늘의메뉴', 6000, '🍜', 1);
+      insert.run('짬뽕', '오늘의메뉴', 7000, '🌶️', 1);
+      
+      // 추천 메뉴
+      insert.run('탕수육', '추천메뉴', 15000, '🥘', 1);
+      insert.run('깐풍기', '추천메뉴', 18000, '🍗', 1);
+      insert.run('양장피', '추천메뉴', 20000, '🥗', 0);
+      
+      // 면류
+      insert.run('짜장면', '면류', 6000, '🍜', 0);
+      insert.run('짬뽕', '면류', 7000, '🌶️', 0);
+      insert.run('울면', '면류', 7000, '🍝', 0);
+      insert.run('간짜장', '면류', 7000, '🍜', 0);
+      
+      // 밥류
       insert.run('볶음밥', '밥류', 7000, '🍚', 0);
-      insert.run('유산슬', '요리', 18000, '🥘', 0);
-      insert.run('깐풍기', '요리', 16000, '🍗', 0);
+      insert.run('짜장밥', '밥류', 6500, '🍚', 0);
+      insert.run('짬뽕밥', '밥류', 7500, '🍚', 0);
+      
+      // 디저트
+      insert.run('군만두', '디저트', 5000, '🥟', 0);
+      insert.run('물만두', '디저트', 5000, '🥟', 0);
+      insert.run('짬뽕순두부', '디저트', 8000, '🥘', 0);
+      
+      // 음료
+      insert.run('코카콜라 2L', '음료', 3500, '🥤', 0);
+      insert.run('제로콜라', '음료', 2500, '🥤', 0);
+      insert.run('사이다', '음료', 2000, '🥤', 0);
+      insert.run('매실', '음료', 3000, '🍵', 0);
+      
+      // 맥주
+      insert.run('테라', '맥주', 4500, '🍺', 0);
+      insert.run('카스', '맥주', 4000, '🍺', 0);
+      insert.run('기네스', '맥주', 6000, '🍺', 0);
+      insert.run('아사히', '맥주', 5000, '🍺', 0);
+      insert.run('칭따오', '맥주', 4500, '🍺', 0);
+      
+      // 소주
+      insert.run('참이슬', '소주', 4500, '🍶', 0);
+      insert.run('처음처럼', '소주', 4500, '🍶', 0);
+      insert.run('연태고량주(중)', '소주', 25000, '🍶', 0);
+      
+      console.log('✅ 메뉴 데이터 초기화 완료');
     }
   }
 
@@ -105,9 +146,18 @@ class DB {
   }
 
   // 회원
-  createUser(data) {
-    const stmt = this.db.prepare('INSERT INTO users (phone, name, password, createdAt) VALUES (?, ?, ?, ?)');
-    return stmt.run(data.phone, data.name, data.password, data.createdAt);
+  async createUser(phone, name, email, address, password) {
+    // 🔒 비밀번호 암호화!
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const createdAt = new Date().toISOString();
+    
+    const stmt = this.db.prepare('INSERT INTO users (phone, name, email, address, password, points, createdAt) VALUES (?, ?, ?, ?, ?, 10000, ?)');
+    const result = stmt.run(phone, name, email, address, hashedPassword, createdAt);
+    
+    // 포인트 내역 추가
+    this.addPointHistory(result.lastInsertRowid, null, 10000, 'earn');
+    
+    return this.getUserById(result.lastInsertRowid);
   }
 
   getUserByPhone(phone) {
@@ -116,6 +166,21 @@ class DB {
 
   getUserById(userId) {
     return this.db.prepare('SELECT * FROM users WHERE userId = ?').get(userId);
+  }
+
+  getUserByName(name) {
+    return this.db.prepare('SELECT * FROM users WHERE name = ?').all(name);
+  }
+
+  async updatePassword(phone, newPassword) {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const result = this.db.prepare('UPDATE users SET password = ? WHERE phone = ?').run(hashedPassword, phone);
+    return result.changes > 0;
+  }
+
+  // 🔒 비밀번호 검증
+  async verifyPassword(plainPassword, hashedPassword) {
+    return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
   addPoints(userId, points) {

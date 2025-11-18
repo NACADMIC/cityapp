@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>시티반점 - 주문</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
@@ -56,9 +56,13 @@
         <button type="submit" class="btn btn-primary">로그인</button>
       </form>
 
-      <p class="link-text">
-        계정이 없으신가요? <a href="#" onclick="showRegister(); return false;">회원가입</a>
-      </p>
+      <div class="auth-links">
+        <a href="#" onclick="showRegister(); return false;">회원가입</a>
+        <span class="divider">|</span>
+        <a href="#" onclick="showFindId(); return false;">아이디 찾기</a>
+        <span class="divider">|</span>
+        <a href="#" onclick="showFindPassword(); return false;">비밀번호 찾기</a>
+      </div>
     </div>
   </div>
 
@@ -94,11 +98,46 @@
           <label>비밀번호 확인 *</label>
           <input type="password" id="register-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
         </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
-          <input type="checkbox" id="register-privacy" required style="width: auto; margin: 0;">
-          <label for="register-privacy" style="margin: 0; cursor: pointer;">개인정보 수집 및 이용에 동의합니다 *</label>
+        <div class="privacy-accordion">
+          <div class="privacy-header" onclick="togglePrivacy('register')">
+            <div class="privacy-title">
+              <input type="checkbox" id="register-privacy" required onclick="event.stopPropagation()">
+              <label for="register-privacy" style="margin: 0; cursor: pointer;" onclick="event.stopPropagation()">
+                개인정보 수집 및 이용에 동의합니다 *
+              </label>
+            </div>
+            <span class="privacy-arrow" id="register-arrow">▼</span>
+          </div>
+          <div class="privacy-content" id="register-content">
+            <div class="privacy-text">
+              <h4>📋 수집하는 개인정보 항목</h4>
+              <ul>
+                <li><strong>필수항목:</strong> 전화번호, 이름, 주소, 비밀번호</li>
+                <li><strong>선택항목:</strong> 이메일</li>
+              </ul>
+
+              <h4>🎯 개인정보의 수집 및 이용목적</h4>
+              <ul>
+                <li>음식 주문 및 배달 서비스 제공</li>
+                <li>주문 내역 관리 및 고객 문의 응대</li>
+                <li>회원 관리 및 포인트 적립/사용</li>
+                <li>서비스 개선 및 맞춤 서비스 제공</li>
+              </ul>
+
+              <h4>⏰ 개인정보의 보유 및 이용기간</h4>
+              <ul>
+                <li><span class="highlight">회원 탈퇴 시까지</span> 보유</li>
+                <li>주문 내역: 전자상거래법에 따라 <strong>5년간</strong> 보관</li>
+                <li>결제 정보: <strong>5년간</strong> 보관</li>
+              </ul>
+
+              <h4>✅ 동의를 거부할 권리</h4>
+              <p>귀하는 개인정보 수집 및 이용에 동의하지 않을 권리가 있습니다. 다만, 필수항목 동의를 거부하실 경우 <strong>회원가입 및 서비스 이용이 제한</strong>될 수 있습니다.</p>
+            </div>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary">가입하기</button>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px;">가입하기</button>
       </form>
 
       <p class="link-text">
@@ -120,8 +159,114 @@
           <label>전화번호</label>
           <input type="tel" id="guest-phone" placeholder="010-1234-5678" required>
         </div>
-        <button type="submit" class="btn btn-primary">주문 시작</button>
+
+        <div class="privacy-accordion">
+          <div class="privacy-header" onclick="togglePrivacy('guest')">
+            <div class="privacy-title">
+              <input type="checkbox" id="guest-privacy" required onclick="event.stopPropagation()">
+              <label for="guest-privacy" style="margin: 0; cursor: pointer;" onclick="event.stopPropagation()">
+                개인정보 수집 및 이용에 동의합니다 *
+              </label>
+            </div>
+            <span class="privacy-arrow" id="guest-arrow">▼</span>
+          </div>
+          <div class="privacy-content" id="guest-content">
+            <div class="privacy-text">
+              <h4>📋 수집하는 개인정보 항목</h4>
+              <ul>
+                <li><strong>필수항목:</strong> 전화번호, 이름, 배달주소</li>
+              </ul>
+
+              <h4>🎯 개인정보의 수집 및 이용목적</h4>
+              <ul>
+                <li>음식 주문 및 배달 서비스 제공</li>
+                <li>주문 확인 및 배달 안내</li>
+                <li>고객 문의 응대</li>
+              </ul>
+
+              <h4>⏰ 개인정보의 보유 및 이용기간</h4>
+              <ul>
+                <li>주문 완료 후 <span class="highlight">5년간</span> 보관 (전자상거래법)</li>
+                <li>보유기간 경과 후 자동 삭제</li>
+              </ul>
+
+              <h4>✅ 동의를 거부할 권리</h4>
+              <p>귀하는 개인정보 수집 및 이용에 동의하지 않을 권리가 있습니다. 다만, 동의를 거부하실 경우 <strong>비회원 주문 서비스 이용이 불가능</strong>합니다.</p>
+
+              <p style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 12px; font-size: 13px;">
+                <strong>💡 회원가입 시</strong> 포인트 적립(10%) 및 더 많은 혜택을 받으실 수 있습니다!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px;">주문 시작</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Find ID Screen -->
+  <div id="find-id-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showLogin()">← 뒤로</button>
+      
+      <h2>아이디 찾기</h2>
+      <p class="subtitle">가입 시 입력한 이름을 입력하세요</p>
+      
+      <form id="find-id-form" class="form">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="find-id-name" placeholder="홍길동" required>
+        </div>
+        <button type="submit" class="btn btn-primary">아이디(전화번호) 찾기</button>
+      </form>
+      
+      <div id="find-id-result" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 16px; text-align: center;">
+        <p style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">📱 가입된 전화번호</p>
+        <p id="found-phone" style="font-size: 24px; font-weight: 800; color: #1a1a1a;"></p>
+        <button onclick="showLogin()" class="btn btn-secondary" style="margin-top: 15px;">로그인하러 가기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Find Password Screen -->
+  <div id="find-password-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showLogin()">← 뒤로</button>
+      
+      <h2>비밀번호 찾기</h2>
+      <p class="subtitle">가입한 전화번호와 이름을 입력하세요</p>
+      
+      <form id="find-password-form" class="form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="find-pw-phone" placeholder="010-1234-5678" required>
+        </div>
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="find-pw-name" placeholder="홍길동" required>
+        </div>
+        <button type="submit" class="btn btn-primary">비밀번호 재설정</button>
+      </form>
+      
+      <div id="find-password-result" style="display: none; margin-top: 20px;">
+        <div style="padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 16px; text-align: center; margin-bottom: 20px;">
+          <p style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">✅ 본인 확인 완료</p>
+          <p style="font-size: 14px; color: #555;">새 비밀번호를 설정하세요</p>
+        </div>
+        
+        <form id="reset-password-form" class="form">
+          <div class="form-group">
+            <label>새 비밀번호</label>
+            <input type="password" id="new-password" placeholder="새 비밀번호 (6자 이상)" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label>새 비밀번호 확인</label>
+            <input type="password" id="new-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary">비밀번호 변경</button>
+        </form>
+      </div>
     </div>
   </div>
 
