@@ -17,47 +17,47 @@ class DB {
   async initMenu() {
     this.menu = [
       // 오늘의 메뉴
-      { id: 1, name: '짜장면', category: '오늘의메뉴', price: 6000, image: 'https://via.placeholder.com/200x200/FFD700/1a1a1a?text=짜장면', bestseller: 1 },
-      { id: 2, name: '짬뽕', category: '오늘의메뉴', price: 7000, image: 'https://via.placeholder.com/200x200/FF6B6B/ffffff?text=짬뽕', bestseller: 1 },
+      { id: 1, name: '짜장면', category: '오늘의메뉴', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 1 },
+      { id: 2, name: '짬뽕', category: '오늘의메뉴', price: 7000, image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&h=400&fit=crop', bestseller: 1 },
       
       // 추천 메뉴
-      { id: 3, name: '탕수육', category: '추천메뉴', price: 15000, image: 'https://via.placeholder.com/200x200/FFA500/ffffff?text=탕수육', bestseller: 1 },
-      { id: 4, name: '깐풍기', category: '추천메뉴', price: 18000, image: 'https://via.placeholder.com/200x200/FF4500/ffffff?text=깐풍기', bestseller: 1 },
-      { id: 5, name: '양장피', category: '추천메뉴', price: 20000, image: 'https://via.placeholder.com/200x200/90EE90/1a1a1a?text=양장피', bestseller: 0 },
+      { id: 3, name: '탕수육', category: '추천메뉴', price: 15000, image: 'https://images.unsplash.com/photo-1626776876729-bab4eda639c7?w=400&h=400&fit=crop', bestseller: 1 },
+      { id: 4, name: '깐풍기', category: '추천메뉴', price: 18000, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=400&h=400&fit=crop', bestseller: 1 },
+      { id: 5, name: '양장피', category: '추천메뉴', price: 20000, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop', bestseller: 0 },
       
       // 면류
-      { id: 6, name: '짜장면', category: '면류', price: 6000, image: 'https://via.placeholder.com/200x200/FFD700/1a1a1a?text=짜장면', bestseller: 0 },
-      { id: 7, name: '짬뽕', category: '면류', price: 7000, image: 'https://via.placeholder.com/200x200/FF6B6B/ffffff?text=짬뽕', bestseller: 0 },
-      { id: 8, name: '울면', category: '면류', price: 7000, image: 'https://via.placeholder.com/200x200/87CEEB/1a1a1a?text=울면', bestseller: 0 },
-      { id: 9, name: '간짜장', category: '면류', price: 7000, image: 'https://via.placeholder.com/200x200/8B4513/ffffff?text=간짜장', bestseller: 0 },
+      { id: 6, name: '짜장면', category: '면류', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 7, name: '짬뽕', category: '면류', price: 7000, image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 8, name: '울면', category: '면류', price: 7000, image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 9, name: '간짜장', category: '면류', price: 7000, image: 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400&h=400&fit=crop', bestseller: 0 },
       
       // 밥류
-      { id: 10, name: '볶음밥', category: '밥류', price: 7000, image: 'https://via.placeholder.com/200x200/FFE4B5/1a1a1a?text=볶음밥', bestseller: 0 },
-      { id: 11, name: '짜장밥', category: '밥류', price: 6500, image: 'https://via.placeholder.com/200x200/DEB887/1a1a1a?text=짜장밥', bestseller: 0 },
-      { id: 12, name: '짬뽕밥', category: '밥류', price: 7500, image: 'https://via.placeholder.com/200x200/FA8072/ffffff?text=짬뽕밥', bestseller: 0 },
+      { id: 10, name: '볶음밥', category: '밥류', price: 7000, image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 11, name: '짜장밥', category: '밥류', price: 6500, image: 'https://images.unsplash.com/photo-1645177628172-a94c30a5f0cc?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 12, name: '짬뽕밥', category: '밥류', price: 7500, image: 'https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=400&h=400&fit=crop', bestseller: 0 },
       
       // 디저트
-      { id: 13, name: '군만두', category: '디저트', price: 5000, image: 'https://via.placeholder.com/200x200/F5DEB3/1a1a1a?text=군만두', bestseller: 0 },
-      { id: 14, name: '물만두', category: '디저트', price: 5000, image: 'https://via.placeholder.com/200x200/E6E6FA/1a1a1a?text=물만두', bestseller: 0 },
-      { id: 15, name: '짬뽕순두부', category: '디저트', price: 8000, image: 'https://via.placeholder.com/200x200/FFB6C1/1a1a1a?text=순두부', bestseller: 0 },
+      { id: 13, name: '군만두', category: '디저트', price: 5000, image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 14, name: '물만두', category: '디저트', price: 5000, image: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 15, name: '짬뽕순두부', category: '디저트', price: 8000, image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=400&fit=crop', bestseller: 0 },
       
       // 음료
-      { id: 16, name: '코카콜라 2L', category: '음료', price: 3500, image: 'https://via.placeholder.com/200x200/DC143C/ffffff?text=코카콜라2L', bestseller: 0 },
-      { id: 17, name: '제로콜라', category: '음료', price: 2500, image: 'https://via.placeholder.com/200x200/000000/ffffff?text=제로콜라', bestseller: 0 },
-      { id: 18, name: '사이다', category: '음료', price: 2000, image: 'https://via.placeholder.com/200x200/98FB98/1a1a1a?text=사이다', bestseller: 0 },
-      { id: 19, name: '매실', category: '음료', price: 3000, image: 'https://via.placeholder.com/200x200/FFA07A/1a1a1a?text=매실', bestseller: 0 },
+      { id: 16, name: '코카콜라 2L', category: '음료', price: 3500, image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 17, name: '제로콜라', category: '음료', price: 2500, image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 18, name: '사이다', category: '음료', price: 2000, image: 'https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 19, name: '매실', category: '음료', price: 3000, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&h=400&fit=crop', bestseller: 0 },
       
       // 맥주
-      { id: 20, name: '테라', category: '맥주', price: 4500, image: 'https://via.placeholder.com/200x200/1E90FF/ffffff?text=테라', bestseller: 0 },
-      { id: 21, name: '카스', category: '맥주', price: 4000, image: 'https://via.placeholder.com/200x200/00CED1/1a1a1a?text=카스', bestseller: 0 },
-      { id: 22, name: '기네스', category: '맥주', price: 6000, image: 'https://via.placeholder.com/200x200/2F4F4F/ffffff?text=기네스', bestseller: 0 },
-      { id: 23, name: '아사히', category: '맥주', price: 5000, image: 'https://via.placeholder.com/200x200/B0C4DE/1a1a1a?text=아사히', bestseller: 0 },
-      { id: 24, name: '칭따오', category: '맥주', price: 4500, image: 'https://via.placeholder.com/200x200/4169E1/ffffff?text=칭따오', bestseller: 0 },
+      { id: 20, name: '테라', category: '맥주', price: 4500, image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 21, name: '카스', category: '맥주', price: 4000, image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 22, name: '기네스', category: '맥주', price: 6000, image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 23, name: '아사히', category: '맥주', price: 5000, image: 'https://images.unsplash.com/photo-1618885472179-5e474019f2a9?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 24, name: '칭따오', category: '맥주', price: 4500, image: 'https://images.unsplash.com/photo-1612528443702-f6741f70a049?w=400&h=400&fit=crop', bestseller: 0 },
       
       // 소주
-      { id: 25, name: '참이슬', category: '소주', price: 4500, image: 'https://via.placeholder.com/200x200/32CD32/ffffff?text=참이슬', bestseller: 0 },
-      { id: 26, name: '처음처럼', category: '소주', price: 4500, image: 'https://via.placeholder.com/200x200/90EE90/1a1a1a?text=처음처럼', bestseller: 0 },
-      { id: 27, name: '연태고량주(중)', category: '소주', price: 25000, image: 'https://via.placeholder.com/200x200/8B4513/ffffff?text=연태고량주', bestseller: 0 }
+      { id: 25, name: '참이슬', category: '소주', price: 4500, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 26, name: '처음처럼', category: '소주', price: 4500, image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 27, name: '연태고량주(중)', category: '소주', price: 25000, image: 'https://images.unsplash.com/photo-1596040008861-378f1a2c8e62?w=400&h=400&fit=crop', bestseller: 0 }
     ];
     console.log('✅ 메뉴 초기화 완료:', this.menu.length, '개');
   }

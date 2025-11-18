@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order - City Restaurant</title>
-  <link rel="stylesheet" href="style-yellow.css">
+  <title>시티반점 - 주문</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <link rel="stylesheet" href="style-premium.css">
 </head>
 <body>
   <!-- Auth Select Screen -->
@@ -111,34 +113,14 @@
       <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
       
       <h2>비회원 주문</h2>
-      <p class="subtitle">주문 정보를 입력해주세요</p>
+      <p class="subtitle">전화번호만 입력하세요</p>
       
       <form id="guest-verify-form" class="form">
         <div class="form-group">
-          <label>전화번호 *</label>
+          <label>전화번호</label>
           <input type="tel" id="guest-phone" placeholder="010-1234-5678" required>
         </div>
-        <div class="form-group">
-          <label>이름 *</label>
-          <input type="text" id="guest-name" placeholder="홍길동" required>
-        </div>
-        <div class="form-group">
-          <label>주소 *</label>
-          <input type="text" id="guest-address" placeholder="서울시 강남구..." required>
-        </div>
-        <div class="form-group">
-          <label>비밀번호 * (주문 조회용)</label>
-          <input type="password" id="guest-password" placeholder="비밀번호 (6자 이상)" required minlength="6">
-        </div>
-        <div class="form-group">
-          <label>비밀번호 확인 *</label>
-          <input type="password" id="guest-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
-        </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
-          <input type="checkbox" id="guest-privacy" required style="width: auto; margin: 0;">
-          <label for="guest-privacy" style="margin: 0; cursor: pointer;">개인정보 수집 및 이용에 동의합니다 *</label>
-        </div>
-        <button type="submit" class="btn btn-primary">비회원 주문 시작</button>
+        <button type="submit" class="btn btn-primary">주문 시작</button>
       </form>
     </div>
   </div>

@@ -23,6 +23,18 @@ body {
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .logo {
@@ -164,15 +176,16 @@ h2 {
 /* Header */
 .header {
   background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
-  padding: 15px 20px;
+  padding: 18px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 4px solid #FFD700;
+  border-bottom: 3px solid #FFD700;
+  backdrop-filter: blur(10px);
 }
 
 .header h1 {
@@ -554,12 +567,26 @@ h2 {
 
 /* Point Section (Improved) */
 .point-section {
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
+  background: linear-gradient(135deg, #ffffff 0%, #fffef8 100%);
+  padding: 25px;
+  border-radius: 20px;
   margin: 15px 0;
-  border: 3px solid #1a1a1a;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  border: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.point-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A, #4CAF50);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
 }
 
 .point-header {
@@ -578,10 +605,14 @@ h2 {
 
 .point-header > div:first-child {
   background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border: 2px solid #4CAF50;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.15);
 }
 
 .point-header > div:last-child {
   background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  border: 2px solid #FF6B6B;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.15);
 }
 
 .point-label {
@@ -634,24 +665,38 @@ h2 {
 
 .point-quick-btns button {
   flex: 1;
-  padding: 10px;
-  background: #f5f5f5;
-  border: 2px solid #1a1a1a;
-  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
   font-size: 14px;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .point-quick-btns button:hover {
-  background: #FFD700;
-  transform: scale(1.05);
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  border-color: #FFD700;
+}
+
+.point-quick-btns button:active {
+  transform: translateY(0) scale(1);
 }
 
 .point-quick-btns button:last-child {
-  background: #FFD700;
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
   color: #1a1a1a;
+  border-color: #FFD700;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.point-quick-btns button:last-child:hover {
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  transform: translateY(-3px) scale(1.05);
 }
 
 .point-info {

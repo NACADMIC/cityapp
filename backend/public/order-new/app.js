@@ -2,9 +2,6 @@
 let currentUser = null;
 let isGuest = false;
 let guestPhone = null;
-let guestName = null;
-let guestAddress = null;
-let guestPassword = null;
 let cart = [];
 let menuItems = [];
 let usedPoints = 0;
@@ -158,30 +155,17 @@ document.getElementById('guest-verify-form').addEventListener('submit', async (e
   e.preventDefault();
   
   const phone = document.getElementById('guest-phone').value.trim();
-  const name = document.getElementById('guest-name').value.trim();
-  const address = document.getElementById('guest-address').value.trim();
-  const password = document.getElementById('guest-password').value.trim();
-  const passwordConfirm = document.getElementById('guest-password-confirm').value.trim();
-  const privacyAgree = document.getElementById('guest-privacy').checked;
   
-  if (password !== passwordConfirm) {
-    alert('비밀번호가 일치하지 않습니다.');
-    return;
-  }
-  
-  if (!privacyAgree) {
-    alert('개인정보 수집 및 이용에 동의해주세요.');
+  if (!phone) {
+    alert('전화번호를 입력해주세요.');
     return;
   }
   
   // Store guest info
   guestPhone = phone;
-  guestName = name;
-  guestAddress = address;
-  guestPassword = password;
   isGuest = true;
   
-  alert('비회원 정보 등록 완료! 메뉴를 선택해주세요.');
+  alert('비회원 주문 시작! 메뉴를 선택해주세요.');
   showMenu();
 });
 
@@ -191,9 +175,6 @@ function logout() {
     currentUser = null;
     isGuest = false;
     guestPhone = null;
-    guestName = null;
-    guestAddress = null;
-    guestPassword = null;
     cart = [];
     usedPoints = 0;
     showAuthSelect();
@@ -388,11 +369,16 @@ function quickPoints(amount) {
   
   if (amount === 'all') {
     usePointsInput.value = maxPoints;
+    usedPoints = maxPoints;
   } else {
     const current = parseInt(usePointsInput.value) || 0;
     const newAmount = Math.min(current + amount, maxPoints);
     usePointsInput.value = newAmount;
+    usedPoints = newAmount;
   }
+  
+  // 카트 다시 렌더링
+  renderCart();
 }
 
 // 포인트 적용
@@ -496,10 +482,10 @@ function renderCheckout() {
     checkoutPointsSection.style.display = 'none';
     checkoutEarnInfo.style.display = 'none';
     
-    if (isGuest) {
-      document.getElementById('checkout-name').value = guestName || '';
-      document.getElementById('checkout-phone').value = guestPhone || '';
-      document.getElementById('checkout-address').value = guestAddress || '';
+    if (isGuest && guestPhone) {
+      document.getElementById('checkout-phone').value = guestPhone;
+      document.getElementById('checkout-name').value = '';
+      document.getElementById('checkout-address').value = '';
     }
   }
 }
