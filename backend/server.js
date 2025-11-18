@@ -228,9 +228,19 @@ app.post('/api/auth/login', async (req, res) => {
       return res.json({ success: false, error: '비밀번호가 일치하지 않습니다.' });
     }
     
-    // 비밀번호 제외하고 전송
+    // 비밀번호 제외하고 전송 (userId 필드 명시적으로 포함)
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ success: true, user: userWithoutPassword });
+    res.json({ 
+      success: true, 
+      user: {
+        userId: user.userId || user.userid || user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        address: user.address,
+        points: user.points || 0
+      }
+    });
   } catch (error) {
     console.error('로그인 오류:', error);
     res.status(500).json({ success: false, error: error.message });
