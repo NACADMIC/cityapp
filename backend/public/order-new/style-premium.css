@@ -152,15 +152,15 @@ body {
 /* ===== CATEGORY TABS ===== */
 .category-tabs {
   display: flex;
-  gap: 12px;
-  padding: 20px;
+  gap: 10px;
+  padding: 15px 20px;
   overflow-x: auto;
-  background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
+  background: #000000;
   position: sticky;
   top: 75px;
   z-index: 999;
-  border-bottom: 3px solid #FFD700;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  border-bottom: none;
+  box-shadow: none;
   scrollbar-width: none;
 }
 
@@ -169,22 +169,24 @@ body {
 }
 
 .category-tab {
-  padding: 12px 24px;
-  background: rgba(255, 215, 0, 0.1);
+  padding: 10px 18px;
+  background: transparent;
   border: 2px solid #FFD700;
-  border-radius: 50px;
+  border-radius: 20px;
   color: #FFD700;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s;
   position: relative;
-  overflow: hidden;
-  display: flex;
+  overflow: visible;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  min-width: auto;
+  flex-shrink: 0;
 }
 
 .category-tab::before {
@@ -203,16 +205,15 @@ body {
 }
 
 .category-tab:hover {
-  background: rgba(255, 215, 0, 0.25);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+  background: #FFD700;
+  color: #000000;
 }
 
 .category-tab.active {
-  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
-  color: #1a1a1a;
-  box-shadow: 0 6px 24px rgba(255, 215, 0, 0.6);
-  transform: scale(1.05);
+  background: #FFD700;
+  color: #000000;
+  border-color: #FFD700;
+  font-weight: 800;
 }
 
 /* ===== MENU ITEMS ===== */
@@ -628,9 +629,10 @@ body {
   }
 
   .category-tab {
-    padding: 10px 18px;
-    font-size: 13px;
+    padding: 8px 16px;
+    font-size: 12px;
     min-width: auto;
+    border-radius: 20px;
   }
 
   .menu-list {
@@ -753,9 +755,10 @@ body {
   }
 
   .category-tab {
-    padding: 8px 14px;
-    font-size: 12px;
+    padding: 7px 14px;
+    font-size: 11px;
     min-width: auto;
+    border-radius: 18px;
   }
 
   .point-amount {
@@ -905,14 +908,14 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: #1a1a1a;
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: 8px 0 env(safe-area-inset-bottom);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
   z-index: 1000;
-  border-top: 1px solid #eee;
+  border-top: 2px solid #FFD700;
 }
 
 .nav-btn {
@@ -927,7 +930,7 @@ body {
   border: none;
   cursor: pointer;
   transition: all 0.3s;
-  color: #999;
+  color: #888;
 }
 
 .nav-btn:active {
@@ -950,7 +953,7 @@ body {
 
 .nav-label {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.3px;
 }
 

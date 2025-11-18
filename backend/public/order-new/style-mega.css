@@ -1,0 +1,306 @@
+/* MEGA COFFEE 스타일 - 시티반점 */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #000000;
+  color: #1a1a1a;
+  padding-bottom: 70px;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: #FFD700;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.header h1 {
+  font-size: 24px;
+  font-weight: 900;
+  margin: 0;
+  color: #000000;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.header h1:hover {
+  transform: scale(1.05);
+}
+
+.cart-btn {
+  background: #000000;
+  color: #FFD700;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.cart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+#cart-count {
+  background: #FF4757;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ===== CATEGORY TABS ===== */
+.category-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px;
+  overflow-x: auto;
+  background: #000000;
+  position: sticky;
+  top: 75px;
+  z-index: 999;
+  scrollbar-width: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  padding: 10px 18px;
+  background: transparent;
+  border: 2px solid #FFD700;
+  border-radius: 20px;
+  color: #FFD700;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.category-tab:hover {
+  background: #FFD700;
+  color: #000000;
+}
+
+.category-tab.active {
+  background: #FFD700;
+  color: #000000;
+  font-weight: 800;
+}
+
+/* ===== MENU ===== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #000000;
+}
+
+.menu-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 15px;
+  padding: 20px 0;
+}
+
+@media (min-width: 600px) {
+  .menu-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 599px) {
+  .menu-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.menu-item {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid #FFD700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(255, 215, 0, 0.3);
+}
+
+.menu-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.menu-item h3 {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 12px 12px 8px;
+  color: #1a1a1a;
+}
+
+.price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #000000;
+  margin: 0 12px 12px;
+}
+
+.menu-item button {
+  width: 100%;
+  padding: 12px;
+  background: #FFD700;
+  color: #000000;
+  border: none;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.menu-item button:hover {
+  background: #FFC107;
+}
+
+/* ===== BOTTOM NAVIGATION ===== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a1a1a;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0 env(safe-area-inset-bottom);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  border-top: 2px solid #FFD700;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #888;
+}
+
+.nav-btn.active {
+  color: #FFD700;
+}
+
+.nav-icon {
+  font-size: 24px;
+  transition: all 0.3s;
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.nav-btn:hover {
+  color: #FFD700;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: #FFD700;
+  color: #000000;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: -0.5px;
+}
+
+.btn:hover {
+  background: #FFC107;
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: #FFD700;
+  color: #000000;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #FFD700;
+  border: 2px solid #FFD700;
+}
+
+.btn-secondary:hover {
+  background: #FFD700;
+  color: #000000;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 20px;
+  }
+  
+  .menu-list {
+    gap: 12px;
+  }
+  
+  .menu-image {
+    height: 140px;
+  }
+}
+
+@media (max-width: 380px) {
+  .header h1 {
+    font-size: 18px;
+  }
+  
+  .category-tab {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
+
