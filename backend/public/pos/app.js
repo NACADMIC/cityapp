@@ -436,8 +436,8 @@ function acceptOrder() {
   
   addOrder(currentPendingOrder);
   
-  // 서버에 수락 알림 (옵션)
-  // socket.emit('order-accepted', { orderId: currentPendingOrder.orderId, prepTime });
+  // 서버에 수락 상태 업데이트
+  updateStatus(currentPendingOrder.orderId, 'accepted');
   
   hideOrderPopup();
   
@@ -456,8 +456,8 @@ function rejectOrder() {
   if (confirm(`주문을 거절하시겠습니까?\n고객: ${currentPendingOrder.customerName}`)) {
     console.log(`❌ 주문 거절: ${currentPendingOrder.orderId}`);
     
-    // 서버에 거절 알림 (옵션)
-    // socket.emit('order-rejected', { orderId: currentPendingOrder.orderId });
+    // 서버에 거절 상태 업데이트
+    updateStatus(currentPendingOrder.orderId, 'rejected');
     
     hideOrderPopup();
     

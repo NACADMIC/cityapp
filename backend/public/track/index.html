@@ -171,16 +171,38 @@
       background: #4caf50;
       color: white;
     }
+    
+    .status-step.active .status-icon::before {
+      content: '✓';
+      font-size: 18px;
+      font-weight: bold;
+    }
 
     .status-step.current .status-icon {
       background: #ffa000;
       color: white;
       animation: pulse 2s infinite;
+      font-weight: bold;
+    }
+    
+    .status-step.current .status-icon::before {
+      content: '●';
+      font-size: 14px;
     }
 
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.1); }
+      50% { transform: scale(1.15); }
+    }
+    
+    .status-step.active .status-info h3 {
+      color: #4caf50;
+      font-weight: 700;
+    }
+    
+    .status-step.current .status-info h3 {
+      color: #ffa000;
+      font-weight: 800;
     }
 
     .status-info h3 {
@@ -272,33 +294,33 @@
 
       <div class="status-tracker" id="status-tracker">
         <div class="status-step" data-status="pending">
-          <div class="status-icon">📝</div>
+          <div class="status-icon"></div>
           <div class="status-info">
-            <h3>주문 접수</h3>
+            <h3>📝 주문 접수</h3>
             <p>주문이 접수되었습니다</p>
           </div>
         </div>
 
         <div class="status-step" data-status="preparing">
-          <div class="status-icon">👨‍🍳</div>
+          <div class="status-icon"></div>
           <div class="status-info">
-            <h3>조리중</h3>
+            <h3>👨‍🍳 조리중</h3>
             <p>맛있게 조리하고 있습니다</p>
           </div>
         </div>
 
         <div class="status-step" data-status="delivering">
-          <div class="status-icon">🚚</div>
+          <div class="status-icon"></div>
           <div class="status-info">
-            <h3>배달중</h3>
+            <h3>🚚 배달중</h3>
             <p>배달원이 출발했습니다</p>
           </div>
         </div>
 
         <div class="status-step" data-status="completed">
-          <div class="status-icon">✅</div>
+          <div class="status-icon"></div>
           <div class="status-info">
-            <h3>배달 완료</h3>
+            <h3>✨ 배달 완료</h3>
             <p>맛있게 드세요!</p>
           </div>
         </div>
