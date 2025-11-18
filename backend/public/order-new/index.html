@@ -273,7 +273,6 @@
   <!-- Menu Screen -->
   <div id="menu-screen" class="screen">
     <div class="header">
-      <button class="back-btn" onclick="logout()">로그아웃</button>
       <h1 onclick="location.reload()">🏮 시티반점</h1>
       <button class="cart-btn" onclick="showCart()">
         🛒 <span id="cart-count">0</span>
@@ -306,6 +305,26 @@
         <div class="loading">메뉴 불러오는 중...</div>
       </div>
     </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" onclick="showMenu()">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">홈</span>
+      </button>
+      <button class="nav-btn" onclick="window.location.href='/mypage'">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">주문내역</span>
+      </button>
+      <button class="nav-btn" onclick="showCart()">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">장바구니</span>
+      </button>
+      <button class="nav-btn" onclick="window.location.href='/mypage'">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">마이시티</span>
+      </button>
+    </nav>
   </div>
 
   <!-- Cart Screen -->
