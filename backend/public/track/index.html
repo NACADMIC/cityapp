@@ -450,15 +450,23 @@
     // 상태 업데이트
     function updateStatus(status) {
       const steps = document.querySelectorAll('.status-step');
-      const statusOrder = ['pending', 'preparing', 'delivering', 'completed'];
+      const statusOrder = ['pending', 'accepted', 'preparing', 'delivering', 'completed'];
       const currentIndex = statusOrder.indexOf(status);
+      
+      // pending과 accepted는 같은 단계로 표시 (주문 접수)
+      let displayIndex = currentIndex;
+      if (status === 'accepted') {
+        displayIndex = 0; // 첫 번째 단계에 표시
+      } else if (currentIndex > 1) {
+        displayIndex = currentIndex - 1; // accepted를 건너뛰므로 -1
+      }
       
       steps.forEach((step, index) => {
         step.classList.remove('active', 'current');
         
-        if (index < currentIndex) {
+        if (index < displayIndex) {
           step.classList.add('active');
-        } else if (index === currentIndex) {
+        } else if (index === displayIndex) {
           step.classList.add('active', 'current');
         }
       });

@@ -236,7 +236,8 @@ function formatPayment(method) {
 // Get status buttons
 function getStatusButtons(orderId, status) {
   const buttons = {
-    'pending': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'preparing')">✓ 조리 시작</button>`,
+    'pending': `<button class="btn btn-info" style="background: #ffc107; color: #000;">⏳ 수락 대기 중</button>`,
+    'accepted': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'preparing')">✓ 조리 시작</button>`,
     'preparing': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'delivering')">🚚 배달 출발</button>`,
     'delivering': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'completed')">✅ 배달 완료</button>`,
     'completed': `<button class="btn" style="background: #9e9e9e; cursor: not-allowed;" disabled>완료됨</button>`
@@ -344,6 +345,7 @@ async function updateStatus(orderId, newStatus) {
       }
       
       const statusText = {
+        'accepted': '주문 수락',
         'preparing': '조리 시작',
         'delivering': '배달 출발',
         'completed': '배달 완료'
