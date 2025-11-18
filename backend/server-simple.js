@@ -382,7 +382,7 @@ app.get('/api/orders/user/:userId', async (req, res) => {
 });
 
 // 테스트 데이터 생성 (Railway용)
-function generateTestData() {
+async function generateTestData() {
   console.log('🎲 테스트 데이터 생성 시작...\n');
   
   const names = ['김민수', '이영희', '박철수', '정수진', '최동욱', '강미정', '윤지훈', '임소연', '한준호', '오세영'];
@@ -419,14 +419,25 @@ function generateTestData() {
   for (let i = 0; i < 10; i++) {
     const phone = `010-9000-${String(i + 1).padStart(4, '0')}`;
     const name = names[i];
-    const user = db.createUser(phone, name);
-    testUserIds.push(user.id);
+    const email = `test${i + 1}@test.com`;
+    const address = addresses[selectRegion()][random(0, addresses[selectRegion()].length - 1)];
+    const password = '1234';
+    const user = await db.createUser(phone, name, email, address, password);
+    testUserIds.push(user.userid);
     console.log(`✅ ${name} (${phone})`);
   }
   
   // 주문 생성 (최근 60일)
   console.log('\n📦 주문 생성 중...');
   const menus = db.getAllMenu();
+  
+  if (!menus || !Array.isArray(menus) || menus.length === 0) {
+    console.error('❌ 메뉴 데이터가 없습니다!', menus);
+    return;
+  }
+  
+  console.log(`✅ 메뉴 ${menus.length}개 확인됨`);
+  
   let totalOrders = 0;
   
   for (let day = 0; day < 60; day++) {
@@ -441,19 +452,29 @@ function generateTestData() {
       const address = addresses[region][random(0, addresses[region].length - 1)];
       const customerName = names[random(0, names.length - 1)];
       const phone = `010-${random(1000, 9999)}-${random(1000, 9999)}`;
-      const userId = random(0, 100) < 70 ? testUserIds[random(0, testUserIds.length - 1)] : null;
+      const userId = random(0, 100) < 70 && testUserIds.length > 0 ? testUserIds[random(0, testUserIds.length - 1)] : null;
       
       // 랜덤 메뉴 선택
       const itemCount = random(1, 4);
       const items = [];
       for (let j = 0; j < itemCount; j++) {
-        const menu = menus[random(0, menus.length - 1)];
-        items.push({
-          id: menu.id,
-          name: menu.name,
-          price: menu.price,
-          quantity: random(1, 3)
-        });
+        const menuIndex = random(0, menus.length - 1);
+        const menu = menus[menuIndex];
+        if (menu && menu.id && menu.name && menu.price) {
+          items.push({
+            id: menu.id,
+            name: menu.name,
+            price: menu.price,
+            quantity: random(1, 3)
+          });
+        } else {
+          console.warn(`⚠️ 잘못된 메뉴 데이터:`, menu, `인덱스: ${menuIndex}`);
+        }
+      }
+      
+      if (items.length === 0) {
+        console.warn('⚠️ 메뉴가 없어서 주문 스킵');
+        continue; // 메뉴가 없으면 스킵
       }
       
       const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -506,7 +527,10 @@ server.listen(PORT, '0.0.0.0', () => {
   
   // Railway 환경에서만 테스트 데이터 생성
   if (process.env.RAILWAY_ENVIRONMENT || process.env.PORT) {
-    generateTestData();
+    generateTestData().catch(error => {
+      console.error('❌ 테스트 데이터 생성 오류:', error);
+      console.log('⚠️ 테스트 데이터 없이 계속 진행합니다...\n');
+    });
   }
 });
 

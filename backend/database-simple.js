@@ -62,7 +62,7 @@ class DB {
     console.log('✅ 메뉴 초기화 완료:', this.menu.length, '개');
   }
 
-  async getAllMenu() {
+  getAllMenu() {
     return this.menu;
   }
 
