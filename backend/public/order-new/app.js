@@ -757,15 +757,14 @@ function goToCart() {
   updateNavActive('cart');
 }
 
-function goToMyPage() {
-  console.log('📦 마이페이지 이동 시도...');
-  console.log('현재 currentUser:', currentUser);
-  console.log('세션 데이터:', sessionStorage.getItem('currentUser'));
+// 주문내역 페이지로 이동
+function goToOrderHistory() {
+  console.log('📦 주문내역 이동 시도...');
   
   // 먼저 전역 변수 체크
   if (currentUser && currentUser.userId) {
     console.log('✅ 전역 변수로 이동');
-    window.location.href = '/mypage';
+    window.location.href = '/mypage?tab=orders';
     return;
   }
   
@@ -779,12 +778,43 @@ function goToMyPage() {
   
   try {
     const user = JSON.parse(currentUserData);
-    console.log('세션에서 복원한 유저:', user);
     if (user && user.userId) {
       console.log('✅ 세션 데이터로 이동');
-      window.location.href = '/mypage';
+      window.location.href = '/mypage?tab=orders';
     } else {
-      console.log('❌ userId 없음');
+      alert('로그인 정보가 올바르지 않습니다.');
+    }
+  } catch (e) {
+    console.error('세션 파싱 오류:', e);
+    alert('로그인이 필요합니다.');
+  }
+}
+
+// 마이시티 페이지로 이동
+function goToMyPage() {
+  console.log('📦 마이시티 이동 시도...');
+  
+  // 먼저 전역 변수 체크
+  if (currentUser && currentUser.userId) {
+    console.log('✅ 전역 변수로 이동');
+    window.location.href = '/mypage?tab=profile';
+    return;
+  }
+  
+  // sessionStorage 체크
+  const currentUserData = sessionStorage.getItem('currentUser');
+  if (!currentUserData) {
+    console.log('❌ 세션 데이터 없음');
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    const user = JSON.parse(currentUserData);
+    if (user && user.userId) {
+      console.log('✅ 세션 데이터로 이동');
+      window.location.href = '/mypage?tab=profile';
+    } else {
       alert('로그인 정보가 올바르지 않습니다.');
     }
   } catch (e) {

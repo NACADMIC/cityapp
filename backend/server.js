@@ -354,6 +354,18 @@ app.get('/api/orders/user/:userId', (req, res) => {
   }
 });
 
+// API: 포인트 내역 조회
+app.get('/api/points/history/:userId', (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const history = db.getPointHistory(userId);
+    
+    res.json({ success: true, history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 전화번호로 주문 조회
 app.get('/api/orders/phone/:phone', (req, res) => {
   try {

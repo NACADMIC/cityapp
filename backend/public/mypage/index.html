@@ -319,6 +319,71 @@
       border-radius: 16px;
       border: 2px solid #FFD700;
     }
+    
+    /* 포인트 내역 */
+    .point-history-item {
+      background: white;
+      padding: 18px;
+      border-radius: 14px;
+      border: 2px solid #FFD700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .point-history-left {
+      flex: 1;
+    }
+    
+    .point-history-type {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+    }
+    
+    .point-history-date {
+      font-size: 12px;
+      color: #999;
+    }
+    
+    .point-history-amount {
+      font-size: 20px;
+      font-weight: 800;
+      text-align: right;
+    }
+    
+    .point-history-amount.plus {
+      color: #00C851;
+    }
+    
+    .point-history-amount.minus {
+      color: #FF4444;
+    }
+    
+    /* 로그아웃 버튼 */
+    .btn-logout {
+      width: 100%;
+      padding: 18px;
+      margin: 40px 0 60px 0;
+      background: transparent;
+      color: #999;
+      border: 2px solid #666;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-logout:hover {
+      background: #FF4444;
+      color: white;
+      border-color: #FF4444;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+    }
   </style>
 </head>
 <body>
@@ -346,6 +411,16 @@
       <span class="order-count" id="order-count">0건</span>
     </div>
     <div id="orders-list" class="orders-list"></div>
+    
+    <!-- 포인트 내역 섹션 -->
+    <div class="section-header" style="margin-top: 50px;">
+      <h3>포인트 내역</h3>
+      <span class="order-count" id="point-history-count">0건</span>
+    </div>
+    <div id="point-history-list" class="orders-list"></div>
+    
+    <!-- 로그아웃 버튼 -->
+    <button class="btn-logout" onclick="logout()">🚪 로그아웃</button>
   </div>
 
   <script>
@@ -423,6 +498,16 @@
         }
         
         displayOrders(ordersData.orders);
+        
+        // 포인트 내역 가져오기
+        const pointHistoryRes = await fetch(`/api/points/history/${userId}`);
+        const pointHistoryData = await pointHistoryRes.json();
+        
+        if (pointHistoryData.success) {
+          displayPointHistory(pointHistoryData.history);
+        } else {
+          document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
+        }
       } catch (err) {
         alert('오류: ' + err.message);
       }
@@ -491,8 +576,72 @@
         `;
       }).join('');
     }
+    
+    function displayPointHistory(history) {
+      const pointHistoryList = document.getElementById('point-history-list');
+      document.getElementById('point-history-count').textContent = `${history.length}건`;
+      
+      if (history.length === 0) {
+        pointHistoryList.innerHTML = '<div class="no-orders">아직 포인트 내역이 없습니다</div>';
+        return;
+      }
+      
+      pointHistoryList.innerHTML = history.map(item => {
+        const date = new Date(item.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const isPlus = item.amount > 0;
+        const amountClass = isPlus ? 'plus' : 'minus';
+        const amountPrefix = isPlus ? '+' : '';
+        
+        return `
+          <div class="point-history-item">
+            <div class="point-history-left">
+              <div class="point-history-type">${item.type}</div>
+              <div class="point-history-date">${date}</div>
+            </div>
+            <div class="point-history-amount ${amountClass}">
+              ${amountPrefix}${item.amount.toLocaleString()}P
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function logout() {
+      if (!confirm('로그아웃 하시겠습니까?')) return;
+      
+      // 세션 데이터 삭제
+      sessionStorage.removeItem('currentUser');
+      localStorage.clear();
+      
+      alert('로그아웃 되었습니다.');
+      window.location.href = '/order-new';
+    }
 
     fetchUserData();
+    
+    // URL 파라미터 확인 후 스크롤
+    window.addEventListener('load', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      
+      if (tab === 'orders') {
+        // 주문내역 섹션으로 스크롤
+        setTimeout(() => {
+          const ordersSection = document.querySelector('.section-header');
+          if (ordersSection) {
+            ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 500);
+      }
+      // tab=profile이면 기본 (맨 위)
+    });
     
     // 같은 메뉴 담기
     window.reorderSameMenu = async function(orderId) {
