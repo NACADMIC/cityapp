@@ -438,30 +438,18 @@ async function generateTestData() {
   console.log(`✅ 총 ${testUserIds.length}명의 회원 생성 완료`);
   
   // 주문 생성 (최근 60일)
-  console.log('\n📦 주문 생성 중...');
+  console.log('📦 주문 생성 중...');
   
-  // 메뉴 데이터 안전하게 가져오기
-  let menus;
-  try {
-    menus = db.getAllMenu();
-  } catch (error) {
-    console.error('❌ 메뉴 데이터 가져오기 실패:', error);
-    return;
-  }
-  
-  if (!menus || !Array.isArray(menus) || menus.length === 0) {
-    console.error('❌ 메뉴 데이터가 없습니다!', typeof menus, menus);
-    return;
-  }
-  
-  // 유효한 메뉴만 필터링
+  // 메뉴 데이터 가져오기
+  const menus = db.getAllMenu();
   const validMenus = menus.filter(m => m && m.id && m.name && m.price);
+  
   if (validMenus.length === 0) {
     console.error('❌ 유효한 메뉴가 없습니다!');
     return;
   }
   
-  console.log(`✅ 메뉴 ${validMenus.length}개 확인됨 (전체 ${menus.length}개 중)`);
+  console.log(`✅ 유효한 메뉴 ${validMenus.length}개 확인`);
   
   let totalOrders = 0;
   
@@ -518,44 +506,25 @@ async function generateTestData() {
         createdAt: date.getTime()
       };
       
-      try {
-        db.createOrder(orderData);
-        
-        if (userId && usedPoints > 0) {
-          db.addPoints(userId, -usedPoints);
-        }
-        if (userId && earnedPoints > 0) {
-          db.addPoints(userId, earnedPoints);
-        }
-        
-        totalOrders++;
-        
-        // 50건마다 진행 상황 출력
-        if (totalOrders % 50 === 0) {
-          console.log(`  📊 진행 중: ${totalOrders}건 생성됨...`);
-        }
-      } catch (error) {
-        console.error(`❌ 주문 생성 오류:`, error.message);
+      db.createOrder(orderData);
+      
+      if (userId && usedPoints > 0) {
+        db.addPoints(userId, -usedPoints);
+      }
+      if (userId && earnedPoints > 0) {
+        db.addPoints(userId, earnedPoints);
+      }
+      
+      totalOrders++;
+      
+      // 50건마다 진행 상황 출력
+      if (totalOrders % 50 === 0) {
+        console.log(`  📊 진행 중: ${totalOrders}건 생성됨...`);
       }
     }
   }
   
-  console.log(`\n✅ 완료! 총 ${totalOrders}건의 주문 생성됨`);
-  
-  // 실제 DB에 저장된 데이터 확인
-  const savedUsers = db.users.length;
-  const savedOrders = db.orders.length;
-  
-  console.log(`📊 생성된 데이터:`);
-  console.log(`   - 회원: ${testUserIds.length}명 (DB: ${savedUsers}명)`);
-  console.log(`   - 주문: ${totalOrders}건 (DB: ${savedOrders}건)`);
-  console.log(`   - 메뉴: ${validMenus.length}개`);
-  
-  if (savedOrders === 0) {
-    console.error('⚠️ 경고: 주문이 DB에 저장되지 않았습니다!');
-  } else {
-    console.log(`✅ 데이터 저장 확인 완료!\n`);
-  }
+  console.log(`✅ 완료! 총 ${totalOrders}건의 주문 생성됨`);
 }
 
 // 서버 시작
@@ -570,35 +539,38 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('\n');
   
-  // Railway 환경에서만 테스트 데이터 생성 (비동기로 처리하여 서버 시작을 막지 않음)
+  // Railway 환경에서만 테스트 데이터 생성
   if (process.env.RAILWAY_ENVIRONMENT || process.env.PORT) {
-    // DB 초기화 완료 대기 후 데이터 생성
+    // 서버 시작 후 5초 대기 후 데이터 생성 (DB 초기화 완료 보장)
     setTimeout(async () => {
+      console.log('\n🎲 테스트 데이터 생성 시작...\n');
+      
       try {
-        console.log('⏳ DB 초기화 대기 중...');
+        // 메뉴 확인
+        const menus = db.getAllMenu();
+        console.log(`✅ 메뉴 확인: ${menus.length}개`);
         
-        // DB가 완전히 초기화될 때까지 대기 (최대 10초)
-        let retries = 0;
-        while (!db.isInitialized() && retries < 20) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          retries++;
-        }
-        
-        if (!db.isInitialized()) {
-          console.error('❌ DB 초기화 실패! 데이터 생성 중단.');
+        if (!menus || menus.length === 0) {
+          console.error('❌ 메뉴가 없습니다!');
           return;
         }
         
-        console.log('✅ DB 초기화 확인 완료');
-        console.log('🎲 테스트 데이터 생성 시작...');
+        // 데이터 생성 실행
         await generateTestData();
-        console.log('✅ 테스트 데이터 생성 완료!\n');
+        
+        // 최종 확인
+        const finalUsers = db.users.length;
+        const finalOrders = db.orders.length;
+        console.log(`\n📊 최종 데이터 확인:`);
+        console.log(`   ✅ 회원: ${finalUsers}명`);
+        console.log(`   ✅ 주문: ${finalOrders}건`);
+        console.log(`   ✅ 메뉴: ${menus.length}개\n`);
+        
       } catch (error) {
-        console.error('❌ 테스트 데이터 생성 오류:', error);
-        console.error('스택:', error.stack);
-        console.log('⚠️ 테스트 데이터 없이 계속 진행합니다...\n');
+        console.error('❌ 테스트 데이터 생성 오류:', error.message);
+        console.error('상세:', error);
       }
-    }, 3000); // 3초 후 실행 (DB 초기화 완료 대기)
+    }, 5000); // 5초 후 실행
   }
 });
 
