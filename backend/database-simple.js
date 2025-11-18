@@ -100,6 +100,19 @@ class DB {
     return this.users.find(u => u.userid == userId);
   }
 
+  async getUserByName(name) {
+    return this.users.filter(u => u.name === name);
+  }
+
+  updatePassword(phone, newPassword) {
+    const user = this.users.find(u => u.phone === phone);
+    if (user) {
+      user.password = newPassword;
+      return true;
+    }
+    return false;
+  }
+
   async addPoints(userId, points, type, description) {
     const user = this.users.find(u => u.userid == userId);
     if (user) {

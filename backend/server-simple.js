@@ -155,6 +155,55 @@ app.get('/api/auth/me/:userId', async (req, res) => {
   }
 });
 
+// API: 아이디(전화번호) 찾기
+app.post('/api/auth/find-id', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const users = await db.getUserByName(name);
+    
+    if (users && users.length > 0) {
+      res.json({ success: true, phone: users[0].phone });
+    } else {
+      res.json({ success: false, error: '가입된 정보가 없습니다.' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 사용자 확인 (비밀번호 찾기)
+app.post('/api/auth/verify-user', async (req, res) => {
+  try {
+    const { phone, name } = req.body;
+    const user = await db.getUserByPhone(phone);
+    
+    if (user && user.name === name) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, error: '가입 정보가 일치하지 않습니다.' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 비밀번호 재설정
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { phone, newPassword } = req.body;
+    
+    const success = db.updatePassword(phone, newPassword);
+    
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: false, error: '비밀번호 변경 실패' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 전화 인증 발송
 app.post('/api/phone/send-code', async (req, res) => {
   try {
