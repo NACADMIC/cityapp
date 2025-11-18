@@ -67,6 +67,65 @@ function showLogin() {
   showScreen('login-screen');
 }
 
+// 개발자 테스트 로그인
+async function testLogin() {
+  const testPhone = '010-0000-0000';
+  const testPassword = 'test1234';
+  const testName = '테스트사용자';
+  
+  try {
+    // 먼저 로그인 시도
+    let res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: testPhone, password: testPassword })
+    });
+    
+    let data = await res.json();
+    
+    // 로그인 실패하면 자동 회원가입
+    if (!data.success) {
+      console.log('테스트 계정이 없어서 자동 생성합니다...');
+      res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone: testPhone, 
+          name: testName, 
+          email: 'test@test.com',
+          address: '서울시 강남구 테스트동 123',
+          password: testPassword 
+        })
+      });
+      
+      data = await res.json();
+      
+      if (data.success) {
+        // 회원가입 후 바로 로그인
+        res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: testPhone, password: testPassword })
+        });
+        
+        data = await res.json();
+      }
+    }
+    
+    if (data.success) {
+      currentUser = data.user;
+      isGuest = false;
+      console.log('✅ 테스트 로그인 성공!', currentUser);
+      showMenu();
+    } else {
+      alert('테스트 로그인 실패: ' + (data.error || '알 수 없는 오류'));
+    }
+  } catch (err) {
+    console.error('테스트 로그인 오류:', err);
+    alert('테스트 로그인 오류: ' + err.message);
+  }
+}
+
 function showFindId() {
   showScreen('find-id-screen');
   document.getElementById('find-id-result').style.display = 'none';

@@ -278,6 +278,20 @@ body {
   color: #000000;
 }
 
+/* ===== TEST BUTTON ===== */
+.btn-test {
+  transition: all 0.3s;
+}
+
+.btn-test:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5) !important;
+}
+
+.btn-test:active {
+  transform: translateY(0);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .header h1 {
