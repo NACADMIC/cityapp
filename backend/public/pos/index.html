@@ -8,7 +8,14 @@
 </head>
 <body>
   <div class="header">
-    <h1>🏮 시티반점 POS</h1>
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>🏮 시티반점 POS</h1>
+    </div>
     <div class="header-controls">
       <label class="switch">
         <input type="checkbox" id="voice-toggle" checked>
@@ -19,6 +26,43 @@
       <button class="btn-test" onclick="testOrder()">주문 테스트</button>
     </div>
   </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item active">
+        <span class="menu-icon">🏠</span>
+        <span class="menu-text">주문 관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">매출 통계</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated')">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
 
   <div class="container">
     <div class="stats">

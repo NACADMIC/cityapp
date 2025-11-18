@@ -402,6 +402,94 @@ app.get('/api/orders/phone/:phone', (req, res) => {
   }
 });
 
+// ========== 통계 및 분석 API ==========
+
+// API: 실시간 대시보드
+app.get('/api/stats/realtime', (req, res) => {
+  try {
+    const stats = db.getRealTimeStats();
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 일별 매출
+app.get('/api/stats/daily', (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const sales = db.getDailySales(days);
+    res.json({ success: true, data: sales });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 월별 매출
+app.get('/api/stats/monthly', (req, res) => {
+  try {
+    const months = parseInt(req.query.months) || 12;
+    const sales = db.getMonthlySales(months);
+    res.json({ success: true, data: sales });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 정산 정보
+app.get('/api/stats/settlement', (req, res) => {
+  try {
+    const startDate = req.query.startDate || new Date(new Date().setDate(1)).toISOString().split('T')[0];
+    const endDate = req.query.endDate || new Date().toISOString().split('T')[0];
+    const settlement = db.getSettlement(startDate, endDate);
+    res.json({ success: true, data: settlement });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 지역별 주문
+app.get('/api/stats/regions', (req, res) => {
+  try {
+    const regions = db.getOrdersByRegion();
+    res.json({ success: true, data: regions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 상위 고객
+app.get('/api/stats/top-customers', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const customers = db.getTopCustomers(limit);
+    res.json({ success: true, data: customers });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 인기 메뉴
+app.get('/api/stats/popular-menus', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const menus = db.getPopularMenus(limit);
+    res.json({ success: true, data: menus });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 시간대별 주문
+app.get('/api/stats/time-distribution', (req, res) => {
+  try {
+    const distribution = db.getTimeDistribution();
+    res.json({ success: true, data: distribution });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 서버 시작
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');

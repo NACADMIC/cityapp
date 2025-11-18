@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>매출 대시보드 - 시티반점</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .dashboard-container {
+      padding: 30px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .dashboard-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #e0e0e0;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: 12px 24px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab-btn:hover {
+      color: #1976d2;
+    }
+
+    .tab-btn.active {
+      color: #1976d2;
+      border-bottom-color: #1976d2;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card-large {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .stat-card-large .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .stat-card-large .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1976d2;
+    }
+
+    .stat-card-large .stat-sub {
+      font-size: 13px;
+      color: #999;
+      margin-top: 8px;
+    }
+
+    .chart-container {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+
+    .chart-container h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .table-container {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      background: #f5f5f5;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .data-table tr:hover {
+      background: #f9f9f9;
+    }
+
+    .settlement-section {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+
+    .settlement-section h3 {
+      margin: 0 0 20px 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .settlement-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .settlement-row:last-child {
+      border-bottom: none;
+      font-weight: 700;
+      font-size: 18px;
+      padding-top: 20px;
+      border-top: 2px solid #1976d2;
+    }
+
+    .settlement-label {
+      color: #666;
+    }
+
+    .settlement-value {
+      color: #333;
+      font-weight: 600;
+    }
+
+    .settlement-value.positive {
+      color: #4caf50;
+    }
+
+    .settlement-value.negative {
+      color: #f44336;
+    }
+
+    .date-filter {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .date-filter input {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .date-filter button {
+      padding: 10px 20px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+
+    .date-filter button:hover {
+      background: #1565c0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      color: #999;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-container {
+        padding: 15px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>📊 매출 대시보드</h1>
+    </div>
+    <div class="header-controls">
+      <button class="btn-test" onclick="location.href='/pos'">← 주문 관리</button>
+    </div>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item">
+        <span class="menu-icon">🏠</span>
+        <span class="menu-text">주문 관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item active">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">매출 통계</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated')">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+
+  <div class="dashboard-container">
+    <div class="dashboard-tabs">
+      <button class="tab-btn active" onclick="switchTab('stats')">📈 매출 통계</button>
+      <button class="tab-btn" onclick="switchTab('settlement')">💰 정산 정보</button>
+      <button class="tab-btn" onclick="switchTab('customers')">👥 고객 분석</button>
+      <button class="tab-btn" onclick="switchTab('regions')">📍 지역 분석</button>
+    </div>
+
+    <!-- 매출 통계 탭 -->
+    <div id="stats-tab" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card-large">
+          <div class="stat-label">오늘 매출</div>
+          <div class="stat-value" id="today-sales">0원</div>
+          <div class="stat-sub" id="today-orders">주문 0건</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">평균 주문금액</div>
+          <div class="stat-value" id="avg-order">0원</div>
+          <div class="stat-sub">오늘 기준</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">대기 주문</div>
+          <div class="stat-value" id="pending-count">0건</div>
+          <div class="stat-sub" id="preparing-count">조리중 0건</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">배달중</div>
+          <div class="stat-value" id="delivering-count">0건</div>
+          <div class="stat-sub">실시간</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>📅 최근 30일 매출 추이</h3>
+        <div class="chart-wrapper">
+          <canvas id="dailySalesChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>⏰ 시간대별 주문량</h3>
+        <div class="chart-wrapper">
+          <canvas id="timeDistChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>🍜 인기 메뉴 Top 10</h3>
+        <div class="chart-wrapper">
+          <canvas id="popularMenuChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 정산 정보 탭 -->
+    <div id="settlement-tab" class="tab-content">
+      <div class="date-filter">
+        <label>기간 선택:</label>
+        <input type="date" id="start-date">
+        <span>~</span>
+        <input type="date" id="end-date">
+        <button onclick="loadSettlement()">조회</button>
+        <button onclick="setToday()">오늘</button>
+        <button onclick="setThisMonth()">이번 달</button>
+      </div>
+
+      <div class="settlement-section">
+        <h3>💰 정산 요약</h3>
+        <div class="settlement-row">
+          <span class="settlement-label">총 주문 건수</span>
+          <span class="settlement-value" id="sett-orders">0건</span>
+        </div>
+        <div class="settlement-row">
+          <span class="settlement-label">총 매출 (Gross Sales)</span>
+          <span class="settlement-value" id="sett-gross">0원</span>
+        </div>
+        <div class="settlement-row">
+          <span class="settlement-label">포인트 사용 (-)</span>
+          <span class="settlement-value negative" id="sett-points-used">0원</span>
+        </div>
+        <div class="settlement-row">
+          <span class="settlement-label">포인트 발급 (-)</span>
+          <span class="settlement-value negative" id="sett-points-issued">0원</span>
+        </div>
+        <div class="settlement-row">
+          <span class="settlement-label">카드 결제</span>
+          <span class="settlement-value" id="sett-card">0원</span>
+        </div>
+        <div class="settlement-row">
+          <span class="settlement-label">현금 결제</span>
+          <span class="settlement-value" id="sett-cash">0원</span>
+        </div>
+        <div class="settlement-row">
+          <span class="settlement-label">순매출 (Net Sales)</span>
+          <span class="settlement-value positive" id="sett-net">0원</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고객 분석 탭 -->
+    <div id="customers-tab" class="tab-content">
+      <div class="table-container">
+        <h3>👑 우수 고객 Top 10</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>순위</th>
+              <th>고객명</th>
+              <th>전화번호</th>
+              <th>주문 횟수</th>
+              <th>총 주문금액</th>
+              <th>평균 주문금액</th>
+              <th>최근 주문일</th>
+            </tr>
+          </thead>
+          <tbody id="top-customers-table">
+            <tr><td colspan="7" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="chart-container" style="margin-top: 30px;">
+        <h3>🍜 인기 메뉴 판매량</h3>
+        <div class="chart-wrapper">
+          <canvas id="menuSalesChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 지역 분석 탭 -->
+    <div id="regions-tab" class="tab-content">
+      <div class="stats-grid">
+        <div class="stat-card-large">
+          <div class="stat-label">총 배달 지역</div>
+          <div class="stat-value" id="total-regions">0개</div>
+          <div class="stat-sub">공도/미양/대덕/양성</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">최다 주문 지역</div>
+          <div class="stat-value" id="top-region">-</div>
+          <div class="stat-sub" id="top-region-orders">0건</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>📍 지역별 주문 분포</h3>
+        <div class="chart-wrapper">
+          <canvas id="regionChart"></canvas>
+        </div>
+      </div>
+
+      <div class="table-container" style="margin-top: 30px;">
+        <h3>📊 지역별 상세 통계</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>지역</th>
+              <th>주문 건수</th>
+              <th>총 매출</th>
+              <th>평균 주문금액</th>
+              <th>비율</th>
+            </tr>
+          </thead>
+          <tbody id="regions-table">
+            <tr><td colspan="5" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
+

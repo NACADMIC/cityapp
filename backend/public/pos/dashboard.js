@@ -1,0 +1,495 @@
+// 로그인 체크
+if (sessionStorage.getItem('pos-authenticated') !== 'true') {
+  window.location.href = '/pos/login.html';
+}
+
+// 차트 인스턴스 저장
+let charts = {};
+
+// 햄버거 메뉴 토글
+function toggleMenu() {
+  const sideMenu = document.getElementById('side-menu');
+  const overlay = document.getElementById('menu-overlay');
+  
+  if (sideMenu.classList.contains('active')) {
+    sideMenu.classList.remove('active');
+    overlay.classList.remove('active');
+  } else {
+    sideMenu.classList.add('active');
+    overlay.classList.add('active');
+  }
+}
+
+// 탭 전환
+function switchTab(tabName) {
+  // 모든 탭 버튼과 컨텐츠 비활성화
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  
+  // 선택된 탭 활성화
+  event.target.classList.add('active');
+  document.getElementById(tabName + '-tab').classList.add('active');
+  
+  // 해당 탭 데이터 로드
+  if (tabName === 'stats') {
+    loadStatsTab();
+  } else if (tabName === 'settlement') {
+    setThisMonth();
+  } else if (tabName === 'customers') {
+    loadCustomersTab();
+  } else if (tabName === 'regions') {
+    loadRegionsTab();
+  }
+}
+
+// 숫자 포맷팅
+function formatNumber(num) {
+  return num.toLocaleString('ko-KR');
+}
+
+function formatCurrency(num) {
+  return formatNumber(num) + '원';
+}
+
+// ========== 매출 통계 탭 ==========
+async function loadStatsTab() {
+  try {
+    // 실시간 통계
+    const realtimeRes = await fetch('/api/stats/realtime');
+    const realtimeData = await realtimeRes.json();
+    
+    if (realtimeData.success) {
+      const stats = realtimeData.data;
+      document.getElementById('today-sales').textContent = formatCurrency(stats.today.totalSales || 0);
+      document.getElementById('today-orders').textContent = `주문 ${stats.today.orderCount || 0}건`;
+      document.getElementById('avg-order').textContent = formatCurrency(Math.round(stats.today.avgOrderAmount || 0));
+      document.getElementById('pending-count').textContent = `${stats.pending || 0}건`;
+      document.getElementById('preparing-count').textContent = `조리중 ${stats.preparing || 0}건`;
+      document.getElementById('delivering-count').textContent = `${stats.delivering || 0}건`;
+    }
+    
+    // 일별 매출 차트
+    const dailyRes = await fetch('/api/stats/daily?days=30');
+    const dailyData = await dailyRes.json();
+    
+    if (dailyData.success && dailyData.data.length > 0) {
+      renderDailySalesChart(dailyData.data);
+    }
+    
+    // 시간대별 주문 차트
+    const timeRes = await fetch('/api/stats/time-distribution');
+    const timeData = await timeRes.json();
+    
+    if (timeData.success && timeData.data.length > 0) {
+      renderTimeDistChart(timeData.data);
+    }
+    
+    // 인기 메뉴 차트
+    const menuRes = await fetch('/api/stats/popular-menus?limit=10');
+    const menuData = await menuRes.json();
+    
+    if (menuData.success && menuData.data.length > 0) {
+      renderPopularMenuChart(menuData.data);
+    }
+    
+  } catch (error) {
+    console.error('통계 로드 오류:', error);
+  }
+}
+
+function renderDailySalesChart(data) {
+  const ctx = document.getElementById('dailySalesChart');
+  
+  // 기존 차트 삭제
+  if (charts.dailySales) {
+    charts.dailySales.destroy();
+  }
+  
+  // 데이터 역순 정렬 (오래된 날짜부터)
+  data.reverse();
+  
+  charts.dailySales = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.date),
+      datasets: [{
+        label: '매출',
+        data: data.map(d => d.totalSales),
+        borderColor: '#1976d2',
+        backgroundColor: 'rgba(25, 118, 210, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return '매출: ' + formatCurrency(context.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return formatNumber(value) + '원';
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTimeDistChart(data) {
+  const ctx = document.getElementById('timeDistChart');
+  
+  if (charts.timeDist) {
+    charts.timeDist.destroy();
+  }
+  
+  charts.timeDist = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.hour + '시'),
+      datasets: [{
+        label: '주문 건수',
+        data: data.map(d => d.orderCount),
+        backgroundColor: '#4caf50'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderPopularMenuChart(data) {
+  const ctx = document.getElementById('popularMenuChart');
+  
+  if (charts.popularMenu) {
+    charts.popularMenu.destroy();
+  }
+  
+  charts.popularMenu = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.menuName),
+      datasets: [{
+        label: '판매량',
+        data: data.map(d => d.totalQuantity),
+        backgroundColor: '#ff9800'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1
+          }
+        }
+      }
+    }
+  });
+}
+
+// ========== 정산 정보 탭 ==========
+function setToday() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('start-date').value = today;
+  document.getElementById('end-date').value = today;
+  loadSettlement();
+}
+
+function setThisMonth() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const end = new Date().toISOString().split('T')[0];
+  document.getElementById('start-date').value = start;
+  document.getElementById('end-date').value = end;
+  loadSettlement();
+}
+
+async function loadSettlement() {
+  try {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+    
+    if (!startDate || !endDate) {
+      alert('날짜를 선택해주세요.');
+      return;
+    }
+    
+    const res = await fetch(`/api/stats/settlement?startDate=${startDate}&endDate=${endDate}`);
+    const data = await res.json();
+    
+    if (data.success && data.data) {
+      const s = data.data;
+      const netSales = (s.grossSales || 0) - (s.pointsRedeemed || 0);
+      
+      document.getElementById('sett-orders').textContent = formatNumber(s.totalOrders || 0) + '건';
+      document.getElementById('sett-gross').textContent = formatCurrency(s.grossSales || 0);
+      document.getElementById('sett-points-used').textContent = formatCurrency(s.pointsRedeemed || 0);
+      document.getElementById('sett-points-issued').textContent = formatCurrency(s.pointsIssued || 0);
+      document.getElementById('sett-card').textContent = formatCurrency(s.cardPayments || 0);
+      document.getElementById('sett-cash').textContent = formatCurrency(s.cashPayments || 0);
+      document.getElementById('sett-net').textContent = formatCurrency(netSales);
+    }
+  } catch (error) {
+    console.error('정산 로드 오류:', error);
+  }
+}
+
+// ========== 고객 분석 탭 ==========
+async function loadCustomersTab() {
+  try {
+    // 우수 고객
+    const customersRes = await fetch('/api/stats/top-customers?limit=10');
+    const customersData = await customersRes.json();
+    
+    if (customersData.success && customersData.data.length > 0) {
+      renderTopCustomersTable(customersData.data);
+    } else {
+      document.getElementById('top-customers-table').innerHTML = '<tr><td colspan="7">데이터가 없습니다.</td></tr>';
+    }
+    
+    // 인기 메뉴
+    const menuRes = await fetch('/api/stats/popular-menus?limit=10');
+    const menuData = await menuRes.json();
+    
+    if (menuData.success && menuData.data.length > 0) {
+      renderMenuSalesChart(menuData.data);
+    }
+    
+  } catch (error) {
+    console.error('고객 분석 로드 오류:', error);
+  }
+}
+
+function renderTopCustomersTable(customers) {
+  const tbody = document.getElementById('top-customers-table');
+  
+  tbody.innerHTML = customers.map((c, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td>${c.customerName || '-'}</td>
+      <td>${c.phone || '-'}</td>
+      <td>${c.orderCount}회</td>
+      <td>${formatCurrency(c.totalSpent)}</td>
+      <td>${formatCurrency(Math.round(c.avgOrderAmount))}</td>
+      <td>${new Date(c.lastOrderDate).toLocaleDateString('ko-KR')}</td>
+    </tr>
+  `).join('');
+}
+
+function renderMenuSalesChart(data) {
+  const ctx = document.getElementById('menuSalesChart');
+  
+  if (charts.menuSales) {
+    charts.menuSales.destroy();
+  }
+  
+  charts.menuSales = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: data.map(d => d.menuName),
+      datasets: [{
+        data: data.map(d => d.totalQuantity),
+        backgroundColor: [
+          '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff',
+          '#ff9f40', '#ff6384', '#c9cbcf', '#4bc0c0', '#ff6384'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right'
+        }
+      }
+    }
+  });
+}
+
+// ========== 지역 분석 탭 ==========
+async function loadRegionsTab() {
+  try {
+    const res = await fetch('/api/stats/regions');
+    const data = await res.json();
+    
+    if (data.success && data.data.length > 0) {
+      const regions = data.data;
+      
+      // 통계 업데이트
+      document.getElementById('total-regions').textContent = regions.length + '개';
+      if (regions.length > 0) {
+        document.getElementById('top-region').textContent = regions[0].region;
+        document.getElementById('top-region-orders').textContent = formatNumber(regions[0].orderCount) + '건';
+      }
+      
+      // 차트
+      renderRegionChart(regions);
+      
+      // 테이블
+      renderRegionsTable(regions);
+    } else {
+      document.getElementById('regions-table').innerHTML = '<tr><td colspan="5">데이터가 없습니다.</td></tr>';
+    }
+    
+  } catch (error) {
+    console.error('지역 분석 로드 오류:', error);
+  }
+}
+
+function renderRegionChart(regions) {
+  const ctx = document.getElementById('regionChart');
+  
+  if (charts.region) {
+    charts.region.destroy();
+  }
+  
+  charts.region = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: regions.map(r => r.region),
+      datasets: [{
+        data: regions.map(r => r.orderCount),
+        backgroundColor: [
+          '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff',
+          '#ff9f40', '#ff6384', '#c9cbcf', '#4bc0c0', '#ff6384',
+          '#36a2eb', '#ff9f40'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right'
+        }
+      }
+    }
+  });
+}
+
+function renderRegionsTable(regions) {
+  const tbody = document.getElementById('regions-table');
+  const total = regions.reduce((sum, r) => sum + r.orderCount, 0);
+  
+  tbody.innerHTML = regions.map(r => `
+    <tr>
+      <td>${r.region}</td>
+      <td>${formatNumber(r.orderCount)}건</td>
+      <td>${formatCurrency(r.totalSales)}</td>
+      <td>${formatCurrency(Math.round(r.avgOrderAmount))}</td>
+      <td>${((r.orderCount / total) * 100).toFixed(1)}%</td>
+    </tr>
+  `).join('');
+}
+
+// ========== 초기화 ==========
+window.addEventListener('load', function() {
+  // URL 파라미터 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const tab = urlParams.get('tab');
+  
+  if (tab) {
+    // 해당 탭 활성화
+    document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+      btn.classList.remove('active');
+      if (btn.textContent.includes(getTabName(tab))) {
+        btn.classList.add('active');
+      }
+    });
+    
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.classList.remove('active');
+    });
+    
+    document.getElementById(tab + '-tab').classList.add('active');
+    
+    // 데이터 로드
+    if (tab === 'settlement') {
+      setThisMonth();
+    } else if (tab === 'customers') {
+      loadCustomersTab();
+    } else if (tab === 'regions') {
+      loadRegionsTab();
+    }
+  } else {
+    // 기본: 매출 통계
+    loadStatsTab();
+  }
+  
+  // 날짜 필터 초기화
+  setThisMonth();
+});
+
+function getTabName(tabId) {
+  const names = {
+    'stats': '매출 통계',
+    'settlement': '정산 정보',
+    'customers': '고객 분석',
+    'regions': '지역 분석'
+  };
+  return names[tabId] || '';
+}
+
+// 5초마다 실시간 통계 업데이트
+setInterval(async () => {
+  if (document.getElementById('stats-tab').classList.contains('active')) {
+    try {
+      const res = await fetch('/api/stats/realtime');
+      const data = await res.json();
+      
+      if (data.success) {
+        const stats = data.data;
+        document.getElementById('today-sales').textContent = formatCurrency(stats.today.totalSales || 0);
+        document.getElementById('today-orders').textContent = `주문 ${stats.today.orderCount || 0}건`;
+        document.getElementById('pending-count').textContent = `${stats.pending || 0}건`;
+        document.getElementById('preparing-count').textContent = `조리중 ${stats.preparing || 0}건`;
+        document.getElementById('delivering-count').textContent = `${stats.delivering || 0}건`;
+      }
+    } catch (error) {
+      console.error('실시간 업데이트 오류:', error);
+    }
+  }
+}, 5000);
+
+console.log('📊 대시보드 준비 완료!');
+

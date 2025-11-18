@@ -360,8 +360,17 @@ async function updateStatus(orderId, newStatus) {
 
 // 팝업 표시
 function showOrderPopup(orderData) {
+  console.log('🎯 showOrderPopup 호출됨:', orderData);
+  
   const popup = document.getElementById('order-popup');
   const popupInfo = document.getElementById('popup-order-info');
+  
+  if (!popup) {
+    console.error('❌ 팝업 요소를 찾을 수 없습니다!');
+    return;
+  }
+  
+  console.log('✅ 팝업 요소 찾음:', popup);
   
   const itemsHTML = orderData.items.map(item => 
     `<div class="popup-item">${item.name} x ${item.quantity} - ${(item.price * item.quantity).toLocaleString()}원</div>`
@@ -378,9 +387,12 @@ function showOrderPopup(orderData) {
     <div class="popup-total">합계: ${orderData.totalAmount.toLocaleString()}원</div>
   `;
   
-  popup.classList.add('show');
+  console.log('📝 팝업 내용 설정 완료');
   
-  // 30초마다 음성 반복
+  popup.classList.add('show');
+  console.log('✅ 팝업 표시됨! classList:', popup.classList);
+  
+  // 5초마다 음성 반복
   startNotificationLoop();
 }
 
@@ -486,6 +498,20 @@ function formatTime(isoString) {
     minute: '2-digit',
     hour12: true
   });
+}
+
+// 햄버거 메뉴 토글
+function toggleMenu() {
+  const sideMenu = document.getElementById('side-menu');
+  const overlay = document.getElementById('menu-overlay');
+  
+  if (sideMenu.classList.contains('active')) {
+    sideMenu.classList.remove('active');
+    overlay.classList.remove('active');
+  } else {
+    sideMenu.classList.add('active');
+    overlay.classList.add('active');
+  }
 }
 
 // Initial render

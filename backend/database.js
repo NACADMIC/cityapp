@@ -238,6 +238,173 @@ class DB {
     const expires = new Date(result.expiresAt);
     return now < expires;
   }
+
+  // ========== 통계 및 분석 ==========
+  
+  // 1. 매출 통계
+  getDailySales(days = 30) {
+    return this.db.prepare(`
+      SELECT 
+        DATE(createdAt) as date,
+        COUNT(*) as orderCount,
+        SUM(totalAmount) as totalSales,
+        SUM(usedPoints) as totalPointsUsed,
+        SUM(earnedPoints) as totalPointsEarned,
+        SUM(CASE WHEN paymentMethod = 'card' THEN totalAmount ELSE 0 END) as cardSales,
+        SUM(CASE WHEN paymentMethod = 'cash' THEN totalAmount ELSE 0 END) as cashSales
+      FROM orders
+      WHERE status = 'completed'
+        AND DATE(createdAt) >= DATE('now', '-' || ? || ' days')
+      GROUP BY DATE(createdAt)
+      ORDER BY date DESC
+    `).all(days);
+  }
+
+  getMonthlySales(months = 12) {
+    return this.db.prepare(`
+      SELECT 
+        strftime('%Y-%m', createdAt) as month,
+        COUNT(*) as orderCount,
+        SUM(totalAmount) as totalSales,
+        AVG(totalAmount) as avgOrderAmount
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY strftime('%Y-%m', createdAt)
+      ORDER BY month DESC
+      LIMIT ?
+    `).all(months);
+  }
+
+  getTodayStats() {
+    return this.db.prepare(`
+      SELECT 
+        COUNT(*) as orderCount,
+        SUM(totalAmount) as totalSales,
+        AVG(totalAmount) as avgOrderAmount,
+        MAX(totalAmount) as maxOrderAmount,
+        MIN(totalAmount) as minOrderAmount
+      FROM orders
+      WHERE DATE(createdAt) = DATE('now')
+        AND status = 'completed'
+    `).get();
+  }
+
+  // 2. 정산 정보
+  getSettlement(startDate, endDate) {
+    return this.db.prepare(`
+      SELECT 
+        COUNT(*) as totalOrders,
+        SUM(totalAmount) as grossSales,
+        SUM(usedPoints) as pointsRedeemed,
+        SUM(earnedPoints) as pointsIssued,
+        SUM(CASE WHEN paymentMethod = 'card' THEN totalAmount ELSE 0 END) as cardPayments,
+        SUM(CASE WHEN paymentMethod = 'cash' THEN totalAmount ELSE 0 END) as cashPayments
+      FROM orders
+      WHERE status = 'completed'
+        AND DATE(createdAt) BETWEEN ? AND ?
+    `).get(startDate, endDate);
+  }
+
+  // 3. 지역별 분석 (공도읍 중심 배달 지역만)
+  getOrdersByRegion() {
+    return this.db.prepare(`
+      SELECT 
+        CASE
+          WHEN address LIKE '%공도%' OR address LIKE '%공도읍%' THEN '공도읍'
+          WHEN address LIKE '%미양%' OR address LIKE '%미양면%' THEN '미양면'
+          WHEN address LIKE '%대덕%' OR address LIKE '%대덕면%' THEN '대덕면'
+          WHEN address LIKE '%양성%' OR address LIKE '%양성면%' THEN '양성면'
+          ELSE '기타'
+        END as region,
+        COUNT(*) as orderCount,
+        SUM(totalAmount) as totalSales,
+        AVG(totalAmount) as avgOrderAmount
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY region
+      ORDER BY orderCount DESC
+    `).all();
+  }
+
+  // 4. 고객 성향 분석
+  getTopCustomers(limit = 10) {
+    return this.db.prepare(`
+      SELECT 
+        userId,
+        customername as customerName,
+        customerphone as phone,
+        COUNT(*) as orderCount,
+        SUM(totalAmount) as totalSpent,
+        AVG(totalAmount) as avgOrderAmount,
+        MAX(createdAt) as lastOrderDate
+      FROM orders
+      WHERE userId IS NOT NULL
+        AND status = 'completed'
+      GROUP BY userId
+      ORDER BY totalSpent DESC
+      LIMIT ?
+    `).all(limit);
+  }
+
+  getPopularMenus(limit = 10) {
+    return this.db.prepare(`
+      SELECT 
+        json_extract(value, '$.name') as menuName,
+        SUM(json_extract(value, '$.quantity')) as totalQuantity,
+        SUM(json_extract(value, '$.price') * json_extract(value, '$.quantity')) as totalRevenue,
+        COUNT(DISTINCT orderId) as orderCount
+      FROM orders, json_each(items)
+      WHERE status = 'completed'
+      GROUP BY menuName
+      ORDER BY totalQuantity DESC
+      LIMIT ?
+    `).all(limit);
+  }
+
+  getTimeDistribution() {
+    return this.db.prepare(`
+      SELECT 
+        CAST(strftime('%H', createdAt) AS INTEGER) as hour,
+        COUNT(*) as orderCount,
+        SUM(totalAmount) as totalSales
+      FROM orders
+      WHERE status = 'completed'
+      GROUP BY hour
+      ORDER BY hour
+    `).all();
+  }
+
+  // 5. 실시간 대시보드 데이터
+  getRealTimeStats() {
+    const today = this.getTodayStats() || { orderCount: 0, totalSales: 0, avgOrderAmount: 0 };
+    
+    const pending = this.db.prepare(`
+      SELECT COUNT(*) as count FROM orders WHERE status IN ('pending', 'accepted')
+    `).get();
+
+    const preparing = this.db.prepare(`
+      SELECT COUNT(*) as count FROM orders WHERE status = 'preparing'
+    `).get();
+
+    const delivering = this.db.prepare(`
+      SELECT COUNT(*) as count FROM orders WHERE status = 'delivering'
+    `).get();
+
+    const recentOrders = this.db.prepare(`
+      SELECT orderId, customername, totalAmount, status, createdAt
+      FROM orders
+      ORDER BY id DESC
+      LIMIT 5
+    `).all();
+
+    return {
+      today: today,
+      pending: pending.count,
+      preparing: preparing.count,
+      delivering: delivering.count,
+      recentOrders: recentOrders
+    };
+  }
 }
 
 module.exports = DB;
