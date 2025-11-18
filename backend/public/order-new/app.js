@@ -383,7 +383,13 @@ function addToCart(itemId) {
 // Update cart count
 function updateCartCount() {
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-  document.getElementById('cart-count').textContent = count;
+  
+  // 하단 네비게이션 장바구니 뱃지 업데이트
+  const navCartBadge = document.getElementById('nav-cart-count');
+  if (navCartBadge) {
+    navCartBadge.textContent = count;
+    navCartBadge.style.display = count > 0 ? 'block' : 'none';
+  }
 }
 
 // Render cart
@@ -764,7 +770,12 @@ function goToOrderHistory() {
   // 먼저 전역 변수 체크
   if (currentUser && currentUser.userId) {
     console.log('✅ 전역 변수로 이동');
-    window.location.href = '/mypage?tab=orders';
+    try {
+      window.location.assign('/mypage?tab=orders');
+    } catch (e) {
+      console.error('페이지 이동 오류:', e);
+      window.location.href = '/mypage';
+    }
     return;
   }
   
@@ -780,7 +791,12 @@ function goToOrderHistory() {
     const user = JSON.parse(currentUserData);
     if (user && user.userId) {
       console.log('✅ 세션 데이터로 이동');
-      window.location.href = '/mypage?tab=orders';
+      try {
+        window.location.assign('/mypage?tab=orders');
+      } catch (e) {
+        console.error('페이지 이동 오류:', e);
+        window.location.href = '/mypage';
+      }
     } else {
       alert('로그인 정보가 올바르지 않습니다.');
     }
@@ -797,7 +813,12 @@ function goToMyPage() {
   // 먼저 전역 변수 체크
   if (currentUser && currentUser.userId) {
     console.log('✅ 전역 변수로 이동');
-    window.location.href = '/mypage?tab=profile';
+    try {
+      window.location.assign('/mypage?tab=profile');
+    } catch (e) {
+      console.error('페이지 이동 오류:', e);
+      window.location.href = '/mypage';
+    }
     return;
   }
   
@@ -813,7 +834,55 @@ function goToMyPage() {
     const user = JSON.parse(currentUserData);
     if (user && user.userId) {
       console.log('✅ 세션 데이터로 이동');
-      window.location.href = '/mypage?tab=profile';
+      try {
+        window.location.assign('/mypage?tab=profile');
+      } catch (e) {
+        console.error('페이지 이동 오류:', e);
+        window.location.href = '/mypage';
+      }
+    } else {
+      alert('로그인 정보가 올바르지 않습니다.');
+    }
+  } catch (e) {
+    console.error('세션 파싱 오류:', e);
+    alert('로그인이 필요합니다.');
+  }
+}
+
+// 포인트 내역 페이지로 이동
+function goToPointHistory() {
+  console.log('💰 포인트 내역 이동 시도...');
+  
+  // 먼저 전역 변수 체크
+  if (currentUser && currentUser.userId) {
+    console.log('✅ 전역 변수로 이동');
+    try {
+      window.location.assign('/mypage?tab=points');
+    } catch (e) {
+      console.error('페이지 이동 오류:', e);
+      window.location.href = '/mypage';
+    }
+    return;
+  }
+  
+  // sessionStorage 체크
+  const currentUserData = sessionStorage.getItem('currentUser');
+  if (!currentUserData) {
+    console.log('❌ 세션 데이터 없음');
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    const user = JSON.parse(currentUserData);
+    if (user && user.userId) {
+      console.log('✅ 세션 데이터로 이동');
+      try {
+        window.location.assign('/mypage?tab=points');
+      } catch (e) {
+        console.error('페이지 이동 오류:', e);
+        window.location.href = '/mypage';
+      }
     } else {
       alert('로그인 정보가 올바르지 않습니다.');
     }
@@ -839,6 +908,23 @@ function updateNavActive(active) {
 (async function init() {
   const isOpen = await checkBusinessHours();
   if (isOpen) {
+    // 세션에서 사용자 복원
+    const savedUser = sessionStorage.getItem('currentUser');
+    if (savedUser) {
+      try {
+        currentUser = JSON.parse(savedUser);
+        if (currentUser && currentUser.userId) {
+          console.log('✅ 세션에서 사용자 복원:', currentUser);
+          isGuest = false;
+          updateUserInfo();
+          showMenu();
+          return;
+        }
+      } catch (e) {
+        console.error('세션 복원 오류:', e);
+      }
+    }
+    
     // 재주문 체크
     const reorderItems = localStorage.getItem('reorder-items');
     const quickCheckout = localStorage.getItem('quick-checkout');
@@ -847,9 +933,9 @@ function updateNavActive(active) {
       const items = JSON.parse(reorderItems);
       
       // 현재 사용자 체크
-      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+      const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
       
-      if (currentUser) {
+      if (currentUserData) {
         // 장바구니에 추가
         cart.length = 0; // 기존 장바구니 비우기
         items.forEach(item => {
