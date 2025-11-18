@@ -6,12 +6,19 @@ class DB {
     this.orders = [];
     this.pointHistory = [];
     this.phoneVerification = [];
+    this.initialized = false;
     this.init();
   }
 
   async init() {
     console.log('✅ 메모리 DB 초기화');
     await this.initMenu();
+    this.initialized = true;
+    console.log('✅ DB 초기화 완료');
+  }
+  
+  isInitialized() {
+    return this.initialized && this.menu.length > 0;
   }
 
   async initMenu() {
