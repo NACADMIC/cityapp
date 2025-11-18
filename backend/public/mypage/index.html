@@ -14,7 +14,7 @@
 
     body {
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #000000;
       min-height: 100vh;
       padding: 20px;
     }
@@ -27,7 +27,7 @@
     h2 {
       font-size: 32px;
       font-weight: 900;
-      color: white;
+      color: #FFD700;
       text-align: center;
       margin: 20px 0 30px 0;
       letter-spacing: -1px;
@@ -36,13 +36,13 @@
     .back-btn, .home-btn {
       position: fixed;
       top: 20px;
-      background: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 215, 0, 0.2);
       backdrop-filter: blur(10px);
-      color: white;
-      border: none;
+      color: #FFD700;
+      border: 2px solid #FFD700;
       padding: 10px 20px;
       border-radius: 12px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       z-index: 10;
       transition: all 0.3s;
@@ -57,7 +57,8 @@
     }
 
     .back-btn:hover, .home-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: #FFD700;
+      color: #000000;
       transform: translateY(-2px);
     }
     
@@ -115,6 +116,10 @@
 
     .user-info {
       margin-bottom: 30px;
+      background: rgba(255, 215, 0, 0.1);
+      padding: 20px;
+      border-radius: 16px;
+      border: 2px solid #FFD700;
     }
     
     /* 섹션 헤더 */
@@ -128,14 +133,14 @@
     .section-header h3 {
       font-size: 20px;
       font-weight: 800;
-      color: white;
+      color: #FFD700;
     }
     
     .order-count {
       font-size: 14px;
       font-weight: 600;
-      color: #FFD700;
-      background: rgba(255, 255, 255, 0.2);
+      color: #000000;
+      background: #FFD700;
       padding: 6px 14px;
       border-radius: 20px;
     }
@@ -150,7 +155,8 @@
       background: white;
       padding: 20px;
       border-radius: 16px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      border: 3px solid #FFD700;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       animation: slideIn 0.3s ease;
     }
 
@@ -266,47 +272,52 @@
     }
 
     .btn-track {
-      background: #667eea;
-      color: white;
+      background: #000000;
+      color: #FFD700;
+      border: 2px solid #000000;
     }
 
     .btn-track:hover {
-      background: #5568d3;
+      background: #FFD700;
+      color: #000000;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
     }
     
     .btn-reorder {
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      color: #1a1a1a;
-      font-weight: 700;
+      background: #FFD700;
+      color: #000000;
+      font-weight: 800;
+      border: none;
     }
     
     .btn-reorder:hover {
+      background: #FFC107;
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
     }
     
     .btn-same-menu {
-      background: white;
-      color: #667eea;
-      border: 2px solid #667eea;
+      background: transparent;
+      color: #FFD700;
+      border: 2px solid #FFD700;
+      font-weight: 700;
     }
     
     .btn-same-menu:hover {
-      background: #667eea;
-      color: white;
+      background: #FFD700;
+      color: #000000;
       transform: translateY(-2px);
     }
 
     .no-orders {
       text-align: center;
       padding: 60px 20px;
-      color: white;
+      color: #FFD700;
       font-size: 16px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 215, 0, 0.1);
       border-radius: 16px;
-      backdrop-filter: blur(10px);
+      border: 2px solid #FFD700;
     }
   </style>
 </head>

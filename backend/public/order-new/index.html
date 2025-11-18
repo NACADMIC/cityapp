@@ -26,11 +26,18 @@
           비회원 주문
           <small>휴대폰 인증 필요</small>
         </button>
-
-        <button class="btn btn-outline" onclick="showRegister()">
-          회원가입
-          <small>첫 주문시 포인트 적립</small>
-        </button>
+        
+        <!-- 작은 링크 -->
+        <div class="auth-small-links">
+          <a href="#" onclick="showRegister(); return false;">회원가입</a>
+          <span class="divider">|</span>
+          <a href="#" onclick="showFindPassword(); return false;">비밀번호 찾기</a>
+        </div>
+        
+        <!-- 회원가입 혜택 안내 -->
+        <div class="signup-benefit">
+          🎁 회원가입 시 10,000포인트 증정!
+        </div>
         
         <!-- 개발자 테스트 버튼 -->
         <button onclick="testLogin()" class="btn-test" style="margin-top: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 16px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; font-size: 15px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
@@ -293,7 +300,6 @@
       <div class="user-info-content">
         <span id="user-name"></span>님
         <span class="points">포인트: <strong id="user-points">0</strong>P</span>
-        <button onclick="location.href='/mypage'" style="background: #2196f3; color: white; padding: 6px 12px; border: none; border-radius: 6px; font-size: 0.9em; font-weight: 600; cursor: pointer; margin-left: 10px;">📦 내 주문</button>
       </div>
     </div>
 

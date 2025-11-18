@@ -115,7 +115,12 @@ async function testLogin() {
     if (data.success) {
       currentUser = data.user;
       isGuest = false;
+      
+      // sessionStorage에 저장
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
       console.log('✅ 테스트 로그인 성공!', currentUser);
+      updateUserInfo();
       showMenu();
     } else {
       alert('테스트 로그인 실패: ' + (data.error || '알 수 없는 오류'));
@@ -185,7 +190,13 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     if (data.success) {
       currentUser = data.user;
       isGuest = false;
+      
+      // sessionStorage에 저장
+      sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+      
+      console.log('✅ 로그인 성공!', currentUser);
       alert(`환영합니다, ${currentUser.name}님!`);
+      updateUserInfo();
       showMenu();
     } else {
       alert(data.error || '로그인 실패');
@@ -284,8 +295,10 @@ function updateUserInfo() {
     document.getElementById('user-name').textContent = currentUser.name;
     document.getElementById('user-points').textContent = currentUser.points;
     
-    // sessionStorage에 저장 (마이페이지에서 사용)
+    // sessionStorage에 저장 (마이페이지와 네비게이션에서 사용)
     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    console.log('📦 세션 저장 완료:', currentUser);
   } else {
     userInfoDiv.style.display = 'none';
     sessionStorage.removeItem('currentUser');
@@ -745,20 +758,37 @@ function goToCart() {
 }
 
 function goToMyPage() {
+  console.log('📦 마이페이지 이동 시도...');
+  console.log('현재 currentUser:', currentUser);
+  console.log('세션 데이터:', sessionStorage.getItem('currentUser'));
+  
+  // 먼저 전역 변수 체크
+  if (currentUser && currentUser.userId) {
+    console.log('✅ 전역 변수로 이동');
+    window.location.href = '/mypage';
+    return;
+  }
+  
+  // sessionStorage 체크
   const currentUserData = sessionStorage.getItem('currentUser');
   if (!currentUserData) {
+    console.log('❌ 세션 데이터 없음');
     alert('로그인이 필요합니다.');
     return;
   }
   
   try {
     const user = JSON.parse(currentUserData);
+    console.log('세션에서 복원한 유저:', user);
     if (user && user.userId) {
+      console.log('✅ 세션 데이터로 이동');
       window.location.href = '/mypage';
     } else {
+      console.log('❌ userId 없음');
       alert('로그인 정보가 올바르지 않습니다.');
     }
   } catch (e) {
+    console.error('세션 파싱 오류:', e);
     alert('로그인이 필요합니다.');
   }
 }

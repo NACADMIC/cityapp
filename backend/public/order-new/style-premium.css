@@ -902,6 +902,64 @@ body {
   font-size: 12px;
 }
 
+/* Auth Small Links (첫 화면용) */
+.auth-small-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 10px;
+}
+
+.auth-small-links a {
+  color: rgba(255, 215, 0, 0.8);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.auth-small-links a:hover {
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.15);
+}
+
+.auth-small-links .divider {
+  color: rgba(255, 215, 0, 0.4);
+  font-size: 12px;
+}
+
+/* Signup Benefit */
+.signup-benefit {
+  text-align: center;
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000000;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+  animation: pulse 2s infinite;
+  letter-spacing: -0.5px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 24px rgba(255, 215, 0, 0.6);
+  }
+}
+
 /* ===== BOTTOM NAVIGATION ===== */
 .bottom-nav {
   position: fixed;
