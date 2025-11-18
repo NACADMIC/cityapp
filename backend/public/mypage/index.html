@@ -359,9 +359,27 @@
     };
 
     async function fetchUserData() {
-      const userId = sessionStorage.getItem('currentUserId');
+      // sessionStorage에서 currentUser 객체 가져오기
+      const currentUserData = sessionStorage.getItem('currentUser');
       
-      if (!userId) {
+      if (!currentUserData) {
+        alert('로그인이 필요합니다.');
+        window.location.href = '/order-new';
+        return;
+      }
+      
+      let userId;
+      try {
+        const user = JSON.parse(currentUserData);
+        userId = user.userId;
+        
+        if (!userId) {
+          alert('로그인 정보가 올바르지 않습니다.');
+          window.location.href = '/order-new';
+          return;
+        }
+      } catch (e) {
+        console.error('세션 데이터 파싱 오류:', e);
         alert('로그인이 필요합니다.');
         window.location.href = '/order-new';
         return;
