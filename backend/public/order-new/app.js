@@ -2,6 +2,9 @@
 let currentUser = null;
 let isGuest = false;
 let guestPhone = null;
+let guestName = null;
+let guestAddress = null;
+let guestPassword = null;
 let cart = [];
 let menuItems = [];
 let usedPoints = 0;
@@ -111,15 +114,29 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 document.getElementById('register-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   
-  const name = document.getElementById('register-name').value.trim();
   const phone = document.getElementById('register-phone').value.trim();
-  const password = document.getElementById('register-password').value;
+  const name = document.getElementById('register-name').value.trim();
+  const email = document.getElementById('register-email').value.trim();
+  const address = document.getElementById('register-address').value.trim();
+  const password = document.getElementById('register-password').value.trim();
+  const passwordConfirm = document.getElementById('register-password-confirm').value.trim();
+  const privacyAgree = document.getElementById('register-privacy').checked;
+  
+  if (password !== passwordConfirm) {
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  
+  if (!privacyAgree) {
+    alert('개인정보 수집 및 이용에 동의해주세요.');
+    return;
+  }
 
   try {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, phone, password })
+      body: JSON.stringify({ phone, name, email, address, password })
     });
 
     const data = await res.json();
@@ -136,63 +153,36 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
   }
 });
 
-// Guest verification - send code
-async function sendVerificationCode() {
-  const phone = document.getElementById('guest-phone').value.trim();
-  
-  if (!phone) {
-    alert('전화번호를 입력해주세요.');
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/phone/send-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      document.getElementById('code-group').style.display = 'block';
-      document.getElementById('code-display').textContent = data.code;
-      alert('인증번호가 발송되었습니다! (테스트: ' + data.code + ')');
-    } else {
-      alert(data.error || '인증번호 발송 실패');
-    }
-  } catch (err) {
-    alert('인증번호 발송 오류: ' + err.message);
-  }
-}
-
-// Guest verification - verify
+// Guest info form
 document.getElementById('guest-verify-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   
   const phone = document.getElementById('guest-phone').value.trim();
-  const code = document.getElementById('verify-code').value.trim();
-
-  try {
-    const res = await fetch('/api/phone/verify-code', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code })
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      isGuest = true;
-      guestPhone = phone;
-      alert('인증 완료! 주문을 시작하세요.');
-      showMenu();
-    } else {
-      alert(data.error || '인증 실패');
-    }
-  } catch (err) {
-    alert('인증 오류: ' + err.message);
+  const name = document.getElementById('guest-name').value.trim();
+  const address = document.getElementById('guest-address').value.trim();
+  const password = document.getElementById('guest-password').value.trim();
+  const passwordConfirm = document.getElementById('guest-password-confirm').value.trim();
+  const privacyAgree = document.getElementById('guest-privacy').checked;
+  
+  if (password !== passwordConfirm) {
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
   }
+  
+  if (!privacyAgree) {
+    alert('개인정보 수집 및 이용에 동의해주세요.');
+    return;
+  }
+  
+  // Store guest info
+  guestPhone = phone;
+  guestName = name;
+  guestAddress = address;
+  guestPassword = password;
+  isGuest = true;
+  
+  alert('비회원 정보 등록 완료! 메뉴를 선택해주세요.');
+  showMenu();
 });
 
 // Logout
@@ -201,6 +191,9 @@ function logout() {
     currentUser = null;
     isGuest = false;
     guestPhone = null;
+    guestName = null;
+    guestAddress = null;
+    guestPassword = null;
     cart = [];
     usedPoints = 0;
     showAuthSelect();
@@ -350,7 +343,7 @@ function renderCart() {
     }
     
     const finalAmount = itemsTotal - usedPoints;
-    const earnPoints = Math.floor(finalAmount * 0.07);
+    const earnPoints = Math.floor(finalAmount * 0.10);
     
     // 보유 포인트 표시
     const userPointsDisplay = document.getElementById('user-points-display');
@@ -470,7 +463,7 @@ function renderCheckout() {
   const checkoutItemsDiv = document.getElementById('checkout-items');
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const finalAmount = itemsTotal - usedPoints;
-  const earnPoints = Math.floor(finalAmount * 0.07);
+  const earnPoints = Math.floor(finalAmount * 0.10);
 
   checkoutItemsDiv.innerHTML = cart.map(item => `
     <div class="checkout-item">
@@ -498,12 +491,15 @@ function renderCheckout() {
     
     document.getElementById('checkout-name').value = currentUser.name;
     document.getElementById('checkout-phone').value = currentUser.phone;
+    document.getElementById('checkout-address').value = currentUser.address || '';
   } else {
     checkoutPointsSection.style.display = 'none';
     checkoutEarnInfo.style.display = 'none';
     
-    if (isGuest && guestPhone) {
-      document.getElementById('checkout-phone').value = guestPhone;
+    if (isGuest) {
+      document.getElementById('checkout-name').value = guestName || '';
+      document.getElementById('checkout-phone').value = guestPhone || '';
+      document.getElementById('checkout-address').value = guestAddress || '';
     }
   }
 }

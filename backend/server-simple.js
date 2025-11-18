@@ -97,12 +97,12 @@ app.get('/api/menu', async (req, res) => {
 // API: 회원가입
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { phone, name, password } = req.body;
+    const { phone, name, email, address, password } = req.body;
     const existing = await db.getUserByPhone(phone);
     if (existing) {
       return res.json({ success: false, error: '이미 가입된 전화번호입니다.' });
     }
-    const user = await db.createUser(phone, name, password);
+    const user = await db.createUser(phone, name, email, address, password);
     res.json({ 
       success: true, 
       message: '🎉 회원가입 완료! 환영 포인트 10,000P가 지급되었습니다!' 
@@ -200,7 +200,7 @@ app.post('/api/orders', async (req, res) => {
     }
 
     const finalAmount = totalAmount - usedPoints;
-    const earnedPoints = userId && !isGuest ? Math.floor(finalAmount * 0.07) : 0;
+    const earnedPoints = userId && !isGuest ? Math.floor(finalAmount * 0.10) : 0;
 
     await db.createOrder({
       orderid: orderId,

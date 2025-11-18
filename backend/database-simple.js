@@ -42,14 +42,22 @@ class DB {
       { id: 15, name: '짬뽕순두부', category: '디저트', price: 8000, image: 'https://via.placeholder.com/200x200/FFB6C1/1a1a1a?text=순두부', bestseller: 0 },
       
       // 음료
-      { id: 16, name: '콜라', category: '음료', price: 2000, image: 'https://via.placeholder.com/200x200/8B0000/ffffff?text=콜라', bestseller: 0 },
-      { id: 17, name: '사이다', category: '음료', price: 2000, image: 'https://via.placeholder.com/200x200/98FB98/1a1a1a?text=사이다', bestseller: 0 },
-      { id: 18, name: '환타', category: '음료', price: 2000, image: 'https://via.placeholder.com/200x200/FFA500/ffffff?text=환타', bestseller: 0 },
+      { id: 16, name: '코카콜라 2L', category: '음료', price: 3500, image: 'https://via.placeholder.com/200x200/DC143C/ffffff?text=코카콜라2L', bestseller: 0 },
+      { id: 17, name: '제로콜라', category: '음료', price: 2500, image: 'https://via.placeholder.com/200x200/000000/ffffff?text=제로콜라', bestseller: 0 },
+      { id: 18, name: '사이다', category: '음료', price: 2000, image: 'https://via.placeholder.com/200x200/98FB98/1a1a1a?text=사이다', bestseller: 0 },
+      { id: 19, name: '매실', category: '음료', price: 3000, image: 'https://via.placeholder.com/200x200/FFA07A/1a1a1a?text=매실', bestseller: 0 },
       
-      // 주류
-      { id: 19, name: '소주', category: '주류', price: 4000, image: 'https://via.placeholder.com/200x200/32CD32/ffffff?text=소주', bestseller: 0 },
-      { id: 20, name: '맥주', category: '주류', price: 4000, image: 'https://via.placeholder.com/200x200/FFD700/1a1a1a?text=맥주', bestseller: 0 },
-      { id: 21, name: '칭따오', category: '주류', price: 4500, image: 'https://via.placeholder.com/200x200/4169E1/ffffff?text=칭따오', bestseller: 0 }
+      // 맥주
+      { id: 20, name: '테라', category: '맥주', price: 4500, image: 'https://via.placeholder.com/200x200/1E90FF/ffffff?text=테라', bestseller: 0 },
+      { id: 21, name: '카스', category: '맥주', price: 4000, image: 'https://via.placeholder.com/200x200/00CED1/1a1a1a?text=카스', bestseller: 0 },
+      { id: 22, name: '기네스', category: '맥주', price: 6000, image: 'https://via.placeholder.com/200x200/2F4F4F/ffffff?text=기네스', bestseller: 0 },
+      { id: 23, name: '아사히', category: '맥주', price: 5000, image: 'https://via.placeholder.com/200x200/B0C4DE/1a1a1a?text=아사히', bestseller: 0 },
+      { id: 24, name: '칭따오', category: '맥주', price: 4500, image: 'https://via.placeholder.com/200x200/4169E1/ffffff?text=칭따오', bestseller: 0 },
+      
+      // 소주
+      { id: 25, name: '참이슬', category: '소주', price: 4500, image: 'https://via.placeholder.com/200x200/32CD32/ffffff?text=참이슬', bestseller: 0 },
+      { id: 26, name: '처음처럼', category: '소주', price: 4500, image: 'https://via.placeholder.com/200x200/90EE90/1a1a1a?text=처음처럼', bestseller: 0 },
+      { id: 27, name: '연태고량주(중)', category: '소주', price: 25000, image: 'https://via.placeholder.com/200x200/8B4513/ffffff?text=연태고량주', bestseller: 0 }
     ];
     console.log('✅ 메뉴 초기화 완료:', this.menu.length, '개');
   }
@@ -58,11 +66,13 @@ class DB {
     return this.menu;
   }
 
-  async createUser(phone, name, password) {
+  async createUser(phone, name, email, address, password) {
     const user = {
       userid: this.users.length + 1,
       phone,
       name,
+      email: email || null,
+      address: address || null,
       password,
       points: 10000, // 🎁 회원가입 시 10,000P 지급!
       createdat: new Date()

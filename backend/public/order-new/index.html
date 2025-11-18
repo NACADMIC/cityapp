@@ -17,7 +17,7 @@
       <div class="auth-buttons">
         <button class="btn btn-primary" onclick="showLogin()">
           회원 로그인
-          <small>포인트 7% 적립</small>
+          <small>포인트 10% 적립</small>
         </button>
 
         <button class="btn btn-secondary" onclick="showGuestOrder()">
@@ -69,20 +69,33 @@
       
       <form id="register-form" class="form">
         <div class="form-group">
-          <label>이름</label>
-          <input type="text" id="register-name" placeholder="홍길동" required>
-        </div>
-
-        <div class="form-group">
-          <label>전화번호</label>
+          <label>전화번호 *</label>
           <input type="tel" id="register-phone" placeholder="010-1234-5678" required>
         </div>
-
         <div class="form-group">
-          <label>비밀번호</label>
-          <input type="password" id="register-password" placeholder="비밀번호 (4자 이상)" required minlength="4">
+          <label>이름 *</label>
+          <input type="text" id="register-name" placeholder="홍길동" required>
         </div>
-
+        <div class="form-group">
+          <label>이메일</label>
+          <input type="email" id="register-email" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label>주소 *</label>
+          <input type="text" id="register-address" placeholder="서울시 강남구..." required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호 *</label>
+          <input type="password" id="register-password" placeholder="비밀번호 (6자 이상)" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label>비밀번호 확인 *</label>
+          <input type="password" id="register-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+          <input type="checkbox" id="register-privacy" required style="width: auto; margin: 0;">
+          <label for="register-privacy" style="margin: 0; cursor: pointer;">개인정보 수집 및 이용에 동의합니다 *</label>
+        </div>
         <button type="submit" class="btn btn-primary">가입하기</button>
       </form>
 
@@ -92,32 +105,40 @@
     </div>
   </div>
 
-  <!-- Guest Phone Verification Screen -->
+  <!-- Guest Info Screen -->
   <div id="guest-verify-screen" class="screen">
     <div class="container">
       <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
       
       <h2>비회원 주문</h2>
-      <p class="subtitle">휴대폰 인증이 필요합니다</p>
+      <p class="subtitle">주문 정보를 입력해주세요</p>
       
       <form id="guest-verify-form" class="form">
         <div class="form-group">
-          <label>전화번호</label>
-          <div class="input-with-button">
-            <input type="tel" id="guest-phone" placeholder="010-1234-5678" required>
-            <button type="button" class="btn-send-code" onclick="sendVerificationCode()">
-              인증번호 발송
-            </button>
-          </div>
+          <label>전화번호 *</label>
+          <input type="tel" id="guest-phone" placeholder="010-1234-5678" required>
         </div>
-
-        <div class="form-group" id="code-group" style="display: none;">
-          <label>인증번호</label>
-          <input type="text" id="verify-code" placeholder="6자리 인증번호" maxlength="6">
-          <small class="code-display">인증번호: <span id="code-display"></span></small>
+        <div class="form-group">
+          <label>이름 *</label>
+          <input type="text" id="guest-name" placeholder="홍길동" required>
         </div>
-
-        <button type="submit" class="btn btn-primary">인증 완료</button>
+        <div class="form-group">
+          <label>주소 *</label>
+          <input type="text" id="guest-address" placeholder="서울시 강남구..." required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호 * (주문 조회용)</label>
+          <input type="password" id="guest-password" placeholder="비밀번호 (6자 이상)" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label>비밀번호 확인 *</label>
+          <input type="password" id="guest-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+          <input type="checkbox" id="guest-privacy" required style="width: auto; margin: 0;">
+          <label for="guest-privacy" style="margin: 0; cursor: pointer;">개인정보 수집 및 이용에 동의합니다 *</label>
+        </div>
+        <button type="submit" class="btn btn-primary">비회원 주문 시작</button>
       </form>
     </div>
   </div>
@@ -148,7 +169,8 @@
       <button class="category-tab" data-category="밥류">밥류</button>
       <button class="category-tab" data-category="디저트">디저트</button>
       <button class="category-tab" data-category="음료">음료</button>
-      <button class="category-tab" data-category="주류">주류</button>
+      <button class="category-tab" data-category="맥주">맥주</button>
+      <button class="category-tab" data-category="소주">소주</button>
     </div>
 
     <div class="container">
@@ -212,7 +234,7 @@
         </div>
 
         <div id="earn-points-info" class="earn-info" style="display: none; background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 16px; font-weight: 600; color: #f57c00;">
-          🎁 <span id="earn-points">0</span>P 적립 예정 (7%)
+          🎁 <span id="earn-points">0</span>P 적립 예정 (10%)
         </div>
       </div>
 
@@ -290,7 +312,7 @@
               <p style="font-size: 24px; font-weight: 700; color: #f57c00; margin: 0;">
                 <span id="checkout-earn-points">0</span>P
               </p>
-              <p style="font-size: 12px; color: #e65100; margin-top: 5px;">결제 금액의 7% 적립!</p>
+              <p style="font-size: 12px; color: #e65100; margin-top: 5px;">결제 금액의 10% 적립!</p>
             </div>
           </div>
         </div>
