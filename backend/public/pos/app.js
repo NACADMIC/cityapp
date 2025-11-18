@@ -236,7 +236,7 @@ function formatPayment(method) {
 // Get status buttons
 function getStatusButtons(orderId, status) {
   const buttons = {
-    'pending': `<button class="btn btn-info" style="background: #ffc107; color: #000;">⏳ 수락 대기 중</button>`,
+    'pending': `<button class="btn btn-info" style="background: #ffc107; color: #000;" onclick="showPendingOrderPopup('${orderId}')">⏳ 수락 대기 중 (클릭)</button>`,
     'accepted': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'preparing')">✓ 조리 시작</button>`,
     'preparing': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'delivering')">🚚 배달 출발</button>`,
     'delivering': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'completed')">✅ 배달 완료</button>`,
@@ -442,11 +442,21 @@ function acceptOrder() {
   const prepTime = document.getElementById('prep-time').value;
   console.log(`✅ 주문 수락: ${currentPendingOrder.orderId}, 소요시간: ${prepTime}분`);
   
-  // 주문에 소요시간 추가
+  // 주문 상태 업데이트
   currentPendingOrder.prepTime = prepTime;
   currentPendingOrder.status = 'accepted';
   
-  addOrder(currentPendingOrder);
+  // 목록에 이미 있으면 업데이트, 없으면 추가
+  const existingIndex = orders.findIndex(o => o.orderId === currentPendingOrder.orderId);
+  if (existingIndex >= 0) {
+    orders[existingIndex] = currentPendingOrder;
+  } else {
+    orders.unshift(currentPendingOrder);
+  }
+  
+  // 화면 업데이트
+  renderOrders();
+  updateStats();
   
   // 서버에 수락 상태 업데이트
   updateStatus(currentPendingOrder.orderId, 'accepted');
@@ -454,7 +464,10 @@ function acceptOrder() {
   hideOrderPopup();
   
   // 큐에서 제거
-  orderQueue.shift();
+  if (orderQueue.length > 0 && orderQueue[0].orderId === currentPendingOrder.orderId) {
+    orderQueue.shift();
+  }
+  
   currentPendingOrder = null;
   
   // 다음 주문 처리
@@ -468,13 +481,26 @@ function rejectOrder() {
   if (confirm(`주문을 거절하시겠습니까?\n고객: ${currentPendingOrder.customerName}`)) {
     console.log(`❌ 주문 거절: ${currentPendingOrder.orderId}`);
     
+    // 목록에서 제거
+    const index = orders.findIndex(o => o.orderId === currentPendingOrder.orderId);
+    if (index >= 0) {
+      orders.splice(index, 1);
+    }
+    
+    // 화면 업데이트
+    renderOrders();
+    updateStats();
+    
     // 서버에 거절 상태 업데이트
     updateStatus(currentPendingOrder.orderId, 'rejected');
     
     hideOrderPopup();
     
     // 큐에서 제거
-    orderQueue.shift();
+    if (orderQueue.length > 0 && orderQueue[0].orderId === currentPendingOrder.orderId) {
+      orderQueue.shift();
+    }
+    
     currentPendingOrder = null;
     
     // 다음 주문 처리
@@ -498,6 +524,29 @@ function formatTime(isoString) {
     minute: '2-digit',
     hour12: true
   });
+}
+
+// 대기 중인 주문 팝업 표시
+function showPendingOrderPopup(orderId) {
+  console.log('🔍 대기 주문 팝업 열기:', orderId);
+  
+  // 주문 찾기
+  const order = orders.find(o => o.orderId === orderId);
+  if (!order) {
+    console.error('❌ 주문을 찾을 수 없습니다:', orderId);
+    return;
+  }
+  
+  console.log('✅ 주문 찾음:', order);
+  
+  // 현재 대기 주문 설정
+  currentPendingOrder = order;
+  
+  // 팝업 표시
+  showOrderPopup(order);
+  
+  // 음성 알림 시작
+  playNotification(order);
 }
 
 // 햄버거 메뉴 토글
