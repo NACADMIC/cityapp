@@ -429,14 +429,29 @@ async function generateTestData() {
   
   // 주문 생성 (최근 60일)
   console.log('\n📦 주문 생성 중...');
-  const menus = db.getAllMenu();
   
-  if (!menus || !Array.isArray(menus) || menus.length === 0) {
-    console.error('❌ 메뉴 데이터가 없습니다!', menus);
+  // 메뉴 데이터 안전하게 가져오기
+  let menus;
+  try {
+    menus = db.getAllMenu();
+  } catch (error) {
+    console.error('❌ 메뉴 데이터 가져오기 실패:', error);
     return;
   }
   
-  console.log(`✅ 메뉴 ${menus.length}개 확인됨`);
+  if (!menus || !Array.isArray(menus) || menus.length === 0) {
+    console.error('❌ 메뉴 데이터가 없습니다!', typeof menus, menus);
+    return;
+  }
+  
+  // 유효한 메뉴만 필터링
+  const validMenus = menus.filter(m => m && m.id && m.name && m.price);
+  if (validMenus.length === 0) {
+    console.error('❌ 유효한 메뉴가 없습니다!');
+    return;
+  }
+  
+  console.log(`✅ 메뉴 ${validMenus.length}개 확인됨 (전체 ${menus.length}개 중)`);
   
   let totalOrders = 0;
   
@@ -454,12 +469,11 @@ async function generateTestData() {
       const phone = `010-${random(1000, 9999)}-${random(1000, 9999)}`;
       const userId = random(0, 100) < 70 && testUserIds.length > 0 ? testUserIds[random(0, testUserIds.length - 1)] : null;
       
-      // 랜덤 메뉴 선택
+      // 랜덤 메뉴 선택 (유효한 메뉴만 사용)
       const itemCount = random(1, 4);
       const items = [];
       for (let j = 0; j < itemCount; j++) {
-        const menuIndex = random(0, menus.length - 1);
-        const menu = menus[menuIndex];
+        const menu = validMenus[random(0, validMenus.length - 1)];
         if (menu && menu.id && menu.name && menu.price) {
           items.push({
             id: menu.id,
@@ -467,13 +481,10 @@ async function generateTestData() {
             price: menu.price,
             quantity: random(1, 3)
           });
-        } else {
-          console.warn(`⚠️ 잘못된 메뉴 데이터:`, menu, `인덱스: ${menuIndex}`);
         }
       }
       
       if (items.length === 0) {
-        console.warn('⚠️ 메뉴가 없어서 주문 스킵');
         continue; // 메뉴가 없으면 스킵
       }
       
@@ -525,12 +536,15 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('\n');
   
-  // Railway 환경에서만 테스트 데이터 생성
+  // Railway 환경에서만 테스트 데이터 생성 (비동기로 처리하여 서버 시작을 막지 않음)
   if (process.env.RAILWAY_ENVIRONMENT || process.env.PORT) {
-    generateTestData().catch(error => {
-      console.error('❌ 테스트 데이터 생성 오류:', error);
-      console.log('⚠️ 테스트 데이터 없이 계속 진행합니다...\n');
-    });
+    // 서버 시작 후 백그라운드에서 데이터 생성
+    setTimeout(() => {
+      generateTestData().catch(error => {
+        console.error('❌ 테스트 데이터 생성 오류:', error);
+        console.log('⚠️ 테스트 데이터 없이 계속 진행합니다...\n');
+      });
+    }, 1000); // 1초 후 실행
   }
 });
 
