@@ -506,20 +506,24 @@ async function generateTestData() {
         createdAt: date.getTime()
       };
       
-      db.createOrder(orderData);
-      
-      if (userId && usedPoints > 0) {
-        db.addPoints(userId, -usedPoints);
-      }
-      if (userId && earnedPoints > 0) {
-        db.addPoints(userId, earnedPoints);
-      }
-      
-      totalOrders++;
-      
-      // 50건마다 진행 상황 출력
-      if (totalOrders % 50 === 0) {
-        console.log(`  📊 진행 중: ${totalOrders}건 생성됨...`);
+      try {
+        await db.createOrder(orderData);
+        
+        if (userId && usedPoints > 0) {
+          db.addPoints(userId, -usedPoints);
+        }
+        if (userId && earnedPoints > 0) {
+          db.addPoints(userId, earnedPoints);
+        }
+        
+        totalOrders++;
+        
+        // 50건마다 진행 상황 출력
+        if (totalOrders % 50 === 0) {
+          console.log(`  📊 진행 중: ${totalOrders}건 생성됨...`);
+        }
+      } catch (error) {
+        console.error(`❌ 주문 생성 실패:`, error.message);
       }
     }
   }
@@ -564,7 +568,18 @@ server.listen(PORT, '0.0.0.0', () => {
         console.log(`\n📊 최종 데이터 확인:`);
         console.log(`   ✅ 회원: ${finalUsers}명`);
         console.log(`   ✅ 주문: ${finalOrders}건`);
-        console.log(`   ✅ 메뉴: ${menus.length}개\n`);
+        console.log(`   ✅ 메뉴: ${menus.length}개`);
+        
+        if (finalOrders === 0) {
+          console.error('⚠️ 경고: 주문이 하나도 저장되지 않았습니다!');
+          console.log('🔍 DB 상태 확인:', {
+            users: db.users.length,
+            orders: db.orders.length,
+            menu: db.menu.length
+          });
+        } else {
+          console.log(`✅ 데이터 저장 완료!\n`);
+        }
         
       } catch (error) {
         console.error('❌ 테스트 데이터 생성 오류:', error.message);

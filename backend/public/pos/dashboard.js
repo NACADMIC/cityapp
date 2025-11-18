@@ -361,6 +361,9 @@ async function loadRegionsTab() {
         document.getElementById('top-region-orders').textContent = formatNumber(regions[0].orderCount) + '건';
       }
       
+      // 지도 업데이트
+      updateAnseongMap(regions);
+      
       // 차트
       renderRegionChart(regions);
       
@@ -373,6 +376,76 @@ async function loadRegionsTab() {
   } catch (error) {
     console.error('지역 분석 로드 오류:', error);
   }
+}
+
+// 안성 지도 업데이트 (주문량에 따라 색상 진하기 조절)
+function updateAnseongMap(regions) {
+  if (!regions || regions.length === 0) return;
+  
+  // 최대 주문량 찾기
+  const maxOrders = Math.max(...regions.map(r => r.orderCount));
+  
+  // 지역별 색상 매핑
+  const regionMap = {
+    '공도읍': 'region-gongdo',
+    '미양면': 'region-miyang',
+    '대덕면': 'region-daedeok',
+    '양성면': 'region-yangseong'
+  };
+  
+  // 각 지역별로 색상 적용
+  regions.forEach(region => {
+    const regionId = regionMap[region.region];
+    if (!regionId) return;
+    
+    const element = document.getElementById(regionId);
+    if (!element) return;
+    
+    const rect = element.querySelector('rect');
+    if (!rect) return;
+    
+    // 주문량 비율 계산 (0~1)
+    const ratio = maxOrders > 0 ? region.orderCount / maxOrders : 0;
+    
+    // 색상 진하기 결정
+    let fillColor, strokeColor;
+    if (ratio === 0) {
+      fillColor = '#f5f5f5'; // 매우 연한 회색
+      strokeColor = '#ccc';
+    } else if (ratio < 0.25) {
+      fillColor = '#e3f2fd'; // 연한 파랑
+      strokeColor = '#64b5f6';
+    } else if (ratio < 0.5) {
+      fillColor = '#90caf9'; // 중간 파랑
+      strokeColor = '#42a5f5';
+    } else if (ratio < 0.75) {
+      fillColor = '#64b5f6'; // 진한 파랑
+      strokeColor = '#1976d2';
+    } else {
+      fillColor = '#1976d2'; // 매우 진한 파랑
+      strokeColor = '#0d47a1';
+    }
+    
+    rect.setAttribute('fill', fillColor);
+    rect.setAttribute('stroke', strokeColor);
+    rect.setAttribute('stroke-width', ratio > 0.5 ? '3' : '2');
+    
+    // 호버 효과 (그룹 요소에 적용)
+    element.addEventListener('mouseenter', () => {
+      element.setAttribute('transform', 'scale(1.05)');
+      rect.style.filter = 'brightness(1.1)';
+      element.style.cursor = 'pointer';
+    });
+    element.addEventListener('mouseleave', () => {
+      element.setAttribute('transform', 'scale(1)');
+      rect.style.filter = 'brightness(1)';
+    });
+    
+    // 클릭 시 상세 정보 표시
+    element.addEventListener('click', () => {
+      alert(`${region.region}\n주문: ${formatNumber(region.orderCount)}건\n매출: ${formatCurrency(region.totalSales)}`);
+    });
+  });
 }
 
 function renderRegionChart(regions) {
