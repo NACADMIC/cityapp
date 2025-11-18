@@ -45,11 +45,34 @@ function isBusinessHours() {
 io.on('connection', (socket) => {
   console.log('🔌 클라이언트 연결:', socket.id);
   
-  // POS 연결 시 대기 중인 주문 전송
-  const pendingOrders = db.getAllOrders().filter(o => o.status === 'pending' || o.status === 'accepted');
+  // POS 연결 시 accepted 이상인 주문만 복원 (pending은 팝업으로 처리)
+  const activeOrders = db.getAllOrders().filter(o => 
+    o.status === 'accepted' || 
+    o.status === 'preparing' || 
+    o.status === 'delivering'
+  );
+  if (activeOrders.length > 0) {
+    socket.emit('restore-orders', activeOrders);
+    console.log('📦 진행 중인 주문 복원:', activeOrders.length, '개');
+  }
+  
+  // pending 주문은 new-order로 다시 전송 (팝업 띄우기 위해)
+  const pendingOrders = db.getAllOrders().filter(o => o.status === 'pending');
   if (pendingOrders.length > 0) {
-    socket.emit('restore-orders', pendingOrders);
-    console.log('📦 대기 주문 복원:', pendingOrders.length, '개');
+    console.log('⏳ Pending 주문 재전송:', pendingOrders.length, '개');
+    pendingOrders.forEach(order => {
+      setTimeout(() => {
+        socket.emit('new-order', {
+          orderId: order.orderid,
+          customerName: order.customername,
+          phone: order.customerphone,
+          address: order.address,
+          items: JSON.parse(order.items || '[]'),
+          totalAmount: order.totalprice,
+          paymentMethod: order.paymentmethod || 'cash'
+        });
+      }, 500); // 약간의 딜레이를 주어 복원 후 팝업 표시
+    });
   }
   
   socket.on('disconnect', () => {
