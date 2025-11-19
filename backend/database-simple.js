@@ -66,13 +66,13 @@ class DB {
   async initMenu() {
     this.menu = [
       // 오늘의 메뉴
-      { id: 1, name: '짜장면', category: '오늘의메뉴', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 1 },
-      { id: 2, name: '짬뽕', category: '오늘의메뉴', price: 7000, image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&h=400&fit=crop', bestseller: 1 },
+      { id: 1, name: '짜장면', category: '오늘의메뉴', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 1, description: '진한 짜장소스와 쫄깃한 면발이 일품인 시티반점의 대표 메뉴입니다.' },
+      { id: 2, name: '짬뽕', category: '오늘의메뉴', price: 7000, image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&h=400&fit=crop', bestseller: 1, description: '신선한 해산물과 매콤한 국물이 일품인 짬뽕입니다.' },
       
       // 추천 메뉴
-      { id: 3, name: '탕수육', category: '추천메뉴', price: 15000, image: 'https://images.unsplash.com/photo-1626776876729-bab4eda639c7?w=400&h=400&fit=crop', bestseller: 1 },
-      { id: 4, name: '깐풍기', category: '추천메뉴', price: 18000, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=400&h=400&fit=crop', bestseller: 1 },
-      { id: 5, name: '양장피', category: '추천메뉴', price: 20000, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop', bestseller: 0 },
+      { id: 3, name: '탕수육', category: '추천메뉴', price: 15000, image: 'https://images.unsplash.com/photo-1626776876729-bab4eda639c7?w=400&h=400&fit=crop', bestseller: 1, description: '바삭한 튀김과 새콤달콤한 소스가 조화로운 탕수육입니다.' },
+      { id: 4, name: '깐풍기', category: '추천메뉴', price: 18000, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=400&h=400&fit=crop', bestseller: 1, description: '매콤달콤한 양념과 바삭한 닭고기가 일품인 깐풍기입니다.' },
+      { id: 5, name: '양장피', category: '추천메뉴', price: 20000, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop', bestseller: 0, description: '부드러운 양지와 신선한 채소가 어우러진 양장피입니다.' },
       
       // 면류
       { id: 6, name: '짜장면', category: '면류', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 0 },

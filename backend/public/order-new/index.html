@@ -384,6 +384,13 @@
   
   <div class="menu-overlay" id="menu-overlay" onclick="toggleSideMenu()"></div>
 
+  <!-- 메뉴 상세 팝업 -->
+  <div id="menu-detail-popup" class="menu-detail-popup" onclick="if(event.target === this) closeMenuDetail();">
+    <div id="menu-detail-content" class="menu-detail-content">
+      <!-- 내용은 JavaScript에서 동적으로 생성 -->
+    </div>
+  </div>
+
   <!-- Cart Screen -->
   <div id="cart-screen" class="screen">
     <div class="header" style="justify-content: space-between;">

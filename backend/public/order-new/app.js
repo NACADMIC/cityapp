@@ -373,7 +373,7 @@ function renderMenu(category = 'all') {
   }
 
   menuList.innerHTML = filtered.map(item => `
-    <div class="menu-item" onclick="addToCart(${item.id})">
+    <div class="menu-item" onclick="showMenuDetail(${item.id})">
       ${item.bestseller ? '<span class="bestseller">인기</span>' : ''}
       ${item.image 
         ? `<img src="${item.image}" alt="${item.name}" class="menu-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
@@ -397,24 +397,193 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Add to cart
-function addToCart(itemId) {
+// 메뉴 상세 팝업 표시
+let currentMenuDetail = null;
+let selectedOptions = [];
+let selectedQuantity = 1;
+
+async function showMenuDetail(itemId) {
   const item = menuItems.find(m => m.id === itemId);
   if (!item) return;
+  
+  currentMenuDetail = item;
+  selectedOptions = [];
+  selectedQuantity = 1;
+  
+  // 옵션 로드
+  let menuOptions = [];
+  try {
+    const res = await fetch(`/api/menu/${itemId}/options`);
+    const data = await res.json();
+    if (data.success && data.options) {
+      menuOptions = data.options;
+    }
+  } catch (err) {
+    console.error('옵션 로드 오류:', err);
+  }
+  
+  // 팝업 내용 생성
+  const popup = document.getElementById('menu-detail-popup');
+  const popupContent = document.getElementById('menu-detail-content');
+  
+  popupContent.innerHTML = `
+    <div class="menu-detail-header">
+      <button class="close-btn" onclick="closeMenuDetail()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #333; position: absolute; top: 15px; right: 15px; z-index: 10;">✕</button>
+      ${item.image 
+        ? `<img src="${item.image}" alt="${item.name}" class="menu-detail-image" onerror="this.style.display='none';">`
+        : `<div class="menu-detail-emoji">${item.emoji || '🍜'}</div>`
+      }
+    </div>
+    <div class="menu-detail-body">
+      <h2>${item.name}</h2>
+      <p class="menu-detail-price">${item.price.toLocaleString()}원</p>
+      ${item.description ? `<p class="menu-detail-description">${item.description}</p>` : ''}
+      
+      ${menuOptions.length > 0 ? `
+        <div class="menu-options-section">
+          <h3>옵션 선택</h3>
+          ${menuOptions.map((opt, idx) => `
+            <label class="option-item">
+              <input type="checkbox" value="${idx}" onchange="toggleOption(${idx}, '${opt.name}', ${opt.price || 0})">
+              <span class="option-name">${opt.name}</span>
+              ${opt.price ? `<span class="option-price">+${opt.price.toLocaleString()}원</span>` : ''}
+            </label>
+          `).join('')}
+        </div>
+      ` : ''}
+      
+      <div class="quantity-section">
+        <h3>수량</h3>
+        <div class="quantity-controls">
+          <button onclick="decreaseQuantity()" class="qty-btn">-</button>
+          <span id="selected-quantity" class="qty-value">${selectedQuantity}</span>
+          <button onclick="increaseQuantity()" class="qty-btn">+</button>
+        </div>
+      </div>
+      
+      <div class="menu-detail-total">
+        <span>총 금액</span>
+        <span id="menu-detail-total-price">${item.price.toLocaleString()}원</span>
+      </div>
+      
+      <button class="btn btn-primary" onclick="addToCartWithOptions()" style="width: 100%; margin-top: 20px; padding: 16px; font-size: 18px; font-weight: 600;">
+        장바구니에 추가
+      </button>
+    </div>
+  `;
+  
+  popup.style.display = 'flex';
+  updateMenuDetailTotal();
+}
 
-  const existing = cart.find(c => c.id === itemId);
+function closeMenuDetail() {
+  document.getElementById('menu-detail-popup').style.display = 'none';
+  currentMenuDetail = null;
+  selectedOptions = [];
+  selectedQuantity = 1;
+}
+
+function toggleOption(idx, name, price) {
+  const checkbox = event.target;
+  const option = { idx, name, price };
+  
+  if (checkbox.checked) {
+    selectedOptions.push(option);
+  } else {
+    selectedOptions = selectedOptions.filter(opt => opt.idx !== idx);
+  }
+  
+  updateMenuDetailTotal();
+}
+
+function increaseQuantity() {
+  selectedQuantity++;
+  document.getElementById('selected-quantity').textContent = selectedQuantity;
+  updateMenuDetailTotal();
+}
+
+function decreaseQuantity() {
+  if (selectedQuantity > 1) {
+    selectedQuantity--;
+    document.getElementById('selected-quantity').textContent = selectedQuantity;
+    updateMenuDetailTotal();
+  }
+}
+
+function updateMenuDetailTotal() {
+  if (!currentMenuDetail) return;
+  
+  const basePrice = currentMenuDetail.price;
+  const optionsPrice = selectedOptions.reduce((sum, opt) => sum + (opt.price || 0), 0);
+  const totalPrice = (basePrice + optionsPrice) * selectedQuantity;
+  
+  const totalElement = document.getElementById('menu-detail-total-price');
+  if (totalElement) {
+    totalElement.textContent = totalPrice.toLocaleString() + '원';
+  }
+}
+
+function addToCartWithOptions() {
+  if (!currentMenuDetail) return;
+  
+  const basePrice = currentMenuDetail.price;
+  const optionsPrice = selectedOptions.reduce((sum, opt) => sum + (opt.price || 0), 0);
+  const totalPrice = basePrice + optionsPrice;
+  
+  // 옵션 정보를 문자열로 저장
+  const optionsText = selectedOptions.length > 0 
+    ? selectedOptions.map(opt => opt.name + (opt.price ? ` (+${opt.price.toLocaleString()}원)` : '')).join(', ')
+    : '';
+  
+  // 기존 장바구니에 같은 메뉴+옵션 조합이 있는지 확인
+  const cartKey = `${currentMenuDetail.id}_${optionsText}`;
+  const existing = cart.find(c => {
+    const cKey = `${c.id}_${c.optionsText || ''}`;
+    return cKey === cartKey;
+  });
   
   if (existing) {
-    existing.quantity++;
+    existing.quantity += selectedQuantity;
   } else {
-    cart.push({ ...item, quantity: 1 });
+    cart.push({
+      ...currentMenuDetail,
+      quantity: selectedQuantity,
+      options: selectedOptions,
+      optionsText: optionsText,
+      price: totalPrice // 옵션 포함 가격
+    });
   }
-
-  updateCartCount();
   
-  const btn = event.target.closest('.menu-item');
-  btn.style.transform = 'scale(0.95)';
-  setTimeout(() => btn.style.transform = '', 200);
+  updateCartCount();
+  closeMenuDetail();
+  
+  // 알림 표시
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 40px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    z-index: 10000;
+    animation: fadeInOut 1.5s;
+  `;
+  notification.textContent = '장바구니에 추가되었습니다!';
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 1500);
+}
+
+// Add to cart (기존 함수는 호환성을 위해 유지)
+function addToCart(itemId) {
+  showMenuDetail(itemId);
 }
 
 // Update cart count
@@ -451,7 +620,7 @@ async function renderCart() {
   cartItemsDiv.innerHTML = cart.map((item, idx) => `
     <div class="cart-item">
       <div class="cart-item-info">
-        <h3>${item.name}</h3>
+        <h3>${item.name}${item.optionsText ? `<br><small style="color: #666; font-size: 12px; font-weight: normal;">${item.optionsText}</small>` : ''}</h3>
         <p class="cart-item-price">${(item.price * item.quantity).toLocaleString()}원</p>
       </div>
       <div class="cart-item-controls">
