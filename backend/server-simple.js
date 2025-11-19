@@ -79,48 +79,65 @@ setTimeout(() => {
 }, 100);
 
 function isBusinessHours() {
-  // 임시휴업 체크
-  if (temporaryClosed) {
-    return false;
-  }
-  
-  // 한국 시간으로 변환 (UTC+9)
-  const now = new Date();
-  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-  const dayOfWeek = koreaTime.getDay(); // 0=일요일, 6=토요일
-  const hour = koreaTime.getHours();
-  const minute = koreaTime.getMinutes();
-  const currentTime = hour + minute / 60; // 9시 30분 = 9.5
-  
-  // 해당 요일의 영업시간 가져오기
-  const todayHours = businessHours[dayOfWeek];
-  if (!todayHours || !todayHours.open || !todayHours.close) {
-    return false; // 영업시간이 설정되지 않은 요일
-  }
-  
-  // 영업시간 체크
-  if (currentTime < todayHours.open || currentTime >= todayHours.close) {
-    return false;
-  }
-  
-  // 해당 요일의 브레이크타임 체크
-  const todayBreakTime = breakTime[dayOfWeek];
-  if (todayBreakTime && todayBreakTime.start !== undefined && todayBreakTime.end !== undefined) {
-    if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
+  try {
+    // 변수 초기화 확인
+    if (typeof businessHours === 'undefined' || !businessHours) {
+      console.warn('⚠️ businessHours가 정의되지 않음, 기본값 사용');
       return false;
     }
+    if (typeof temporaryClosed === 'undefined') {
+      temporaryClosed = false;
+    }
+    if (typeof breakTime === 'undefined') {
+      breakTime = {};
+    }
+    
+    // 임시휴업 체크
+    if (temporaryClosed) {
+      return false;
+    }
+    
+    // 한국 시간으로 변환 (UTC+9)
+    const now = new Date();
+    const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const dayOfWeek = koreaTime.getDay(); // 0=일요일, 6=토요일
+    const hour = koreaTime.getHours();
+    const minute = koreaTime.getMinutes();
+    const currentTime = hour + minute / 60; // 9시 30분 = 9.5
+    
+    // 해당 요일의 영업시간 가져오기
+    const todayHours = businessHours[dayOfWeek];
+    if (!todayHours || typeof todayHours.open !== 'number' || typeof todayHours.close !== 'number') {
+      return false; // 영업시간이 설정되지 않은 요일
+    }
+    
+    // 영업시간 체크
+    if (currentTime < todayHours.open || currentTime >= todayHours.close) {
+      return false;
+    }
+    
+    // 해당 요일의 브레이크타임 체크
+    const todayBreakTime = breakTime[dayOfWeek];
+    if (todayBreakTime && typeof todayBreakTime.start === 'number' && typeof todayBreakTime.end === 'number') {
+      if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
+        return false;
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ isBusinessHours() 오류:', error);
+    return false; // 오류 발생 시 안전하게 false 반환
   }
-  
-  return true;
 }
 
 app.get('/api/business-hours', (req, res) => {
   console.log('📡 [API] GET /api/business-hours 요청 받음');
   
   try {
-    // 변수 초기화 확인
-    if (typeof businessHours === 'undefined') {
-      console.error('❌ businessHours가 정의되지 않음');
+    // 변수 초기화 확인 및 기본값 설정
+    if (typeof businessHours === 'undefined' || !businessHours) {
+      console.warn('⚠️ businessHours가 정의되지 않음, 기본값으로 초기화');
       businessHours = {
         0: { open: 9.5, close: 21 },
         1: { open: 9.5, close: 21 },
@@ -131,16 +148,23 @@ app.get('/api/business-hours', (req, res) => {
         6: { open: 9.5, close: 21 }
       };
     }
-    if (typeof breakTime === 'undefined') {
-      console.error('❌ breakTime이 정의되지 않음');
+    if (typeof breakTime === 'undefined' || !breakTime) {
+      console.warn('⚠️ breakTime이 정의되지 않음, 빈 객체로 초기화');
       breakTime = {};
     }
     if (typeof temporaryClosed === 'undefined') {
-      console.error('❌ temporaryClosed가 정의되지 않음');
+      console.warn('⚠️ temporaryClosed가 정의되지 않음, false로 초기화');
       temporaryClosed = false;
     }
     
-    const isOpen = isBusinessHours();
+    // isBusinessHours 호출 (내부에서도 안전하게 처리됨)
+    let isOpen = false;
+    try {
+      isOpen = isBusinessHours();
+    } catch (err) {
+      console.error('❌ isBusinessHours() 호출 오류:', err);
+      isOpen = false; // 오류 시 안전하게 false
+    }
     const now = new Date();
     const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
     const dayOfWeek = koreaTime.getDay();
