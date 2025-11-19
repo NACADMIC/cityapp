@@ -378,11 +378,99 @@ io.on('connection', (socket) => {
   });
 });
 
-// API: 메뉴
+// API: 메뉴 조회
 app.get('/api/menu', async (req, res) => {
   try {
-    const menu = await db.getAllMenu();
+    const menu = db.getAllMenu();
     res.json({ success: true, menu });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 생성
+app.post('/api/menu', (req, res) => {
+  try {
+    const { name, category, price, image, bestseller } = req.body;
+    if (!name || !price) {
+      return res.status(400).json({ success: false, error: '메뉴명과 가격은 필수입니다.' });
+    }
+    const newMenu = db.createMenu({ name, category, price, image, bestseller });
+    res.json({ success: true, menu: newMenu });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 수정
+app.put('/api/menu/:id', (req, res) => {
+  try {
+    const menuId = parseInt(req.params.id);
+    const { name, category, price, image, bestseller } = req.body;
+    const updatedMenu = db.updateMenu(menuId, { name, category, price, image, bestseller });
+    res.json({ success: true, menu: updatedMenu });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 삭제
+app.delete('/api/menu/:id', (req, res) => {
+  try {
+    const menuId = parseInt(req.params.id);
+    const deletedMenu = db.deleteMenu(menuId);
+    res.json({ success: true, menu: deletedMenu });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 할인 설정
+app.post('/api/menu/:id/discount', (req, res) => {
+  try {
+    const menuId = parseInt(req.params.id);
+    const { type, value } = req.body;
+    if (type && type !== 'percent' && type !== 'fixed') {
+      return res.status(400).json({ success: false, error: '할인 타입은 percent 또는 fixed여야 합니다.' });
+    }
+    const discount = db.setMenuDiscount(menuId, type ? { type, value } : null);
+    res.json({ success: true, discount });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 할인 조회
+app.get('/api/menu/discounts', (req, res) => {
+  try {
+    const discounts = db.getAllMenuDiscounts();
+    res.json({ success: true, discounts });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 옵션 설정
+app.post('/api/menu/:id/options', (req, res) => {
+  try {
+    const menuId = parseInt(req.params.id);
+    const { options } = req.body;
+    if (!Array.isArray(options)) {
+      return res.status(400).json({ success: false, error: '옵션은 배열이어야 합니다.' });
+    }
+    const savedOptions = db.setMenuOptions(menuId, options);
+    res.json({ success: true, options: savedOptions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 옵션 조회
+app.get('/api/menu/:id/options', (req, res) => {
+  try {
+    const menuId = parseInt(req.params.id);
+    const options = db.getMenuOptions(menuId);
+    res.json({ success: true, options });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

@@ -10,6 +10,8 @@ class DB {
     this.temporaryClosed = false; // 임시휴업 상태
     this.breakTime = null; // 요일별 브레이크타임 { 0: {start, end}, 1: {start, end}, ... }
     this.menuCosts = {}; // 메뉴별 원가 { menuId: cost }
+    this.menuDiscounts = {}; // 메뉴별 할인 { menuId: { type: 'percent'|'fixed', value: number } }
+    this.menuOptions = {}; // 메뉴별 옵션 { menuId: [{ name, price }] }
     this.initialized = false;
     this.init();
   }
@@ -83,6 +85,97 @@ class DB {
 
   getAllMenu() {
     return this.menu;
+  }
+
+  // 메뉴 관리
+  createMenu(menuData) {
+    const newId = this.menu.length > 0 ? Math.max(...this.menu.map(m => m.id)) + 1 : 1;
+    const newMenu = {
+      id: newId,
+      name: menuData.name,
+      category: menuData.category || '기타',
+      price: menuData.price || 0,
+      image: menuData.image || '',
+      bestseller: menuData.bestseller || 0
+    };
+    this.menu.push(newMenu);
+    // 기본 원가 설정
+    if (!this.menuCosts[newId]) {
+      this.menuCosts[newId] = Math.round(newMenu.price * 0.4);
+    }
+    console.log('✅ 메뉴 생성:', newMenu);
+    return newMenu;
+  }
+
+  updateMenu(menuId, menuData) {
+    const index = this.menu.findIndex(m => m.id === menuId);
+    if (index === -1) {
+      throw new Error('메뉴를 찾을 수 없습니다.');
+    }
+    this.menu[index] = { ...this.menu[index], ...menuData };
+    console.log('✅ 메뉴 수정:', this.menu[index]);
+    return this.menu[index];
+  }
+
+  deleteMenu(menuId) {
+    const index = this.menu.findIndex(m => m.id === menuId);
+    if (index === -1) {
+      throw new Error('메뉴를 찾을 수 없습니다.');
+    }
+    const deleted = this.menu.splice(index, 1)[0];
+    // 관련 데이터 삭제
+    delete this.menuCosts[menuId];
+    delete this.menuDiscounts[menuId];
+    delete this.menuOptions[menuId];
+    console.log('✅ 메뉴 삭제:', deleted);
+    return deleted;
+  }
+
+  getMenuById(menuId) {
+    return this.menu.find(m => m.id === menuId);
+  }
+
+  // 할인 관리
+  setMenuDiscount(menuId, discount) {
+    if (!discount || (discount.type !== 'percent' && discount.type !== 'fixed')) {
+      delete this.menuDiscounts[menuId];
+      console.log('✅ 메뉴 할인 해제:', menuId);
+      return null;
+    }
+    this.menuDiscounts[menuId] = {
+      type: discount.type,
+      value: discount.value || 0
+    };
+    console.log('✅ 메뉴 할인 설정:', menuId, this.menuDiscounts[menuId]);
+    return this.menuDiscounts[menuId];
+  }
+
+  getMenuDiscount(menuId) {
+    return this.menuDiscounts[menuId] || null;
+  }
+
+  getAllMenuDiscounts() {
+    return { ...this.menuDiscounts };
+  }
+
+  // 옵션 관리
+  setMenuOptions(menuId, options) {
+    if (!options || !Array.isArray(options)) {
+      delete this.menuOptions[menuId];
+      console.log('✅ 메뉴 옵션 해제:', menuId);
+      return [];
+    }
+    this.menuOptions[menuId] = options;
+    console.log('✅ 메뉴 옵션 설정:', menuId, options);
+    return this.menuOptions[menuId];
+  }
+
+  getMenuOptions(menuId) {
+    return this.menuOptions[menuId] || [];
+  }
+
+  getAllMenuOptions() {
+    return { ...this.menuOptions };
   }
 
   async createUser(phone, name, email, address, password) {
