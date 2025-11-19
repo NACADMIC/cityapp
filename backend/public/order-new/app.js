@@ -363,9 +363,14 @@ async function loadMenu() {
 function renderMenu(category = 'all') {
   const menuList = document.getElementById('menu-list');
   
-  const filtered = category === 'all' 
-    ? menuItems 
-    : menuItems.filter(item => item.category === category);
+  let filtered;
+  if (category === 'all') {
+    filtered = menuItems;
+  } else if (category === '인기') {
+    filtered = menuItems.filter(item => item.bestseller === 1);
+  } else {
+    filtered = menuItems.filter(item => item.category === category);
+  }
 
   if (filtered.length === 0) {
     menuList.innerHTML = '<p class="loading">메뉴가 없습니다.</p>';
@@ -374,7 +379,6 @@ function renderMenu(category = 'all') {
 
   menuList.innerHTML = filtered.map(item => `
     <div class="menu-item" onclick="showMenuDetail(${item.id})">
-      ${item.bestseller ? '<span class="bestseller">인기</span>' : ''}
       ${item.image 
         ? `<img src="${item.image}" alt="${item.name}" class="menu-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
            <div class="emoji" style="display:none;">${item.emoji || '🍜'}</div>`
@@ -1361,23 +1365,22 @@ async function loadBusyStatus() {
       const statusMessage = document.getElementById('busy-status-message');
       
       if (banner && statusText) {
-        // statusMessage는 제거 (더 깔끔하게)
         if (data.status === 'very-busy') {
           banner.style.background = 'rgba(244, 67, 54, 0.2)';
           banner.style.borderColor = 'rgba(244, 67, 54, 0.5)';
-          statusText.textContent = '🔴 매우 바쁨';
+          statusText.textContent = '주문혼잡도: 많이바쁨';
           statusText.style.color = '#ffcdd2';
           banner.style.display = 'flex';
         } else if (data.status === 'busy') {
           banner.style.background = 'rgba(255, 152, 0, 0.2)';
           banner.style.borderColor = 'rgba(255, 152, 0, 0.5)';
-          statusText.textContent = '🟠 바쁨';
+          statusText.textContent = '주문혼잡도: 바쁨';
           statusText.style.color = '#ffe0b2';
           banner.style.display = 'flex';
         } else if (data.status === 'normal') {
           banner.style.background = 'rgba(76, 175, 80, 0.2)';
           banner.style.borderColor = 'rgba(76, 175, 80, 0.5)';
-          statusText.textContent = '🟢 보통';
+          statusText.textContent = '주문혼잡도: 보통';
           statusText.style.color = '#c8e6c9';
           banner.style.display = 'flex';
         } else {

@@ -157,18 +157,18 @@ class DB {
       { id: 74, name: '시티짜장 + 통오징어짬뽕 1+1 세트', category: '세트메뉴', price: 15000, image: defaultImage, bestseller: 0 },
       
       // ===== 사이드메뉴 =====
-      { id: 75, name: '공기밥', category: '디저트', price: 1000, image: defaultImage, bestseller: 0 },
-      { id: 76, name: '연유꽃빵튀김(4P)', category: '디저트', price: 3000, image: defaultImage, bestseller: 0, description: '꽃빵 튀김과 연유크림 소스' },
-      { id: 77, name: '군만두(8p)', category: '디저트', price: 5000, image: defaultImage, bestseller: 0, description: '군만두 (8p) + 미니간장' },
+      { id: 75, name: '공기밥', category: '사이드', price: 1000, image: defaultImage, bestseller: 0 },
+      { id: 76, name: '연유꽃빵튀김(4P)', category: '사이드', price: 3000, image: defaultImage, bestseller: 0, description: '꽃빵 튀김과 연유크림 소스' },
+      { id: 77, name: '군만두(8p)', category: '사이드', price: 5000, image: defaultImage, bestseller: 0, description: '군만두 (8p) + 미니간장' },
       { id: 78, name: '사이다(500ml)', category: '음료', price: 2000, image: defaultImage, bestseller: 0 },
       { id: 79, name: '콜라(500ml)', category: '음료', price: 2000, image: defaultImage, bestseller: 0 },
-      { id: 80, name: '멘보샤(6P)', category: '디저트', price: 6000, image: defaultImage, bestseller: 0, description: '일명 새우토스트 식빵 사이에 으깬 새우를 튀긴 멘보샤' },
-      { id: 81, name: '칠리만두(8P)', category: '디저트', price: 7000, image: defaultImage, bestseller: 0, description: '매콤한 칠리소스로 조리한 칠리만두랍니다.' },
+      { id: 80, name: '멘보샤(6P)', category: '사이드', price: 6000, image: defaultImage, bestseller: 0, description: '일명 새우토스트 식빵 사이에 으깬 새우를 튀긴 멘보샤' },
+      { id: 81, name: '칠리만두(8P)', category: '사이드', price: 7000, image: defaultImage, bestseller: 0, description: '매콤한 칠리소스로 조리한 칠리만두랍니다.' },
       
       // ===== 리뷰 이벤트 =====
-      { id: 82, name: '미니짜장밥(리뷰중복불가)(.)', category: '디저트', price: 500, image: defaultImage, bestseller: 0 },
-      { id: 83, name: '꽃빵튀김4P(연유X)리뷰중복불가(.)', category: '디저트', price: 1000, image: defaultImage, bestseller: 0, description: '후기 꽃빵튀김에는 연유가 따로 들어가지 않아요' },
-      { id: 84, name: '군만두(8P)리뷰중복불가(.)', category: '디저트', price: 2400, image: defaultImage, bestseller: 0 }
+      { id: 82, name: '미니짜장밥(리뷰중복불가)(.)', category: '사이드', price: 500, image: defaultImage, bestseller: 0 },
+      { id: 83, name: '꽃빵튀김4P(연유X)리뷰중복불가(.)', category: '사이드', price: 1000, image: defaultImage, bestseller: 0, description: '후기 꽃빵튀김에는 연유가 따로 들어가지 않아요' },
+      { id: 84, name: '군만두(8P)리뷰중복불가(.)', category: '사이드', price: 2400, image: defaultImage, bestseller: 0 }
     ];
     
     // 메뉴별 기본 원가 설정 (판매가의 40% 가정)

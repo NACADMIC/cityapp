@@ -291,30 +291,31 @@
   <!-- Menu Screen -->
   <div id="menu-screen" class="screen">
     <div class="header" style="position: relative; justify-content: space-between; padding: 20px 24px;">
-      <!-- 왼쪽: 햄버거 메뉴 + 바쁨 상태 -->
+      <!-- 왼쪽: 햄버거 메뉴 -->
       <div style="display: flex; align-items: center; gap: 12px; flex: 0 0 auto;">
         <button class="hamburger-btn" onclick="toggleSideMenu()" style="background: none; border: none; cursor: pointer; padding: 8px; display: flex; flex-direction: column; gap: 5px; transition: all 0.3s; z-index: 1001;">
           <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
           <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
           <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
         </button>
-        <div id="busy-status-banner" style="display: none; flex: 0 0 auto; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3);">
-          <span id="busy-status-text" style="font-size: 12px; font-weight: 700; white-space: nowrap;"></span>
-        </div>
       </div>
       
-      <!-- 중앙: 로고 -->
-      <h1 onclick="location.reload()" data-store-name style="position: absolute; left: 50%; transform: translateX(-50%); margin: 0;">🏮 시티반점</h1>
+      <!-- 중앙: 로고 + 전화번호 -->
+      <h1 onclick="location.reload()" data-store-name>
+        <span>시티반점</span>
+        <span id="header-phone-text"></span>
+      </h1>
       
-      <!-- 오른쪽: 전화번호 (숨김 - user-info로 이동) -->
-      <div id="header-phone" style="display: none;"></div>
+      <!-- 오른쪽: 주문 혼잡도 -->
+      <div id="busy-status-banner" style="display: none; position: absolute; top: 20px; right: 24px; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3); z-index: 1000;">
+        <span id="busy-status-text" style="font-size: 11px; font-weight: 500; white-space: nowrap; color: white;"></span>
+      </div>
     </div>
 
     <div id="user-info" class="user-info" style="display: none;">
       <div class="user-info-content">
         <div class="user-name-section">
           <span id="user-name"></span><span class="user-name-suffix">님</span>
-          <span id="user-phone" class="user-phone" onclick="callStore()" style="cursor: pointer;"></span>
         </div>
         <span class="points" onclick="goToPointHistory()" style="cursor: pointer;">포인트: <strong id="user-points">0</strong>P</span>
       </div>
@@ -322,6 +323,7 @@
 
     <div class="category-tabs">
       <button class="category-tab active" data-category="all">전체</button>
+      <button class="category-tab" data-category="인기">인기</button>
       <button class="category-tab" data-category="오늘의메뉴">오늘의메뉴</button>
       <button class="category-tab" data-category="추천메뉴">추천메뉴</button>
       <button class="category-tab" data-category="면류">면류</button>
@@ -331,6 +333,7 @@
       <button class="category-tab" data-category="음료">음료</button>
       <button class="category-tab" data-category="맥주">맥주</button>
       <button class="category-tab" data-category="소주">소주</button>
+      <button class="category-tab" data-category="사이드">사이드</button>
     </div>
 
     <div class="container">
@@ -633,10 +636,16 @@
           }
           document.getElementById('footer-content').innerHTML = footerHTML;
           
-          // 사용자 정보 영역에 전화번호 표시
+          // 헤더에 전화번호 표시
+          const headerPhoneText = document.getElementById('header-phone-text');
+          if (headerPhoneText && info.phone) {
+            headerPhoneText.textContent = info.phone;
+          }
+          
+          // 사용자 정보 영역에 전화번호 표시 (제거 - 헤더로 이동)
           const userPhone = document.getElementById('user-phone');
           if (userPhone && info.phone) {
-            userPhone.textContent = `📞 ${info.phone}`;
+            userPhone.textContent = info.phone;
           }
           
           // 플로팅 버튼들 표시 (항상 표시)

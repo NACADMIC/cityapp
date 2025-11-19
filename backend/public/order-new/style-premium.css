@@ -79,10 +79,22 @@ h2 {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
 }
 
 .header h1:hover {
   transform: translateX(-50%) scale(1.05);
+}
+
+.header h1 #header-phone-text {
+  font-size: 0.65em;
+  font-weight: 400;
+  color: white;
+  opacity: 0.9;
+  white-space: nowrap;
 }
 
 .header-btns {
@@ -842,6 +854,7 @@ h2 {
 
 .user-name-suffix {
   margin-left: 2px;
+  font-weight: 300;
 }
 
 .user-phone {
@@ -862,8 +875,12 @@ h2 {
 
 .points {
   color: #FFD700;
-  font-weight: 800;
+  font-weight: 300;
   font-size: 13px;
+}
+
+.points strong {
+  font-weight: 600;
 }
 
 /* ===== ANIMATIONS ===== */
