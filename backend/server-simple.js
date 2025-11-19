@@ -140,7 +140,7 @@ app.get('/api/business-hours', (req, res) => {
   
   const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   
-  res.json({
+  const response = {
     isOpen,
     currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
     currentDay: dayOfWeek,
@@ -153,11 +153,16 @@ app.get('/api/business-hours', (req, res) => {
     breakTime: todayBreakTime || null,
     allBreakTime: breakTime, // 모든 요일의 브레이크타임
     statusMessage
-  });
+  };
+  
+  console.log('✅ /api/business-hours 응답:', JSON.stringify(response).substring(0, 100));
+  res.setHeader('Content-Type', 'application/json');
+  res.json(response);
 });
 
 // API: 영업시간 설정 (요일별)
 app.post('/api/business-hours', (req, res) => {
+  console.log('📡 POST /api/business-hours 요청 받음');
   try {
     const { hours } = req.body; // { 0: {open, close}, 1: {open, close}, ... }
     
@@ -186,6 +191,7 @@ app.post('/api/business-hours', (req, res) => {
     db.saveBusinessHours(businessHours);
     
     console.log('✅ 영업시간 업데이트:', businessHours);
+    res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, businessHours });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -194,11 +200,13 @@ app.post('/api/business-hours', (req, res) => {
 
 // API: 임시휴업 설정
 app.post('/api/temporary-closed', (req, res) => {
+  console.log('📡 POST /api/temporary-closed 요청 받음');
   try {
     const { closed } = req.body;
     temporaryClosed = closed === true;
     db.setTemporaryClosed(temporaryClosed);
     console.log('✅ 임시휴업 설정:', temporaryClosed ? 'ON' : 'OFF');
+    res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, temporaryClosed });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -207,6 +215,7 @@ app.post('/api/temporary-closed', (req, res) => {
 
 // API: 브레이크타임 설정 (요일별)
 app.post('/api/break-time', (req, res) => {
+  console.log('📡 POST /api/break-time 요청 받음');
   try {
     const { breakTimes } = req.body; // { 0: {start, end}, 1: {start, end}, ... } 또는 { day: 0, start: null, end: null } (해제)
     
@@ -252,6 +261,7 @@ app.post('/api/break-time', (req, res) => {
     db.setBreakTime(breakTime);
     
     console.log('✅ 브레이크타임 업데이트:', breakTime);
+    res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, breakTime });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -941,8 +951,16 @@ async function generateTestData() {
   }
 }
 
-// 정적 파일 서빙 (모든 API 라우트 이후에 등록 - 라우팅 순서 중요!)
-app.use(express.static(path.join(__dirname, 'public')));
+// 정적 파일 서빙 (API 경로는 이미 위에서 처리되므로 안전)
+// API 라우트가 모두 등록된 후에 정적 파일 서빙 등록
+const staticMiddleware = express.static(path.join(__dirname, 'public'));
+app.use((req, res, next) => {
+  // API 경로는 정적 파일 서빙에서 제외
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  staticMiddleware(req, res, next);
+});
 
 // 기본 경로 리다이렉트 (정적 파일 서빙 이후)
 app.get('/', (req, res) => {
