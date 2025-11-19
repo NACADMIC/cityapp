@@ -16,7 +16,7 @@
       <div class="logo">🏮</div>
       <h1 style="text-align: center; font-size: 48px; font-weight: 900; margin-bottom: 12px; color: #1a1a1a;" data-store-name>시티반점</h1>
       <p class="subtitle">맛있는 중국요리 배달</p>
-      <div id="login-phone-display" style="text-align: center; margin-top: 15px; font-size: 18px; font-weight: 600; color: #4caf50; cursor: pointer; display: none;" onclick="callStore()">📞 전화번호 로딩 중...</div>
+      <div id="login-phone-display" style="text-align: center; margin-top: 15px; font-size: 16px; font-weight: 500; color: #1976d2; cursor: pointer; display: none; opacity: 0.8;" onclick="callStore()">📞 전화번호 로딩 중...</div>
 
       <div class="auth-buttons">
         <button class="btn btn-primary" onclick="showLogin()">
@@ -524,13 +524,24 @@
 
   <script src="app.js"></script>
   
-  <!-- 플로팅 전화 버튼 (항상 표시) -->
-  <div id="floating-phone-btn" style="display: none; position: fixed; bottom: 20px; right: 20px; width: 70px; height: 70px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); cursor: pointer; z-index: 1000; align-items: center; justify-content: center; transition: all 0.3s;" onclick="callStore()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)';">
-    <span style="font-size: 32px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">📞</span>
+  <!-- 플로팅 문의 버튼들 (항상 표시) -->
+  <div id="floating-inquiry-buttons" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; align-items: flex-end;">
+    <!-- 실시간 채팅 버튼 -->
+    <div id="floating-chat-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="openChat()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
+      <span style="font-size: 28px;">💬</span>
+    </div>
+    <!-- 카카오톡 채널 버튼 -->
+    <div id="floating-kakao-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #FEE500 0%, #FDD835 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(254, 229, 0, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="openKakaoChannel()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(254, 229, 0, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(254, 229, 0, 0.4)';">
+      <span style="font-size: 28px;">💛</span>
+    </div>
+    <!-- 전화 버튼 -->
+    <div id="floating-phone-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="callStore()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)';">
+      <span style="font-size: 28px;">📞</span>
+    </div>
   </div>
   
   <!-- 푸터 (가게 정보) - 로그인 화면에만 표시 -->
-  <footer id="store-footer" style="display: none; background: #f5f5f5; padding: 20px; margin-top: 40px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 12px; color: #666; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;">
+  <footer id="store-footer" style="display: none; background: rgba(245, 245, 245, 0.95); padding: 8px 15px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 10px; color: #888; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; backdrop-filter: blur(5px);">
     <div id="footer-content">로딩 중...</div>
   </footer>
 
@@ -545,13 +556,15 @@
         if (data.success && data.storeInfo) {
           const info = data.storeInfo;
           storePhone = info.phone || '';
+          storeKakaoUrl = info.kakaoChannelUrl || '';
+          storeChatUrl = info.chatServiceUrl || '';
           
-          let footerHTML = `<div style="font-weight: 600; margin-bottom: 8px; color: #333;">${info.name || '시티반점'}</div>`;
+          let footerHTML = `<div style="font-weight: 500; margin-bottom: 3px; color: #666; font-size: 11px;">${info.name || '시티반점'}</div>`;
           if (info.owner) {
-            footerHTML += `<div>대표자: ${info.owner}</div>`;
+            footerHTML += `<div style="font-size: 10px; color: #888; margin-bottom: 3px;">대표자: ${info.owner}</div>`;
           }
           if (info.phone) {
-            footerHTML += `<div style="font-size: 14px; font-weight: 600; color: #4caf50; margin: 8px 0;">📞 ${info.phone}</div>`;
+            footerHTML += `<div style="font-size: 11px; font-weight: 500; color: #1976d2; margin: 3px 0;">📞 ${info.phone}</div>`;
             // 로그인 화면의 전화번호도 업데이트
             const loginPhoneDisplay = document.getElementById('login-phone-display');
             if (loginPhoneDisplay) {
@@ -560,16 +573,19 @@
             }
           }
           if (info.address) {
-            footerHTML += `<div>📍 ${info.address}</div>`;
+            footerHTML += `<div style="font-size: 10px; color: #888; margin-bottom: 3px;">📍 ${info.address}</div>`;
           }
           if (info.license) {
-            footerHTML += `<div style="margin-top: 8px; color: #999;">사업자등록번호: ${info.license}</div>`;
+            footerHTML += `<div style="font-size: 9px; color: #aaa; margin-top: 3px;">사업자등록번호: ${info.license}</div>`;
           }
           document.getElementById('footer-content').innerHTML = footerHTML;
           
-          // 전화 버튼 표시
+          // 플로팅 버튼들 표시 (전화번호가 있으면 표시)
           if (storePhone) {
-            document.getElementById('floating-phone-btn').style.display = 'flex';
+            const floatingButtons = document.getElementById('floating-inquiry-buttons');
+            if (floatingButtons) {
+              floatingButtons.style.display = 'flex';
+            }
           }
         }
       } catch (error) {
@@ -578,12 +594,38 @@
       }
     }
     
+    let storeKakaoUrl = ''; // 카카오톡 채널 URL
+    let storeChatUrl = ''; // 실시간 채팅 URL
+    
     // 전화 걸기 함수
     function callStore() {
       if (storePhone) {
         window.location.href = `tel:${storePhone.replace(/-/g, '')}`;
       } else {
         alert('전화번호가 등록되지 않았습니다.');
+      }
+    }
+    
+    // 카카오톡 채널 열기
+    function openKakaoChannel() {
+      if (storeKakaoUrl) {
+        window.open(storeKakaoUrl, '_blank');
+      } else {
+        // 카카오톡 채널이 설정되지 않은 경우 기본 링크 또는 안내
+        alert('카카오톡 채널이 아직 설정되지 않았습니다.\n가게 관리에서 카카오톡 채널을 설정해주세요.');
+      }
+    }
+    
+    // 실시간 채팅 열기 (나중에 외부 서비스 연동)
+    function openChat() {
+      if (storeChatUrl) {
+        // 외부 채팅 서비스 URL이 있으면 새 창으로 열기
+        window.open(storeChatUrl, '_blank', 'width=400,height=600');
+      } else {
+        // 임시: 나중에 외부 서비스 연동 예정 안내
+        alert('실시간 채팅 서비스는 준비 중입니다.\n곧 서비스를 시작할 예정입니다.');
+        // TODO: 나중에 외부 채팅 서비스 연동
+        // 예: window.open('https://your-chat-service.com/widget', '_blank', 'width=400,height=600');
       }
     }
     
@@ -597,12 +639,29 @@
       // 로그인 관련 화면이 활성화되어 있으면 푸터 표시
       if (authSelectScreen && authSelectScreen.classList.contains('active')) {
         footer.style.display = 'block';
+        // 버튼들이 가려지지 않도록 컨테이너에 패딩 추가
+        const container = authSelectScreen.querySelector('.container');
+        if (container) {
+          container.style.paddingBottom = '80px';
+        }
       } else if (loginScreen && loginScreen.classList.contains('active')) {
         footer.style.display = 'block';
+        const container = loginScreen.querySelector('.container');
+        if (container) {
+          container.style.paddingBottom = '80px';
+        }
       } else if (registerScreen && registerScreen.classList.contains('active')) {
         footer.style.display = 'block';
+        const container = registerScreen.querySelector('.container');
+        if (container) {
+          container.style.paddingBottom = '80px';
+        }
       } else {
         footer.style.display = 'none';
+        // 다른 화면에서는 패딩 제거
+        document.querySelectorAll('.container').forEach(container => {
+          container.style.paddingBottom = '';
+        });
       }
     }
     
@@ -615,10 +674,9 @@
         if (!phoneDisplay) {
           phoneDisplay = document.createElement('div');
           phoneDisplay.id = 'phone-display';
-          phoneDisplay.style.cssText = 'text-align: center; padding: 10px; background: #f5f5f5; font-size: 16px; font-weight: 600; color: #4caf50;';
+          phoneDisplay.style.cssText = 'text-align: center; padding: 8px; background: rgba(245, 245, 245, 0.8); font-size: 14px; font-weight: 500; color: #1976d2; cursor: pointer; opacity: 0.9;';
           phoneDisplay.innerHTML = `📞 ${storePhone}`;
           phoneDisplay.onclick = callStore;
-          phoneDisplay.style.cursor = 'pointer';
           const header = menuScreen.querySelector('.header');
           if (header) {
             header.insertAdjacentElement('afterend', phoneDisplay);

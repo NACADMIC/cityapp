@@ -17,7 +17,9 @@ class DB {
       owner: '', // 대표자명
       phone: '031-123-4567',
       license: '',
-      address: '경기도 안성시 공도읍'
+      address: '경기도 안성시 공도읍',
+      kakaoChannelUrl: '', // 카카오톡 채널 URL (예: https://pf.kakao.com/_xxxxx)
+      chatServiceUrl: '' // 실시간 채팅 서비스 URL (나중에 외부 서비스 연동)
     };
     this.initialized = false;
     this.init();

@@ -297,7 +297,10 @@
   <div class="menu-management-container">
     <div class="page-header">
       <h2 id="page-title">📝 가게 메뉴판 편집</h2>
-      <button class="btn-add" id="add-btn" onclick="openAddMenuPopup()" style="display: none;">+ 메뉴 추가</button>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-add" id="edit-mode-btn" onclick="openEditMode()" style="background: #9c27b0;">🎨 편집 모드</button>
+        <button class="btn-add" id="add-btn" onclick="openAddMenuPopup()" style="display: none;">+ 메뉴 추가</button>
+      </div>
     </div>
 
     <!-- 탭 메뉴 -->
@@ -1078,6 +1081,16 @@
         loadMenus();
       }
     }
+
+        // 편집 모드 열기 (새 창)
+        function openEditMode() {
+          const editWindow = window.open('/pos/menu-editor.html', 'menuEditor', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+          if (editWindow) {
+            editWindow.focus();
+          } else {
+            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+          }
+        }
 
         // 초기화
         initTab();

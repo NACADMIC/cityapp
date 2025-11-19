@@ -281,6 +281,16 @@
           <label>주소</label>
           <input type="text" id="store-address" value="경기도 안성시 공도읍" placeholder="주소를 입력하세요">
         </div>
+        <div class="form-group">
+          <label>카카오톡 채널 URL</label>
+          <input type="url" id="store-kakao-url" value="" placeholder="https://pf.kakao.com/_xxxxx">
+          <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">카카오톡 채널 관리자에서 채널 URL을 복사해 입력하세요</small>
+        </div>
+        <div class="form-group">
+          <label>실시간 채팅 서비스 URL</label>
+          <input type="url" id="store-chat-url" value="" placeholder="https://your-chat-service.com/widget">
+          <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">나중에 외부 채팅 서비스 연동 시 사용됩니다</small>
+        </div>
         <button type="button" class="btn-save" onclick="saveStoreInfo()">가게 정보 저장</button>
       </form>
     </div>
@@ -588,6 +598,8 @@
           document.getElementById('store-phone').value = data.storeInfo.phone || '';
           document.getElementById('store-license').value = data.storeInfo.license || '';
           document.getElementById('store-address').value = data.storeInfo.address || '';
+          document.getElementById('store-kakao-url').value = data.storeInfo.kakaoChannelUrl || '';
+          document.getElementById('store-chat-url').value = data.storeInfo.chatServiceUrl || '';
         }
       } catch (error) {
         console.error('가게 정보 로드 오류:', error);
@@ -601,7 +613,9 @@
         owner: document.getElementById('store-owner').value,
         phone: document.getElementById('store-phone').value,
         license: document.getElementById('store-license').value,
-        address: document.getElementById('store-address').value
+        address: document.getElementById('store-address').value,
+        kakaoChannelUrl: document.getElementById('store-kakao-url').value,
+        chatServiceUrl: document.getElementById('store-chat-url').value
       };
 
       try {

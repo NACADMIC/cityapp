@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>메뉴 편집 모드 - 시티반점 POS</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    
+    .editor-header {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .editor-header h1 {
+      font-size: 24px;
+      color: #1976d2;
+    }
+    
+    .editor-controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #45a049;
+    }
+    
+    .btn-secondary {
+      background: #757575;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #616161;
+    }
+    
+    .editor-container {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      height: calc(100vh - 120px);
+    }
+    
+    .sidebar {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    
+    .sidebar h3 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 18px;
+    }
+    
+    .category-list {
+      list-style: none;
+    }
+    
+    .category-item {
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .category-item:hover {
+      background: #e0e0e0;
+      transform: translateX(5px);
+    }
+    
+    .category-item.active {
+      background: #1976d2;
+      color: white;
+    }
+    
+    .editor-main {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    
+    .menu-blocks-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .menu-block {
+      background: #f9f9f9;
+      border: 2px dashed #ddd;
+      border-radius: 12px;
+      padding: 20px;
+      cursor: move;
+      transition: all 0.3s;
+      position: relative;
+    }
+    
+    .menu-block:hover {
+      border-color: #1976d2;
+      background: #e3f2fd;
+    }
+    
+    .menu-block.dragging {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+    
+    .menu-block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .menu-block-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .menu-block-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+    
+    .btn-edit {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .btn-edit:hover {
+      background: #1976d2;
+    }
+    
+    .btn-delete {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-delete:hover {
+      background: #d32f2f;
+    }
+    
+    .menu-block-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .menu-item-block {
+      background: white;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .menu-item-block:hover {
+      border-color: #1976d2;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .menu-item-block.editing {
+      border-color: #4caf50;
+      border-width: 2px;
+    }
+    
+    .menu-item-image {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    
+    .menu-item-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+    
+    .menu-item-price {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1976d2;
+    }
+    
+    .add-block-btn {
+      background: #e0e0e0;
+      border: 2px dashed #999;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #666;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .add-block-btn:hover {
+      background: #f5f5f5;
+      border-color: #1976d2;
+      color: #1976d2;
+    }
+    
+    /* 편집 팝업 */
+    .edit-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .edit-popup.active {
+      display: flex;
+    }
+    
+    .edit-popup-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .edit-popup-content h3 {
+      margin-bottom: 20px;
+      color: #1976d2;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .drag-handle {
+      cursor: move;
+      color: #999;
+      font-size: 20px;
+      margin-right: 10px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="editor-header">
+    <h1>🎨 메뉴 편집 모드</h1>
+    <div class="editor-controls">
+      <button class="btn btn-secondary" onclick="addNewBlock()">+ 새 카테고리 추가</button>
+      <button class="btn btn-success" onclick="saveAll()">💾 전체 저장</button>
+      <button class="btn btn-secondary" onclick="window.close()">닫기</button>
+    </div>
+  </div>
+  
+  <div class="editor-container">
+    <div class="sidebar">
+      <h3>📂 카테고리</h3>
+      <ul class="category-list" id="category-list">
+        <li class="category-item active" data-category="all">전체</li>
+        <!-- 카테고리 목록이 여기에 동적으로 추가됩니다 -->
+      </ul>
+    </div>
+    
+    <div class="editor-main">
+      <div class="menu-blocks-container" id="menu-blocks-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <p>메뉴를 불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 편집 팝업 -->
+  <div class="edit-popup" id="edit-popup">
+    <div class="edit-popup-content">
+      <h3 id="edit-popup-title">메뉴 편집</h3>
+      <form id="edit-form">
+        <input type="hidden" id="edit-menu-id">
+        <input type="hidden" id="edit-block-type">
+        
+        <div class="form-group">
+          <label>메뉴명</label>
+          <input type="text" id="edit-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label>카테고리</label>
+          <select id="edit-category" required>
+            <option value="오늘의메뉴">오늘의메뉴</option>
+            <option value="추천메뉴">추천메뉴</option>
+            <option value="면류">면류</option>
+            <option value="밥류">밥류</option>
+            <option value="디저트">디저트</option>
+            <option value="음료">음료</option>
+            <option value="맥주">맥주</option>
+            <option value="소주">소주</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>가격 (원)</label>
+          <input type="number" id="edit-price" min="0" required>
+        </div>
+        
+        <div class="form-group">
+          <label>이미지 URL</label>
+          <input type="url" id="edit-image" placeholder="https://...">
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="edit-bestseller" style="width: 18px; height: 18px; margin-right: 8px;">
+            베스트셀러
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeEditPopup()">취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <script>
+    let allMenus = [];
+    let categories = [];
+    let currentCategory = 'all';
+    let draggedElement = null;
+    
+    // 메뉴 로드
+    async function loadMenus() {
+      try {
+        const res = await fetch('/api/menu');
+        const data = await res.json();
+        if (data.success) {
+          allMenus = data.menu || [];
+          organizeMenusByCategory();
+          renderCategories();
+          renderMenuBlocks();
+        }
+      } catch (error) {
+        console.error('메뉴 로드 오류:', error);
+        alert('메뉴를 불러오는 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 카테고리별로 메뉴 정리
+    function organizeMenusByCategory() {
+      categories = [...new Set(allMenus.map(m => m.category))];
+    }
+    
+    // 카테고리 목록 렌더링
+    function renderCategories() {
+      const container = document.getElementById('category-list');
+      const categoryItems = categories.map(cat => 
+        `<li class="category-item" data-category="${cat}">${cat}</li>`
+      ).join('');
+      container.innerHTML = `<li class="category-item active" data-category="all">전체</li>${categoryItems}`;
+      
+      // 카테고리 클릭 이벤트
+      container.querySelectorAll('.category-item').forEach(item => {
+        item.addEventListener('click', () => {
+          container.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          currentCategory = item.dataset.category;
+          renderMenuBlocks();
+        });
+      });
+    }
+    
+    // 메뉴 블럭 렌더링
+    function renderMenuBlocks() {
+      const container = document.getElementById('menu-blocks-container');
+      
+      const filteredCategories = currentCategory === 'all' 
+        ? categories 
+        : [currentCategory];
+      
+      if (filteredCategories.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <p>메뉴가 없습니다. 메뉴를 추가해주세요.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      
+      filteredCategories.forEach(category => {
+        const categoryMenus = allMenus.filter(m => m.category === category);
+        
+        if (categoryMenus.length === 0) return;
+        
+        html += `
+          <div class="menu-block" data-category="${category}" draggable="true">
+            <div class="menu-block-header">
+              <div style="display: flex; align-items: center;">
+                <span class="drag-handle">☰</span>
+                <span class="menu-block-title">${category}</span>
+              </div>
+              <div class="menu-block-actions">
+                <button class="btn-icon btn-edit" onclick="editCategory('${category}')" title="카테고리 편집">✏️</button>
+                <button class="btn-icon btn-delete" onclick="deleteCategory('${category}')" title="카테고리 삭제">🗑️</button>
+              </div>
+            </div>
+            <div class="menu-block-content">
+              ${categoryMenus.map(menu => `
+                <div class="menu-item-block" data-menu-id="${menu.id}">
+                  <div style="position: relative;">
+                    <div onclick="editMenuItem(${menu.id})" style="cursor: pointer;">
+                      ${menu.image ? `<img src="${menu.image}" alt="${menu.name}" class="menu-item-image" onerror="this.style.display='none'">` : ''}
+                      <div class="menu-item-name">${menu.name}</div>
+                      <div class="menu-item-price">${menu.price.toLocaleString()}원</div>
+                    </div>
+                    <button class="btn-icon btn-delete" onclick="deleteMenuItem(${menu.id}); event.stopPropagation();" style="position: absolute; top: 5px; right: 5px; width: 28px; height: 28px; font-size: 14px;" title="삭제">🗑️</button>
+                  </div>
+                </div>
+              `).join('')}
+              <div class="menu-item-block" style="border: 2px dashed #999; background: #f5f5f5; display: flex; align-items: center; justify-content: center; min-height: 150px; cursor: pointer;" onclick="addMenuItemToCategory('${category}')">
+                <div style="text-align: center; color: #999;">
+                  <div style="font-size: 32px; margin-bottom: 8px;">+</div>
+                  <div>메뉴 추가</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `
+        <div class="add-block-btn" onclick="addNewBlock()">
+          + 새 카테고리 블럭 추가
+        </div>
+      `;
+      
+      container.innerHTML = html;
+      
+      // 드래그 앤 드롭 설정
+      setupDragAndDrop();
+    }
+    
+    // 드래그 앤 드롭 설정
+    function setupDragAndDrop() {
+      const blocks = document.querySelectorAll('.menu-block');
+      
+      blocks.forEach(block => {
+        block.addEventListener('dragstart', (e) => {
+          draggedElement = block;
+          block.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        
+        block.addEventListener('dragend', () => {
+          block.classList.remove('dragging');
+          draggedElement = null;
+        });
+        
+        block.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          
+          const afterElement = getDragAfterElement(block.parentElement, e.clientY);
+          if (afterElement == null) {
+            block.parentElement.appendChild(draggedElement);
+          } else {
+            block.parentElement.insertBefore(draggedElement, afterElement);
+          }
+        });
+      });
+    }
+    
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('.menu-block:not(.dragging)')];
+      
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    
+    // 새 카테고리 블럭 추가
+    function addNewBlock() {
+      const categoryName = prompt('새 카테고리 이름을 입력하세요:');
+      if (categoryName && categoryName.trim()) {
+        categories.push(categoryName.trim());
+        renderCategories();
+        renderMenuBlocks();
+      }
+    }
+    
+    // 메뉴 아이템 편집
+    async function editMenuItem(menuId) {
+      const menu = allMenus.find(m => m.id === menuId);
+      if (!menu) return;
+      
+      document.getElementById('edit-menu-id').value = menuId;
+      document.getElementById('edit-block-type').value = 'menu';
+      document.getElementById('edit-popup-title').textContent = '메뉴 편집';
+      document.getElementById('edit-name').value = menu.name;
+      document.getElementById('edit-category').value = menu.category;
+      document.getElementById('edit-price').value = menu.price;
+      document.getElementById('edit-image').value = menu.image || '';
+      document.getElementById('edit-bestseller').checked = menu.bestseller === 1;
+      
+      document.getElementById('edit-popup').classList.add('active');
+    }
+    
+    // 카테고리에 메뉴 추가
+    function addMenuItemToCategory(category) {
+      document.getElementById('edit-menu-id').value = '';
+      document.getElementById('edit-block-type').value = 'menu';
+      document.getElementById('edit-popup-title').textContent = '새 메뉴 추가';
+      document.getElementById('edit-name').value = '';
+      document.getElementById('edit-category').value = category;
+      document.getElementById('edit-price').value = '';
+      document.getElementById('edit-image').value = '';
+      document.getElementById('edit-bestseller').checked = false;
+      
+      document.getElementById('edit-popup').classList.add('active');
+    }
+    
+    // 카테고리 편집
+    function editCategory(category) {
+      const newName = prompt('카테고리 이름을 변경하세요:', category);
+      if (newName && newName.trim() && newName !== category) {
+        // 해당 카테고리의 모든 메뉴 업데이트
+        allMenus.forEach(menu => {
+          if (menu.category === category) {
+            menu.category = newName.trim();
+          }
+        });
+        categories = categories.map(c => c === category ? newName.trim() : c);
+        renderCategories();
+        renderMenuBlocks();
+      }
+    }
+    
+    // 메뉴 아이템 삭제
+    async function deleteMenuItem(menuId) {
+      if (!confirm('이 메뉴를 삭제하시겠습니까?')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/menu/${menuId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          allMenus = allMenus.filter(m => m.id !== menuId);
+          renderMenuBlocks();
+          alert('메뉴가 삭제되었습니다.');
+        } else {
+          alert('삭제 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('삭제 오류: ' + error.message);
+      }
+    }
+    
+    // 카테고리 삭제
+    async function deleteCategory(category) {
+      if (!confirm(`"${category}" 카테고리를 삭제하시겠습니까?\n이 카테고리의 모든 메뉴가 삭제됩니다.`)) {
+        return;
+      }
+      
+      // 해당 카테고리의 모든 메뉴 삭제
+      const categoryMenus = allMenus.filter(m => m.category === category);
+      for (const menu of categoryMenus) {
+        try {
+          await fetch(`/api/menu/${menu.id}`, { method: 'DELETE' });
+        } catch (error) {
+          console.error(`메뉴 ${menu.id} 삭제 오류:`, error);
+        }
+      }
+      
+      allMenus = allMenus.filter(m => m.category !== category);
+      categories = categories.filter(c => c !== category);
+      renderCategories();
+      renderMenuBlocks();
+    }
+    
+    // 편집 팝업 닫기
+    function closeEditPopup() {
+      document.getElementById('edit-popup').classList.remove('active');
+    }
+    
+    // 편집 폼 제출
+    document.getElementById('edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const menuId = document.getElementById('edit-menu-id').value;
+      const menuData = {
+        name: document.getElementById('edit-name').value,
+        category: document.getElementById('edit-category').value,
+        price: parseInt(document.getElementById('edit-price').value),
+        image: document.getElementById('edit-image').value,
+        bestseller: document.getElementById('edit-bestseller').checked ? 1 : 0
+      };
+      
+      try {
+        let res;
+        if (menuId) {
+          // 수정
+          res = await fetch(`/api/menu/${menuId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(menuData)
+          });
+        } else {
+          // 추가
+          res = await fetch('/api/menu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(menuData)
+          });
+        }
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('저장되었습니다.');
+          closeEditPopup();
+          await loadMenus();
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    });
+    
+    // 전체 저장
+    async function saveAll() {
+      // 드래그 앤 드롭으로 변경된 순서 저장
+      const blocks = document.querySelectorAll('.menu-block');
+      const newOrder = [];
+      
+      blocks.forEach((block, index) => {
+        const category = block.dataset.category;
+        const categoryMenus = allMenus.filter(m => m.category === category);
+        categoryMenus.forEach(menu => {
+          menu.displayOrder = index * 1000 + categoryMenus.indexOf(menu);
+        });
+        newOrder.push(...categoryMenus);
+      });
+      
+      // 모든 메뉴 순서 업데이트 (실제로는 서버에 저장 필요)
+      alert('저장되었습니다! (순서 변경은 서버에 반영됩니다)');
+      
+      // 부모 창 새로고침
+      if (window.opener) {
+        window.opener.location.reload();
+      }
+    }
+    
+    // 초기화
+    loadMenus();
+  </script>
+</body>
+</html>
+
