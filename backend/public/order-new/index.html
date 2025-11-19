@@ -16,6 +16,7 @@
       <div class="logo">🏮</div>
       <h1 style="text-align: center; font-size: 48px; font-weight: 900; margin-bottom: 12px; color: #1a1a1a;" data-store-name>시티반점</h1>
       <p class="subtitle">맛있는 중국요리 배달</p>
+      <div id="login-phone-display" style="text-align: center; margin-top: 15px; font-size: 18px; font-weight: 600; color: #4caf50; cursor: pointer; display: none;" onclick="callStore()">📞 전화번호 로딩 중...</div>
 
       <div class="auth-buttons">
         <button class="btn btn-primary" onclick="showLogin()">
@@ -523,12 +524,19 @@
 
   <script src="app.js"></script>
   
-  <!-- 푸터 (가게 정보) -->
-  <footer id="store-footer" style="background: #f5f5f5; padding: 20px; margin-top: 40px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 12px; color: #666;">
+  <!-- 플로팅 전화 버튼 (항상 표시) -->
+  <div id="floating-phone-btn" style="display: none; position: fixed; bottom: 20px; right: 20px; width: 70px; height: 70px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); cursor: pointer; z-index: 1000; align-items: center; justify-content: center; transition: all 0.3s;" onclick="callStore()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)';">
+    <span style="font-size: 32px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">📞</span>
+  </div>
+  
+  <!-- 푸터 (가게 정보) - 로그인 화면에만 표시 -->
+  <footer id="store-footer" style="display: none; background: #f5f5f5; padding: 20px; margin-top: 40px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 12px; color: #666; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;">
     <div id="footer-content">로딩 중...</div>
   </footer>
 
   <script>
+    let storePhone = ''; // 전화번호 저장
+    
     // 푸터 가게 정보 로드
     async function loadFooterInfo() {
       try {
@@ -536,12 +544,20 @@
         const data = await res.json();
         if (data.success && data.storeInfo) {
           const info = data.storeInfo;
+          storePhone = info.phone || '';
+          
           let footerHTML = `<div style="font-weight: 600; margin-bottom: 8px; color: #333;">${info.name || '시티반점'}</div>`;
           if (info.owner) {
             footerHTML += `<div>대표자: ${info.owner}</div>`;
           }
           if (info.phone) {
-            footerHTML += `<div>📞 ${info.phone}</div>`;
+            footerHTML += `<div style="font-size: 14px; font-weight: 600; color: #4caf50; margin: 8px 0;">📞 ${info.phone}</div>`;
+            // 로그인 화면의 전화번호도 업데이트
+            const loginPhoneDisplay = document.getElementById('login-phone-display');
+            if (loginPhoneDisplay) {
+              loginPhoneDisplay.innerHTML = `📞 ${info.phone}`;
+              loginPhoneDisplay.style.display = 'block';
+            }
           }
           if (info.address) {
             footerHTML += `<div>📍 ${info.address}</div>`;
@@ -550,6 +566,11 @@
             footerHTML += `<div style="margin-top: 8px; color: #999;">사업자등록번호: ${info.license}</div>`;
           }
           document.getElementById('footer-content').innerHTML = footerHTML;
+          
+          // 전화 버튼 표시
+          if (storePhone) {
+            document.getElementById('floating-phone-btn').style.display = 'flex';
+          }
         }
       } catch (error) {
         console.error('푸터 정보 로드 오류:', error);
@@ -557,11 +578,87 @@
       }
     }
     
-    // 가게 정보 업데이트 이벤트 리스너
-    window.addEventListener('store-info-updated', loadFooterInfo);
+    // 전화 걸기 함수
+    function callStore() {
+      if (storePhone) {
+        window.location.href = `tel:${storePhone.replace(/-/g, '')}`;
+      } else {
+        alert('전화번호가 등록되지 않았습니다.');
+      }
+    }
     
-    // 페이지 로드 시 푸터 정보 로드
+    // 푸터 표시/숨김 제어 (로그인 화면에만 표시)
+    function updateFooterVisibility() {
+      const footer = document.getElementById('store-footer');
+      const authSelectScreen = document.getElementById('auth-select-screen');
+      const loginScreen = document.getElementById('login-screen');
+      const registerScreen = document.getElementById('register-screen');
+      
+      // 로그인 관련 화면이 활성화되어 있으면 푸터 표시
+      if (authSelectScreen && authSelectScreen.classList.contains('active')) {
+        footer.style.display = 'block';
+      } else if (loginScreen && loginScreen.classList.contains('active')) {
+        footer.style.display = 'block';
+      } else if (registerScreen && registerScreen.classList.contains('active')) {
+        footer.style.display = 'block';
+      } else {
+        footer.style.display = 'none';
+      }
+    }
+    
+    // 전화번호 표시 업데이트 (메뉴 화면 등)
+    function updatePhoneDisplay() {
+      const menuScreen = document.getElementById('menu-screen');
+      if (menuScreen && menuScreen.classList.contains('active') && storePhone) {
+        // 메뉴 화면 헤더 아래에 전화번호 표시
+        let phoneDisplay = document.getElementById('phone-display');
+        if (!phoneDisplay) {
+          phoneDisplay = document.createElement('div');
+          phoneDisplay.id = 'phone-display';
+          phoneDisplay.style.cssText = 'text-align: center; padding: 10px; background: #f5f5f5; font-size: 16px; font-weight: 600; color: #4caf50;';
+          phoneDisplay.innerHTML = `📞 ${storePhone}`;
+          phoneDisplay.onclick = callStore;
+          phoneDisplay.style.cursor = 'pointer';
+          const header = menuScreen.querySelector('.header');
+          if (header) {
+            header.insertAdjacentElement('afterend', phoneDisplay);
+          }
+        } else {
+          phoneDisplay.innerHTML = `📞 ${storePhone}`;
+        }
+      } else {
+        const phoneDisplay = document.getElementById('phone-display');
+        if (phoneDisplay) {
+          phoneDisplay.remove();
+        }
+      }
+    }
+    
+    // 화면 전환 감지
+    const observer = new MutationObserver(() => {
+      updateFooterVisibility();
+      updatePhoneDisplay();
+    });
+    document.querySelectorAll('.screen').forEach(screen => {
+      observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
+    });
+    
+    // 가게 정보 업데이트 이벤트 리스너
+    window.addEventListener('store-info-updated', () => {
+      loadFooterInfo();
+      updatePhoneDisplay();
+    });
+    
+    // 페이지 로드 시 푸터 정보 로드 및 표시 상태 업데이트
     loadFooterInfo();
+    updateFooterVisibility();
+    updatePhoneDisplay();
+    
+    // 초기 표시 상태 확인 (약간의 지연 후)
+    setTimeout(() => {
+      updateFooterVisibility();
+      updatePhoneDisplay();
+    }, 100);
   </script>
 </body>
 </html>

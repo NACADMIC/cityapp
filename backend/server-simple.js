@@ -490,8 +490,8 @@ app.get('/api/store/info', (req, res) => {
 // API: 가게 정보 저장
 app.post('/api/store/info', (req, res) => {
   try {
-    const { name, phone, license, address } = req.body;
-    const storeInfo = db.setStoreInfo({ name, phone, license, address });
+    const { name, owner, phone, license, address } = req.body;
+    const storeInfo = db.setStoreInfo({ name, owner, phone, license, address });
     res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, storeInfo });
   } catch (error) {
