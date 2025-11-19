@@ -39,8 +39,58 @@ function updateStoreNameInUI() {
   }
 }
 
-// 페이지 로드 시 가게 정보 로드
+// 더보기 메뉴 토글
+function toggleMoreMenu() {
+  const menu = document.getElementById('more-menu');
+  const btn = document.getElementById('more-menu-btn');
+  if (menu && btn) {
+    menu.classList.toggle('active');
+    btn.style.background = menu.classList.contains('active') 
+      ? 'rgba(255,255,255,0.35)' 
+      : 'rgba(255,255,255,0.2)';
+  }
+}
+
+// 외부 클릭 시 메뉴 닫기
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('more-menu');
+  const btn = document.getElementById('more-menu-btn');
+  if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+    menu.classList.remove('active');
+    btn.style.background = 'rgba(255,255,255,0.2)';
+  }
+});
+
+// 볼륨 로드 및 초기화
+function loadVolume() {
+  const savedVolume = localStorage.getItem('orderVolume');
+  if (savedVolume !== null) {
+    orderVolume = parseInt(savedVolume);
+  }
+  const slider = document.getElementById('volume-slider');
+  const valueDisplay = document.getElementById('volume-value');
+  if (slider) {
+    slider.value = orderVolume;
+  }
+  if (valueDisplay) {
+    valueDisplay.textContent = orderVolume + '%';
+  }
+}
+
+// 볼륨 업데이트
+function updateVolume(value) {
+  orderVolume = parseInt(value);
+  localStorage.setItem('orderVolume', orderVolume);
+  const valueDisplay = document.getElementById('volume-value');
+  if (valueDisplay) {
+    valueDisplay.textContent = orderVolume + '%';
+  }
+  console.log('🔊 주문 소리 크기:', orderVolume + '%');
+}
+
+// 페이지 로드 시 가게 정보 및 볼륨 로드
 loadStoreInfo();
+loadVolume();
 
 // Initialize Socket.io
 const socket = io();
@@ -52,6 +102,7 @@ let isPlayingVoice = false;
 let processedOrders = new Set();
 let currentPendingOrder = null;
 let notificationInterval = null;
+let orderVolume = 50; // 주문 소리 크기 (0-100)
 
 // Register as POS client
 socket.on('connect', () => {
@@ -100,42 +151,7 @@ document.getElementById('voice-toggle').addEventListener('change', (e) => {
   console.log('Voice alerts:', voiceEnabled ? 'ON' : 'OFF');
 });
 
-// Test functions
-function testSound() {
-  console.log('🔊 Testing sound...');
-  playNotification({
-    orderId: 'TEST-123',
-    customerName: 'Test Customer',
-    phone: '010-1234-5678',
-    address: 'Test Address 123',
-    items: [
-      { name: 'Jjajangmyeon', quantity: 2, price: 6000 },
-      { name: 'Tangsuyuk', quantity: 1, price: 15000 }
-    ],
-    totalAmount: 27000
-  });
-}
-
-function testOrder() {
-  console.log('📦 Testing order...');
-  const testOrder = {
-    orderId: 'TEST-' + Date.now(),
-    customerName: 'Test Customer',
-    phone: '010-1234-5678',
-    address: 'Test Address, Test City, Test District',
-    items: [
-      { name: 'Jjajangmyeon', quantity: 2, price: 6000 },
-      { name: 'Jjamppong', quantity: 1, price: 7000 },
-      { name: 'Tangsuyuk', quantity: 1, price: 15000 }
-    ],
-    totalAmount: 34000,
-    paymentMethod: 'cash',
-    createdAt: new Date().toISOString()
-  };
-  
-  addOrder(testOrder);
-  playNotification(testOrder);
-}
+// 테스트 함수 제거됨 (더 이상 필요 없음)
 
 // 주문 큐 시스템
 let orderQueue = [];
@@ -203,6 +219,7 @@ function playNotification(orderData) {
 // Play voice file + TTS details
 function playVoiceFile(orderData) {
   const audio = new Audio('/pos/sounds/new-order.mp3');
+  audio.volume = orderVolume / 100; // 볼륨 설정 (0.0 ~ 1.0)
   
   audio.onerror = () => {
     console.log('⚠️ Audio file not found, using browser TTS');

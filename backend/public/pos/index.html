@@ -24,12 +24,20 @@
         <input type="checkbox" id="voice-toggle" checked>
         <span class="slider"></span>
       </label>
-      <span>음성 알림</span>
-      <button class="btn-test" onclick="openBusinessHoursSettings()">⏰ 영업시간 설정</button>
-      <button class="btn-test" id="temporary-closed-btn" onclick="toggleTemporaryClosed()">🟢 영업중</button>
-      <button class="btn-test" onclick="openBreakTimeSettings()">☕ 브레이크타임 설정</button>
-      <button class="btn-test" onclick="testSound()">소리 테스트</button>
-      <button class="btn-test" onclick="testOrder()">주문 테스트</button>
+      <span class="voice-label">음성 알림</span>
+      <button class="btn-test btn-main" onclick="openBusinessHoursSettings()">⏰ 영업시간</button>
+      <button class="btn-test btn-main" id="temporary-closed-btn" onclick="toggleTemporaryClosed()">🟢 영업중</button>
+      <button class="btn-test btn-main" onclick="openBreakTimeSettings()">☕ 브레이크</button>
+      <button class="btn-more" onclick="toggleMoreMenu()" id="more-menu-btn">⋯</button>
+      <div class="more-menu" id="more-menu">
+        <div class="volume-control">
+          <label style="display: block; margin-bottom: 8px; font-size: 13px; color: #333; font-weight: 600;">🔊 주문 소리 크기</label>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <input type="range" id="volume-slider" min="0" max="100" value="50" style="flex: 1; height: 6px; border-radius: 3px; background: #ddd; outline: none;" oninput="updateVolume(this.value)">
+            <span id="volume-value" style="font-size: 12px; color: #666; min-width: 35px; text-align: right;">50%</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
