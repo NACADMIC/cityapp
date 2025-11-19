@@ -1454,46 +1454,41 @@ h2 {
   border-radius: 12px;
 }
 
-.menu-options-section {
+.option-group-section {
   margin-bottom: 24px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 20px;
 }
 
-.menu-options-section h3 {
+.option-group-section:last-of-type {
+  border-bottom: none;
+}
+
+.option-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.option-group-header h3 {
   font-size: 18px;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 16px;
+  margin: 0;
   text-align: left;
 }
 
-.option-price-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.option-group-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+.option-group-items {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  margin-bottom: 12px;
-}
-
-.option-price-btn {
-  padding: 14px 16px;
-  border: 2px solid #ddd;
-  background: white;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.option-price-btn:hover {
-  border-color: #1976d2;
-  background: #e3f2fd;
-}
-
-.option-price-btn.active {
-  border-color: #1976d2;
-  background: #1976d2;
-  color: white;
 }
 
 .option-item {
@@ -1593,26 +1588,55 @@ h2 {
   text-align: center;
 }
 
+.menu-detail-footer {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 20px;
+}
+
 .menu-detail-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
-  border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .menu-detail-total span:first-child {
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+}
+
+.menu-detail-total span:last-child {
+  font-size: 20px;
   font-weight: 700;
   color: #1a1a1a;
 }
 
-.menu-detail-total span:last-child {
-  font-size: 24px;
-  font-weight: 900;
-  color: #1a1a1a;
+.add-to-cart-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.add-to-cart-btn:hover {
+  background: #1565c0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+
+.add-to-cart-btn:active {
+  transform: translateY(0);
 }
 
 @keyframes fadeInOut {

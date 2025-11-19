@@ -399,8 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 메뉴 상세 팝업 표시
 let currentMenuDetail = null;
-let selectedOptions = [];
-let selectedOptionPrice = 0;
+let selectedOptionsByCategory = {}; // { category: [option1, option2, ...] }
 let selectedQuantity = 1;
 
 async function showMenuDetail(itemId) {
@@ -408,8 +407,7 @@ async function showMenuDetail(itemId) {
   if (!item) return;
   
   currentMenuDetail = item;
-  selectedOptions = [];
-  selectedOptionPrice = 0;
+  selectedOptionsByCategory = {};
   selectedQuantity = 1;
   
   // 옵션 로드
@@ -422,6 +420,22 @@ async function showMenuDetail(itemId) {
     }
   } catch (err) {
     console.error('옵션 로드 오류:', err);
+  }
+  
+  // 옵션을 카테고리별로 그룹화 (기존 구조가 단순 배열이면 변환)
+  const optionGroups = [];
+  if (menuOptions.length > 0 && menuOptions[0].category) {
+    // 이미 카테고리 구조인 경우
+    optionGroups.push(...menuOptions);
+  } else {
+    // 기본 옵션 그룹 생성 (기존 단순 배열 구조)
+    if (menuOptions.length > 0) {
+      optionGroups.push({
+        category: '추가 옵션',
+        maxSelect: menuOptions.length,
+        options: menuOptions
+      });
+    }
   }
   
   // 팝업 내용 생성
@@ -441,17 +455,35 @@ async function showMenuDetail(itemId) {
       <p class="menu-detail-price">${item.price.toLocaleString()}원</p>
       ${item.description ? `<p class="menu-detail-description">${item.description}</p>` : ''}
       
-      <div class="menu-options-section">
-        <h3>추가 옵션 (가격)</h3>
-        <div class="option-price-buttons">
-          <button class="option-price-btn" onclick="toggleOptionPrice(0)" data-price="0">기본</button>
-          <button class="option-price-btn" onclick="toggleOptionPrice(1000)" data-price="1000">+1,000원</button>
-          <button class="option-price-btn" onclick="toggleOptionPrice(2000)" data-price="2000">+2,000원</button>
-          <button class="option-price-btn" onclick="toggleOptionPrice(3000)" data-price="3000">+3,000원</button>
-          <button class="option-price-btn" onclick="toggleOptionPrice(5000)" data-price="5000">+5,000원</button>
+      ${optionGroups.length > 0 ? optionGroups.map((group, groupIdx) => `
+        <div class="option-group-section">
+          <div class="option-group-header">
+            <div>
+              <h3>${group.category}</h3>
+              <p class="option-group-subtitle">최대 ${group.maxSelect}개 선택</p>
+            </div>
+          </div>
+          <div class="option-group-items">
+            ${group.options.map((opt, optIdx) => {
+              const optionId = `${groupIdx}_${optIdx}`;
+              const isSelected = selectedOptionsByCategory[group.category]?.some(o => o.name === opt.name && o.price === opt.price);
+              return `
+                <label class="option-item">
+                  <input type="checkbox" 
+                         value="${optionId}" 
+                         data-category="${group.category}"
+                         data-name="${opt.name}"
+                         data-price="${opt.price || 0}"
+                         ${isSelected ? 'checked' : ''}
+                         onchange="toggleOptionGroup('${group.category}', '${opt.name}', ${opt.price || 0}, ${group.maxSelect}, this)">
+                  <span class="option-name">${opt.name}</span>
+                  ${opt.price ? `<span class="option-price">+${opt.price.toLocaleString()}원</span>` : ''}
+                </label>
+              `;
+            }).join('')}
+          </div>
         </div>
-        <input type="number" id="custom-option-price" placeholder="직접 입력 (원)" min="0" style="width: 100%; padding: 12px; margin-top: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;" onchange="toggleOptionPrice(parseInt(this.value) || 0)">
-      </div>
+      `).join('') : ''}
       
       <div class="quantity-section">
         <h3>수량</h3>
@@ -480,30 +512,30 @@ async function showMenuDetail(itemId) {
 function closeMenuDetail() {
   document.getElementById('menu-detail-popup').style.display = 'none';
   currentMenuDetail = null;
-  selectedOptions = [];
-  selectedOptionPrice = 0;
+  selectedOptionsByCategory = {};
   selectedQuantity = 1;
 }
 
-function toggleOptionPrice(price) {
-  selectedOptionPrice = price || 0;
+function toggleOptionGroup(category, name, price, maxSelect, checkbox) {
+  if (!selectedOptionsByCategory[category]) {
+    selectedOptionsByCategory[category] = [];
+  }
   
-  // 버튼 스타일 업데이트
-  document.querySelectorAll('.option-price-btn').forEach(btn => {
-    const btnPrice = parseInt(btn.dataset.price) || 0;
-    if (btnPrice === selectedOptionPrice) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
+  const categoryOptions = selectedOptionsByCategory[category];
+  
+  if (checkbox.checked) {
+    // 최대 선택 개수 체크
+    if (categoryOptions.length >= maxSelect) {
+      checkbox.checked = false;
+      alert(`최대 ${maxSelect}개까지 선택 가능합니다.`);
+      return;
     }
-  });
-  
-  // 직접 입력 필드 업데이트
-  const customInput = document.getElementById('custom-option-price');
-  if (customInput && price > 0 && ![1000, 2000, 3000, 5000].includes(price)) {
-    customInput.value = price;
-  } else if (customInput && [0, 1000, 2000, 3000, 5000].includes(price)) {
-    customInput.value = '';
+    categoryOptions.push({ name, price });
+  } else {
+    // 선택 해제
+    selectedOptionsByCategory[category] = categoryOptions.filter(
+      opt => !(opt.name === name && opt.price === price)
+    );
   }
   
   updateMenuDetailTotal();
@@ -533,11 +565,26 @@ function updateMenuDetailTotal() {
   if (!currentMenuDetail) return;
   
   const basePrice = currentMenuDetail.price;
-  const totalPrice = (basePrice + selectedOptionPrice) * selectedQuantity;
+  
+  // 모든 카테고리의 선택된 옵션 가격 합산
+  let optionsPrice = 0;
+  Object.values(selectedOptionsByCategory).forEach(options => {
+    options.forEach(opt => {
+      optionsPrice += opt.price || 0;
+    });
+  });
+  
+  const totalPrice = (basePrice + optionsPrice) * selectedQuantity;
   
   const totalElement = document.getElementById('menu-detail-total-price');
+  const addToCartPriceElement = document.getElementById('add-to-cart-price');
+  
   if (totalElement) {
     totalElement.textContent = totalPrice.toLocaleString() + '원';
+  }
+  
+  if (addToCartPriceElement) {
+    addToCartPriceElement.textContent = totalPrice.toLocaleString() + '원';
   }
 }
 
@@ -545,17 +592,31 @@ function addToCartWithOptions() {
   if (!currentMenuDetail) return;
   
   const basePrice = currentMenuDetail.price;
-  const totalPrice = basePrice + selectedOptionPrice;
+  
+  // 모든 카테고리의 선택된 옵션 가격 합산
+  let optionsPrice = 0;
+  const allSelectedOptions = [];
+  Object.entries(selectedOptionsByCategory).forEach(([category, options]) => {
+    options.forEach(opt => {
+      optionsPrice += opt.price || 0;
+      allSelectedOptions.push({ category, ...opt });
+    });
+  });
+  
+  const totalPrice = basePrice + optionsPrice;
   
   // 옵션 정보를 문자열로 저장
-  const optionsText = selectedOptionPrice > 0 
-    ? `+${selectedOptionPrice.toLocaleString()}원`
+  const optionsText = allSelectedOptions.length > 0
+    ? allSelectedOptions.map(opt => opt.name + (opt.price ? ` (+${opt.price.toLocaleString()}원)` : '')).join(', ')
     : '';
   
+  // 옵션 조합을 키로 사용
+  const optionsKey = JSON.stringify(allSelectedOptions);
+  const cartKey = `${currentMenuDetail.id}_${optionsKey}`;
+  
   // 기존 장바구니에 같은 메뉴+옵션 조합이 있는지 확인
-  const cartKey = `${currentMenuDetail.id}_${selectedOptionPrice}`;
   const existing = cart.find(c => {
-    const cKey = `${c.id}_${c.optionPrice || 0}`;
+    const cKey = `${c.id}_${JSON.stringify(c.selectedOptions || [])}`;
     return cKey === cartKey;
   });
   
@@ -565,7 +626,7 @@ function addToCartWithOptions() {
     cart.push({
       ...currentMenuDetail,
       quantity: selectedQuantity,
-      optionPrice: selectedOptionPrice,
+      selectedOptions: allSelectedOptions,
       optionsText: optionsText,
       price: totalPrice // 옵션 포함 가격
     });
