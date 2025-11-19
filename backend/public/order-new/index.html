@@ -16,7 +16,6 @@
       <div class="logo">🏮</div>
       <h1 style="text-align: center; font-size: 48px; font-weight: 900; margin-bottom: 12px; color: #1a1a1a;" data-store-name>시티반점</h1>
       <p class="subtitle">맛있는 중국요리 배달</p>
-      <div id="login-phone-display" style="text-align: center; margin-top: 15px; font-size: 16px; font-weight: 500; color: #1976d2; cursor: pointer; display: none; opacity: 0.8;" onclick="callStore()">📞 전화번호 로딩 중...</div>
 
       <div class="auth-buttons">
         <button class="btn btn-primary" onclick="showLogin()">
@@ -316,10 +315,6 @@
 
     <div class="container">
       <h2 class="section-title">메뉴</h2>
-      <div id="busy-status-banner" style="display: none; background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 15px; margin-bottom: 20px; text-align: center; position: sticky; top: 80px; z-index: 100;">
-        <div style="font-size: 18px; font-weight: 700; color: #856404; margin-bottom: 5px;" id="busy-status-text"></div>
-        <div style="font-size: 14px; color: #856404;" id="busy-status-message"></div>
-      </div>
       <div id="menu-list" class="menu-list">
         <div class="loading">메뉴 불러오는 중...</div>
       </div>
@@ -528,6 +523,12 @@
 
   <script src="app.js"></script>
   
+  <!-- 바쁨 상태 표시 (오른쪽 위 고정) -->
+  <div id="busy-status-banner" style="display: none; position: fixed; top: 20px; right: 20px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 15px; max-width: 200px; text-align: center; z-index: 999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+    <div style="font-size: 16px; font-weight: 700; color: #856404; margin-bottom: 5px;" id="busy-status-text"></div>
+    <div style="font-size: 12px; color: #856404;" id="busy-status-message"></div>
+  </div>
+
   <!-- 플로팅 문의 버튼들 (항상 표시) -->
   <div id="floating-inquiry-buttons" style="display: none; position: fixed; bottom: 90px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 12px; align-items: flex-end;">
     <!-- 실시간 채팅 버튼 -->
@@ -537,10 +538,6 @@
     <!-- 카카오톡 채널 버튼 -->
     <div id="floating-kakao-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #FEE500 0%, #FDD835 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(254, 229, 0, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="openKakaoChannel()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(254, 229, 0, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(254, 229, 0, 0.4)';">
       <span style="font-size: 28px;">💛</span>
-    </div>
-    <!-- 전화 버튼 -->
-    <div id="floating-phone-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="callStore()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)';">
-      <span style="font-size: 28px;">📞</span>
     </div>
   </div>
   
@@ -567,15 +564,6 @@
           if (info.owner) {
             footerHTML += `<div style="font-size: 10px; color: #888; margin-bottom: 3px;">대표자: ${info.owner}</div>`;
           }
-          if (info.phone) {
-            footerHTML += `<div style="font-size: 11px; font-weight: 500; color: #1976d2; margin: 3px 0;">📞 ${info.phone}</div>`;
-            // 로그인 화면의 전화번호도 업데이트
-            const loginPhoneDisplay = document.getElementById('login-phone-display');
-            if (loginPhoneDisplay) {
-              loginPhoneDisplay.innerHTML = `📞 ${info.phone}`;
-              loginPhoneDisplay.style.display = 'block';
-            }
-          }
           if (info.address) {
             footerHTML += `<div style="font-size: 10px; color: #888; margin-bottom: 3px;">📍 ${info.address}</div>`;
           }
@@ -584,12 +572,10 @@
           }
           document.getElementById('footer-content').innerHTML = footerHTML;
           
-          // 플로팅 버튼들 표시 (전화번호가 있으면 표시)
-          if (storePhone) {
-            const floatingButtons = document.getElementById('floating-inquiry-buttons');
-            if (floatingButtons) {
-              floatingButtons.style.display = 'flex';
-            }
+          // 플로팅 버튼들 표시 (항상 표시)
+          const floatingButtons = document.getElementById('floating-inquiry-buttons');
+          if (floatingButtons) {
+            floatingButtons.style.display = 'flex';
           }
         }
       } catch (error) {
@@ -669,37 +655,10 @@
       }
     }
     
-    // 전화번호 표시 업데이트 (메뉴 화면 등)
-    function updatePhoneDisplay() {
-      const menuScreen = document.getElementById('menu-screen');
-      if (menuScreen && menuScreen.classList.contains('active') && storePhone) {
-        // 메뉴 화면 헤더 아래에 전화번호 표시
-        let phoneDisplay = document.getElementById('phone-display');
-        if (!phoneDisplay) {
-          phoneDisplay = document.createElement('div');
-          phoneDisplay.id = 'phone-display';
-          phoneDisplay.style.cssText = 'text-align: center; padding: 8px; background: rgba(245, 245, 245, 0.8); font-size: 14px; font-weight: 500; color: #1976d2; cursor: pointer; opacity: 0.9;';
-          phoneDisplay.innerHTML = `📞 ${storePhone}`;
-          phoneDisplay.onclick = callStore;
-          const header = menuScreen.querySelector('.header');
-          if (header) {
-            header.insertAdjacentElement('afterend', phoneDisplay);
-          }
-        } else {
-          phoneDisplay.innerHTML = `📞 ${storePhone}`;
-        }
-      } else {
-        const phoneDisplay = document.getElementById('phone-display');
-        if (phoneDisplay) {
-          phoneDisplay.remove();
-        }
-      }
-    }
     
     // 화면 전환 감지
     const observer = new MutationObserver(() => {
       updateFooterVisibility();
-      updatePhoneDisplay();
     });
     document.querySelectorAll('.screen').forEach(screen => {
       observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
@@ -708,18 +667,15 @@
     // 가게 정보 업데이트 이벤트 리스너
     window.addEventListener('store-info-updated', () => {
       loadFooterInfo();
-      updatePhoneDisplay();
     });
     
     // 페이지 로드 시 푸터 정보 로드 및 표시 상태 업데이트
     loadFooterInfo();
     updateFooterVisibility();
-    updatePhoneDisplay();
     
     // 초기 표시 상태 확인 (약간의 지연 후)
     setTimeout(() => {
       updateFooterVisibility();
-      updatePhoneDisplay();
     }, 100);
   </script>
 </body>
