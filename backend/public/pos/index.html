@@ -14,7 +14,7 @@
         <span></span>
         <span></span>
       </button>
-      <h1>🏮 시티반점</h1>
+      <h1 data-store-name>🏮 시티반점</h1>
     </div>
     <div class="header-controls">
       <div id="business-status" style="padding: 8px 14px; border-radius: 8px; margin-right: 8px; font-weight: 600; font-size: 13px; white-space: nowrap;">
@@ -190,6 +190,47 @@
 
   <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
   <script src="app.js"></script>
+  
+  <!-- 푸터 (가게 정보) -->
+  <footer id="store-footer" style="background: #f5f5f5; padding: 15px; margin-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 11px; color: #666;">
+    <div id="footer-content">로딩 중...</div>
+  </footer>
+
+  <script>
+    // 푸터 가게 정보 로드
+    async function loadFooterInfo() {
+      try {
+        const res = await fetch('/api/store/info');
+        const data = await res.json();
+        if (data.success && data.storeInfo) {
+          const info = data.storeInfo;
+          let footerHTML = `<div style="font-weight: 600; margin-bottom: 6px; color: #333;">${info.name || '시티반점'}</div>`;
+          if (info.owner) {
+            footerHTML += `<div>대표자: ${info.owner}</div>`;
+          }
+          if (info.phone) {
+            footerHTML += `<div>📞 ${info.phone}</div>`;
+          }
+          if (info.address) {
+            footerHTML += `<div>📍 ${info.address}</div>`;
+          }
+          if (info.license) {
+            footerHTML += `<div style="margin-top: 6px; color: #999;">사업자등록번호: ${info.license}</div>`;
+          }
+          document.getElementById('footer-content').innerHTML = footerHTML;
+        }
+      } catch (error) {
+        console.error('푸터 정보 로드 오류:', error);
+        document.getElementById('footer-content').innerHTML = '<div>가게 정보를 불러올 수 없습니다.</div>';
+      }
+    }
+    
+    // 가게 정보 업데이트 이벤트 리스너
+    window.addEventListener('store-info-updated', loadFooterInfo);
+    
+    // 페이지 로드 시 푸터 정보 로드
+    loadFooterInfo();
+  </script>
 </body>
 </html>
 

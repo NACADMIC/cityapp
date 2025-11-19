@@ -16,6 +16,45 @@ let charts = {
 };
 
 // 햄버거 메뉴 토글
+// Global variables
+let storeName = '시티반점'; // 가게명 (동적으로 로드됨)
+
+// 가게 정보 로드
+async function loadStoreInfo() {
+  try {
+    const res = await fetch('/api/store/info');
+    const data = await res.json();
+    if (data.success && data.storeInfo && data.storeInfo.name) {
+      storeName = data.storeInfo.name;
+      updateStoreNameInUI();
+    }
+  } catch (error) {
+    console.error('가게 정보 로드 오류:', error);
+  }
+}
+
+// UI에 가게명 업데이트
+function updateStoreNameInUI() {
+  // 모든 가게명 표시 요소 업데이트
+  document.querySelectorAll('[data-store-name]').forEach(el => {
+    el.textContent = storeName;
+  });
+  // h1 태그들 업데이트
+  const h1Elements = document.querySelectorAll('h1');
+  h1Elements.forEach(h1 => {
+    if (h1.textContent.includes('시티반점') || h1.textContent.includes('🏮')) {
+      h1.textContent = `🏮 ${storeName}`;
+    }
+  });
+  // title 태그 업데이트
+  if (document.title.includes('시티반점')) {
+    document.title = document.title.replace('시티반점', storeName);
+  }
+}
+
+// 페이지 로드 시 가게 정보 로드
+loadStoreInfo();
+
 function toggleMenu() {
   const sideMenu = document.getElementById('side-menu');
   const overlay = document.getElementById('menu-overlay');
@@ -52,6 +91,7 @@ function switchTab(tabName) {
     loadRiTab();
   } else   if (tabName === 'apartments') {
     loadApartmentsTab();
+    // 프로젝트 수정 가능 확인 - 이 주석이 보이면 정상 작동 중!
   }
   if (tabName === 'menu-analysis') {
     loadMenuAnalysisTab();

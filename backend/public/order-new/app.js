@@ -5,6 +5,7 @@ let guestPhone = null;
 let cart = [];
 let menuItems = [];
 let usedPoints = 0;
+let storeName = '시티반점'; // 가게명 (동적으로 로드됨)
 
 // Privacy Accordion Toggle
 function togglePrivacy(type) {
@@ -66,7 +67,7 @@ async function checkBusinessHours() {
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #C8102E 0%, #8B0000 100%); color: white; text-align: center; padding: 20px; font-family: 'Noto Sans KR', sans-serif;">
           <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; max-width: 500px;">
             <h1 style="font-size: 48px; margin: 0 0 20px 0;">🏮</h1>
-            <h2 style="font-size: 32px; margin: 0 0 20px 0; font-weight: bold;">시티반점</h2>
+            <h2 style="font-size: 32px; margin: 0 0 20px 0; font-weight: bold;" data-store-name>시티반점</h2>
             <p style="font-size: 24px; margin: 0 0 10px 0; font-weight: bold;">${reasonMessage}</p>
             <p style="font-size: 18px; margin: 0 0 30px 0; opacity: 0.9;">영업시간: ${data.businessHours}</p>
             <p style="font-size: 16px; margin: 0; opacity: 0.8;">현재 시간: ${data.currentTime}</p>
@@ -953,8 +954,42 @@ function updateNavActive(active) {
   }
 }
 
+// 가게 정보 로드
+async function loadStoreInfo() {
+  try {
+    const res = await fetch('/api/store/info');
+    const data = await res.json();
+    if (data.success && data.storeInfo && data.storeInfo.name) {
+      storeName = data.storeInfo.name;
+      updateStoreNameInUI();
+    }
+  } catch (error) {
+    console.error('가게 정보 로드 오류:', error);
+  }
+}
+
+// UI에 가게명 업데이트
+function updateStoreNameInUI() {
+  // 모든 가게명 표시 요소 업데이트
+  document.querySelectorAll('[data-store-name]').forEach(el => {
+    el.textContent = storeName;
+  });
+  // title 태그 업데이트
+  document.title = `${storeName} - 주문`;
+  // h1 태그들 업데이트
+  const h1Elements = document.querySelectorAll('h1');
+  h1Elements.forEach(h1 => {
+    if (h1.textContent.includes('시티반점') || h1.textContent.includes('🏮')) {
+      h1.textContent = `🏮 ${storeName}`;
+    }
+  });
+}
+
 // Initial screen - 영업시간 체크 후 시작
 (async function init() {
+  // 가게 정보 먼저 로드
+  await loadStoreInfo();
+  
   const isOpen = await checkBusinessHours();
   if (isOpen) {
     // 세션에서 사용자 복원

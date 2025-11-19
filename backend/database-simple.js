@@ -14,6 +14,7 @@ class DB {
     this.menuOptions = {}; // 메뉴별 옵션 { menuId: [{ name, price }] }
     this.storeInfo = { // 가게 정보
       name: '시티반점',
+      owner: '', // 대표자명
       phone: '031-123-4567',
       license: '',
       address: '경기도 안성시 공도읍'
