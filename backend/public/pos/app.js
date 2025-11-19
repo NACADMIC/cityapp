@@ -24,10 +24,14 @@ async function loadStoreInfo() {
 function updateStoreNameInUI() {
   // 모든 가게명 표시 요소 업데이트
   document.querySelectorAll('[data-store-name]').forEach(el => {
-    el.textContent = storeName;
+    if (el.classList && el.classList.contains('store-title')) {
+      el.textContent = `🏮 ${storeName}`;
+    } else {
+      el.textContent = storeName;
+    }
   });
-  // h1 태그들 업데이트
-  const h1Elements = document.querySelectorAll('h1');
+  // h1 태그들 업데이트 (store-title 클래스가 없는 경우)
+  const h1Elements = document.querySelectorAll('h1:not(.store-title)');
   h1Elements.forEach(h1 => {
     if (h1.textContent.includes('시티반점') || h1.textContent.includes('🏮')) {
       h1.textContent = `🏮 ${storeName}`;
@@ -39,35 +43,72 @@ function updateStoreNameInUI() {
   }
 }
 
-// 더보기 메뉴 토글
-function toggleMoreMenu(event) {
-  if (event) {
-    event.stopPropagation();
-  }
-  const menu = document.getElementById('more-menu');
-  const btn = document.getElementById('more-menu-btn');
-  if (menu && btn) {
-    const isActive = menu.classList.contains('active');
-    menu.classList.toggle('active');
-    btn.style.background = !isActive 
-      ? 'rgba(255,255,255,0.35)' 
-      : 'rgba(255,255,255,0.2)';
+// 바쁨 상태 설정
+async function setBusyStatus(status) {
+  try {
+    const res = await fetch('/api/busy-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (data.success) {
+      updateBusyStatusUI(status);
+      console.log('✅ 바쁨 상태 설정:', status);
+    } else {
+      alert('상태 설정 실패: ' + data.error);
+    }
+  } catch (error) {
+    alert('오류: ' + error.message);
   }
 }
 
-// 외부 클릭 시 메뉴 닫기 (약간의 지연을 두어 토글 함수가 먼저 실행되도록)
-setTimeout(() => {
-  document.addEventListener('click', (e) => {
-    const menu = document.getElementById('more-menu');
-    const btn = document.getElementById('more-menu-btn');
-    if (menu && btn && menu.classList.contains('active')) {
-      if (!menu.contains(e.target) && !btn.contains(e.target)) {
-        menu.classList.remove('active');
-        btn.style.background = 'rgba(255,255,255,0.2)';
-      }
-    }
+// 바쁨 상태 UI 업데이트
+function updateBusyStatusUI(status) {
+  document.querySelectorAll('.btn-busy-status').forEach(btn => {
+    btn.classList.remove('active');
   });
-}, 100);
+  const btn = document.getElementById(`busy-${status}`);
+  if (btn) {
+    btn.classList.add('active');
+  }
+}
+
+// 바쁨 상태 로드
+async function loadBusyStatus() {
+  try {
+    const res = await fetch('/api/busy-status');
+    const data = await res.json();
+    if (data.success) {
+      updateBusyStatusUI(data.status);
+    }
+  } catch (error) {
+    console.error('바쁨 상태 로드 오류:', error);
+  }
+}
+
+// 주문 소리 크기 설정 팝업 열기
+function openVolumeSettings() {
+  const popup = document.getElementById('volume-popup');
+  if (popup) {
+    // 현재 볼륨 값으로 슬라이더 설정
+    const slider = document.getElementById('volume-slider-popup');
+    const valueDisplay = document.getElementById('volume-value-popup');
+    if (slider && valueDisplay) {
+      slider.value = orderVolume;
+      valueDisplay.textContent = orderVolume + '%';
+    }
+    popup.style.display = 'flex';
+  }
+}
+
+// 주문 소리 크기 설정 팝업 닫기
+function closeVolumeSettings() {
+  const popup = document.getElementById('volume-popup');
+  if (popup) {
+    popup.style.display = 'none';
+  }
+}
 
 // 볼륨 로드 및 초기화
 function loadVolume() {
@@ -90,8 +131,12 @@ function updateVolume(value) {
   orderVolume = parseInt(value);
   localStorage.setItem('orderVolume', orderVolume);
   const valueDisplay = document.getElementById('volume-value');
+  const valueDisplayPopup = document.getElementById('volume-value-popup');
   if (valueDisplay) {
     valueDisplay.textContent = orderVolume + '%';
+  }
+  if (valueDisplayPopup) {
+    valueDisplayPopup.textContent = orderVolume + '%';
   }
   console.log('🔊 주문 소리 크기:', orderVolume + '%');
 }
@@ -106,9 +151,10 @@ function openSiteEditor() {
   }
 }
 
-// 페이지 로드 시 가게 정보 및 볼륨 로드
+// 페이지 로드 시 가게 정보, 볼륨, 바쁨 상태 로드
 loadStoreInfo();
 loadVolume();
+loadBusyStatus();
 
 // Initialize Socket.io
 const socket = io();

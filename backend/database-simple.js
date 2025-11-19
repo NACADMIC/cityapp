@@ -9,7 +9,12 @@ class DB {
     this.businessHours = null; // 요일별 영업시간 { 0: {open, close}, 1: {open, close}, ... } (0=일요일, 6=토요일)
     this.temporaryClosed = false; // 임시휴업 상태
     this.breakTime = null; // 요일별 브레이크타임 { 0: {start, end}, 1: {start, end}, ... }
+    this.busyStatus = 'normal'; // 바쁨 상태: 'very-busy', 'busy', 'normal'
     this.menuCosts = {}; // 메뉴별 원가 { menuId: cost }
+    this.coupons = []; // 쿠폰 목록 [{ id, code, name, discountType, discountValue, minAmount, maxDiscount, validFrom, validTo, issuedCount, usedCount, isActive }]
+    this.couponUsage = []; // 쿠폰 사용 내역 [{ id, couponId, userId, orderId, usedAt }]
+    this.hallSales = []; // 홀 매출 [{ id, date, amount, paymentMethod, memo, createdAt }]
+    this.platformSales = []; // 타 플랫폼 매출 [{ id, platform, date, amount, commission, paymentMethod, memo, createdAt }]
     this.menuDiscounts = {}; // 메뉴별 할인 { menuId: { type: 'percent'|'fixed', value: number } }
     this.menuOptions = {}; // 메뉴별 옵션 { menuId: [{ name, price }] }
     this.storeInfo = { // 가게 정보
@@ -807,6 +812,234 @@ class DB {
 
   getTemporaryClosed() {
     return this.temporaryClosed || false;
+  }
+  
+  setBusyStatus(status) {
+    if (['very-busy', 'busy', 'normal'].includes(status)) {
+      this.busyStatus = status;
+      console.log('✅ 바쁨 상태 설정:', status);
+      return this.busyStatus;
+    }
+    return null;
+  }
+  
+  getBusyStatus() {
+    return this.busyStatus || 'normal';
+  }
+  
+  // 포인트 통계
+  getPointStats() {
+    const issued = this.pointHistory
+      .filter(p => p.type === 'earn' || p.type === 'admin')
+      .reduce((sum, p) => sum + (p.points > 0 ? p.points : 0), 0);
+    const used = this.pointHistory
+      .filter(p => p.type === 'use')
+      .reduce((sum, p) => sum + Math.abs(p.points), 0);
+    const currentTotal = this.users.reduce((sum, u) => sum + (u.points || 0), 0);
+    
+    return {
+      issued,
+      used,
+      currentTotal,
+      totalUsers: this.users.length
+    };
+  }
+  
+  // 쿠폰 생성
+  createCoupon(couponData) {
+    const coupon = {
+      id: this.coupons.length + 1,
+      code: couponData.code,
+      name: couponData.name,
+      discountType: couponData.discountType, // 'percent' or 'fixed'
+      discountValue: couponData.discountValue,
+      minAmount: couponData.minAmount || 0,
+      maxDiscount: couponData.maxDiscount || null,
+      validFrom: couponData.validFrom,
+      validTo: couponData.validTo,
+      issuedCount: 0,
+      usedCount: 0,
+      isActive: couponData.isActive !== false,
+      createdAt: new Date()
+    };
+    this.coupons.push(coupon);
+    console.log('✅ 쿠폰 생성:', coupon);
+    return coupon;
+  }
+  
+  // 쿠폰 조회
+  getCouponById(id) {
+    return this.coupons.find(c => c.id === id);
+  }
+  
+  getCouponByCode(code) {
+    return this.coupons.find(c => c.code === code && c.isActive);
+  }
+  
+  getAllCoupons() {
+    return [...this.coupons];
+  }
+  
+  // 쿠폰 발급 (사용자에게 쿠폰 지급)
+  issueCouponToUser(couponId, userId) {
+    const coupon = this.getCouponById(couponId);
+    if (!coupon || !coupon.isActive) {
+      return null;
+    }
+    
+    coupon.issuedCount = (coupon.issuedCount || 0) + 1;
+    
+    // 쿠폰 사용 내역에 발급 기록 (발급도 기록으로 남김)
+    this.couponUsage.push({
+      id: this.couponUsage.length + 1,
+      couponId,
+      userId,
+      orderId: null,
+      usedAt: new Date(),
+      type: 'issued'
+    });
+    
+    return coupon;
+  }
+  
+  // 쿠폰 사용
+  useCoupon(couponId, userId, orderId) {
+    const coupon = this.getCouponById(couponId);
+    if (!coupon) {
+      return false;
+    }
+    
+    coupon.usedCount = (coupon.usedCount || 0) + 1;
+    
+    this.couponUsage.push({
+      id: this.couponUsage.length + 1,
+      couponId,
+      userId,
+      orderId,
+      usedAt: new Date(),
+      type: 'used'
+    });
+    
+    return true;
+  }
+  
+  // 쿠폰 통계
+  getCouponStats() {
+    const totalIssued = this.coupons.reduce((sum, c) => sum + (c.issuedCount || 0), 0);
+    const totalUsed = this.coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0);
+    const activeCoupons = this.coupons.filter(c => c.isActive).length;
+    
+    return {
+      totalCoupons: this.coupons.length,
+      activeCoupons,
+      totalIssued,
+      totalUsed,
+      usageRate: totalIssued > 0 ? ((totalUsed / totalIssued) * 100).toFixed(2) : 0
+    };
+  }
+  
+  // 홀 매출 추가
+  addHallSale(saleData) {
+    const sale = {
+      id: this.hallSales.length + 1,
+      date: saleData.date,
+      amount: saleData.amount,
+      paymentMethod: saleData.paymentMethod || 'cash',
+      memo: saleData.memo || '',
+      createdAt: new Date()
+    };
+    this.hallSales.push(sale);
+    console.log('✅ 홀 매출 추가:', sale);
+    return sale;
+  }
+  
+  // 홀 매출 조회
+  getHallSales(startDate, endDate) {
+    if (!startDate || !endDate) {
+      return [...this.hallSales];
+    }
+    return this.hallSales.filter(s => {
+      const saleDate = new Date(s.date);
+      return saleDate >= new Date(startDate) && saleDate <= new Date(endDate);
+    });
+  }
+  
+  // 타 플랫폼 매출 추가
+  addPlatformSale(saleData) {
+    const sale = {
+      id: this.platformSales.length + 1,
+      platform: saleData.platform, // 'baemin', 'yogiyo', 'coupang', 'etc'
+      date: saleData.date,
+      amount: saleData.amount,
+      commission: saleData.commission || 0, // 수수료
+      paymentMethod: saleData.paymentMethod || 'card',
+      memo: saleData.memo || '',
+      createdAt: new Date()
+    };
+    this.platformSales.push(sale);
+    console.log('✅ 타 플랫폼 매출 추가:', sale);
+    return sale;
+  }
+  
+  // 타 플랫폼 매출 조회
+  getPlatformSales(startDate, endDate) {
+    if (!startDate || !endDate) {
+      return [...this.platformSales];
+    }
+    return this.platformSales.filter(s => {
+      const saleDate = new Date(s.date);
+      return saleDate >= new Date(startDate) && saleDate <= new Date(endDate);
+    });
+  }
+  
+  // 통합 매출 통계
+  getTotalSalesStats(startDate, endDate) {
+    // 배달앱 매출 (orders에서 계산)
+    const appOrders = this.orders.filter(o => {
+      if (!startDate || !endDate) return true;
+      const orderDate = new Date(o.createdat);
+      return orderDate >= new Date(startDate) && orderDate <= new Date(endDate);
+    });
+    const appSales = appOrders
+      .filter(o => o.status === 'completed')
+      .reduce((sum, o) => sum + (o.totalprice || o.totalAmount || 0), 0);
+    
+    // 홀 매출
+    const hallSales = this.getHallSales(startDate, endDate);
+    const hallTotal = hallSales.reduce((sum, s) => sum + s.amount, 0);
+    
+    // 타 플랫폼 매출
+    const platformSales = this.getPlatformSales(startDate, endDate);
+    const platformTotal = platformSales.reduce((sum, s) => sum + s.amount, 0);
+    const platformCommission = platformSales.reduce((sum, s) => sum + (s.commission || 0), 0);
+    
+    // 플랫폼별 매출
+    const platformBreakdown = {};
+    platformSales.forEach(s => {
+      if (!platformBreakdown[s.platform]) {
+        platformBreakdown[s.platform] = { amount: 0, commission: 0, count: 0 };
+      }
+      platformBreakdown[s.platform].amount += s.amount;
+      platformBreakdown[s.platform].commission += (s.commission || 0);
+      platformBreakdown[s.platform].count += 1;
+    });
+    
+    // 통합 매출
+    const totalSales = appSales + hallTotal + platformTotal;
+    const netSales = totalSales - platformCommission; // 수수료 제외 순매출
+    
+    return {
+      appSales,
+      hallSales: hallTotal,
+      platformSales: platformTotal,
+      platformCommission,
+      totalSales,
+      netSales,
+      platformBreakdown,
+      appOrderCount: appOrders.filter(o => o.status === 'completed').length,
+      hallSaleCount: hallSales.length,
+      platformSaleCount: platformSales.length
+    };
   }
 
   // 브레이크타임 설정 (요일별)

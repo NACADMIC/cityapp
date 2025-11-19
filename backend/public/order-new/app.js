@@ -985,10 +985,48 @@ function updateStoreNameInUI() {
   });
 }
 
+// 바쁨 상태 로드 및 표시
+async function loadBusyStatus() {
+  try {
+    const res = await fetch('/api/busy-status');
+    const data = await res.json();
+    if (data.success) {
+      const banner = document.getElementById('busy-status-banner');
+      const statusText = document.getElementById('busy-status-text');
+      const statusMessage = document.getElementById('busy-status-message');
+      
+      if (banner && statusText && statusMessage) {
+        if (data.status === 'very-busy') {
+          banner.style.background = '#ffebee';
+          banner.style.borderColor = '#f44336';
+          statusText.textContent = '🔴 매우 바쁨';
+          statusText.style.color = '#c62828';
+          statusMessage.textContent = '주문이 많아 배달 시간이 지연될 수 있습니다. 양해 부탁드립니다.';
+          statusMessage.style.color = '#c62828';
+          banner.style.display = 'block';
+        } else if (data.status === 'busy') {
+          banner.style.background = '#fff3e0';
+          banner.style.borderColor = '#ff9800';
+          statusText.textContent = '🟠 바쁨';
+          statusText.style.color = '#e65100';
+          statusMessage.textContent = '현재 주문이 많아 배달 시간이 다소 소요될 수 있습니다.';
+          statusMessage.style.color = '#e65100';
+          banner.style.display = 'block';
+        } else {
+          banner.style.display = 'none';
+        }
+      }
+    }
+  } catch (error) {
+    console.error('바쁨 상태 로드 오류:', error);
+  }
+}
+
 // Initial screen - 영업시간 체크 후 시작
 (async function init() {
   // 가게 정보 먼저 로드
   await loadStoreInfo();
+  await loadBusyStatus();
   
   const isOpen = await checkBusinessHours();
   if (isOpen) {

@@ -28,15 +28,10 @@
       <button class="btn-test btn-main" onclick="openBusinessHoursSettings()">⏰ 영업시간</button>
       <button class="btn-test btn-main" id="temporary-closed-btn" onclick="toggleTemporaryClosed()">🟢 영업중</button>
       <button class="btn-test btn-main" onclick="openBreakTimeSettings()">☕ 브레이크</button>
-      <button class="btn-more" onclick="toggleMoreMenu(event)" id="more-menu-btn">⋯</button>
-      <div class="more-menu" id="more-menu">
-        <div class="volume-control">
-          <label style="display: block; margin-bottom: 8px; font-size: 13px; color: #333; font-weight: 600;">🔊 주문 소리 크기</label>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <input type="range" id="volume-slider" min="0" max="100" value="50" style="flex: 1; height: 6px; border-radius: 3px; background: #ddd; outline: none;" oninput="updateVolume(this.value)">
-            <span id="volume-value" style="font-size: 12px; color: #666; min-width: 35px; text-align: right;">50%</span>
-          </div>
-        </div>
+      <div class="busy-status-selector">
+        <button class="btn-busy-status" id="busy-normal" onclick="setBusyStatus('normal')" title="보통">보통</button>
+        <button class="btn-busy-status" id="busy-busy" onclick="setBusyStatus('busy')" title="바쁨">바쁨</button>
+        <button class="btn-busy-status" id="busy-very-busy" onclick="setBusyStatus('very-busy')" title="매우바쁨">매우바쁨</button>
       </div>
     </div>
   </div>
@@ -89,9 +84,26 @@
         <span class="menu-text">지역 분석</span>
       </a>
       <div class="menu-divider"></div>
+      <a href="/pos/point-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 관리</span>
+      </a>
+      <a href="/pos/coupon-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🎫</span>
+        <span class="menu-text">쿠폰 관리</span>
+      </a>
+      <a href="/pos/total-sales-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">통합 매출 관리</span>
+      </a>
+      <div class="menu-divider"></div>
       <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
         <span class="menu-icon">🎨</span>
         <span class="menu-text">사이트 디자인 편집</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="openVolumeSettings(); toggleMenu();">
+        <span class="menu-icon">🔊</span>
+        <span class="menu-text">주문 소리 크기</span>
       </a>
       <div class="menu-divider"></div>
       <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
@@ -104,6 +116,11 @@
   <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
 
   <div class="container">
+    <!-- 메인 타이틀 -->
+    <div class="main-title">
+      <h1 class="store-title" data-store-name>🏮 시티반점</h1>
+    </div>
+    
     <div class="stats">
       <div class="stat-card">
         <div class="stat-value" id="today-orders">0</div>
@@ -127,6 +144,23 @@
           <p>아직 주문이 없습니다</p>
           <small>주문이 실시간으로 표시됩니다</small>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주문 소리 크기 설정 팝업 -->
+  <div id="volume-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+      <h2>🔊 주문 소리 크기 설정</h2>
+      <div class="volume-control" style="padding: 20px;">
+        <label style="display: block; margin-bottom: 15px; font-size: 15px; color: #333; font-weight: 600;">소리 크기 조절</label>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <input type="range" id="volume-slider-popup" min="0" max="100" value="50" style="flex: 1; height: 8px; border-radius: 4px; background: #ddd; outline: none;" oninput="updateVolume(this.value)">
+          <span id="volume-value-popup" style="font-size: 16px; color: #1976d2; min-width: 50px; text-align: right; font-weight: 600;">50%</span>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="closeVolumeSettings()">닫기</button>
       </div>
     </div>
   </div>

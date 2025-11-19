@@ -522,6 +522,235 @@ app.post('/api/site/config', (req, res) => {
   }
 });
 
+// API: 바쁨 상태 조회
+app.get('/api/busy-status', (req, res) => {
+  try {
+    const status = db.getBusyStatus();
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 바쁨 상태 설정
+app.post('/api/busy-status', (req, res) => {
+  try {
+    const { status } = req.body;
+    const newStatus = db.setBusyStatus(status);
+    if (newStatus) {
+      res.setHeader('Content-Type', 'application/json');
+      res.json({ success: true, status: newStatus });
+    } else {
+      res.status(400).json({ success: false, error: 'Invalid status' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 사용자 목록 조회
+app.get('/api/users', (req, res) => {
+  try {
+    const users = db.users.map(u => ({
+      userid: u.userid,
+      name: u.name,
+      phone: u.phone,
+      email: u.email,
+      address: u.address,
+      points: u.points || 0,
+      createdat: u.createdat
+    }));
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 포인트 통계
+app.get('/api/points/stats', (req, res) => {
+  try {
+    const stats = db.getPointStats();
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 전체 포인트 내역 조회
+app.get('/api/points/history/all', (req, res) => {
+  try {
+    const history = db.pointHistory.sort((a, b) => new Date(b.createdat) - new Date(a.createdat));
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 포인트 지급
+app.post('/api/points/issue', async (req, res) => {
+  try {
+    const { userId, points, reason } = req.body;
+    if (!userId || !points || !reason) {
+      return res.status(400).json({ success: false, error: '필수 항목이 누락되었습니다.' });
+    }
+    
+    await db.addPoints(userId, points, 'admin', reason);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 목록 조회
+app.get('/api/coupons', (req, res) => {
+  try {
+    const coupons = db.getAllCoupons();
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, coupons });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 생성
+app.post('/api/coupons', (req, res) => {
+  try {
+    const coupon = db.createCoupon(req.body);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, coupon });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 통계
+app.get('/api/coupons/stats', (req, res) => {
+  try {
+    const stats = db.getCouponStats();
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 발급
+app.post('/api/coupons/issue', (req, res) => {
+  try {
+    const { couponId, userId } = req.body;
+    if (!couponId || !userId) {
+      return res.status(400).json({ success: false, error: '필수 항목이 누락되었습니다.' });
+    }
+    
+    const coupon = db.issueCouponToUser(couponId, userId);
+    if (coupon) {
+      res.setHeader('Content-Type', 'application/json');
+      res.json({ success: true, coupon });
+    } else {
+      res.status(400).json({ success: false, error: '쿠폰을 발급할 수 없습니다.' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 통합 매출 통계
+app.get('/api/sales/total', (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const stats = db.getTotalSalesStats(startDate, endDate);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 홀 매출 조회
+app.get('/api/sales/hall', (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const sales = db.getHallSales(startDate, endDate);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, sales });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 홀 매출 등록
+app.post('/api/sales/hall', (req, res) => {
+  try {
+    const sale = db.addHallSale(req.body);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, sale });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 홀 매출 삭제
+app.delete('/api/sales/hall/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const index = db.hallSales.findIndex(s => s.id === id);
+    if (index !== -1) {
+      db.hallSales.splice(index, 1);
+      res.setHeader('Content-Type', 'application/json');
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: '매출 내역을 찾을 수 없습니다.' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 타 플랫폼 매출 조회
+app.get('/api/sales/platform', (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const sales = db.getPlatformSales(startDate, endDate);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, sales });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 타 플랫폼 매출 등록
+app.post('/api/sales/platform', (req, res) => {
+  try {
+    const sale = db.addPlatformSale(req.body);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, sale });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 타 플랫폼 매출 삭제
+app.delete('/api/sales/platform/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const index = db.platformSales.findIndex(s => s.id === id);
+    if (index !== -1) {
+      db.platformSales.splice(index, 1);
+      res.setHeader('Content-Type', 'application/json');
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ success: false, error: '매출 내역을 찾을 수 없습니다.' });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 회원가입
 app.post('/api/auth/register', async (req, res) => {
   try {
