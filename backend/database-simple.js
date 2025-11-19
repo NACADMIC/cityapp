@@ -7,6 +7,9 @@ class DB {
     this.pointHistory = [];
     this.phoneVerification = [];
     this.businessHours = null;
+    this.temporaryClosed = false; // 임시휴업 상태
+    this.breakTime = null; // 브레이크타임 설정 { start: 14.5, end: 15.5 } (오후 2시 30분 ~ 3시 30분)
+    this.menuCosts = {}; // 메뉴별 원가 { menuId: cost }
     this.initialized = false;
     this.init();
   }
@@ -67,6 +70,14 @@ class DB {
       { id: 26, name: '처음처럼', category: '소주', price: 4500, image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400&h=400&fit=crop', bestseller: 0 },
       { id: 27, name: '연태고량주(중)', category: '소주', price: 25000, image: 'https://images.unsplash.com/photo-1596040008861-378f1a2c8e62?w=400&h=400&fit=crop', bestseller: 0 }
     ];
+    
+    // 메뉴별 기본 원가 설정 (판매가의 40% 가정)
+    this.menu.forEach(menu => {
+      if (!this.menuCosts[menu.id]) {
+        this.menuCosts[menu.id] = Math.round(menu.price * 0.4); // 기본 원가: 판매가의 40%
+      }
+    });
+    
     console.log('✅ 메뉴 초기화 완료:', this.menu.length, '개');
   }
 
@@ -105,7 +116,17 @@ class DB {
   }
 
   async getUserById(userId) {
-    return this.users.find(u => u.userid == userId);
+    // 숫자와 문자열 모두 비교 가능하도록 == 사용
+    const user = this.users.find(u => u.userid == userId || String(u.userid) === String(userId));
+    if (!user) {
+      console.log('🔍 getUserById 실패:', {
+        요청한userId: userId,
+        요청한userId타입: typeof userId,
+        전체사용자수: this.users.length,
+        사용자userid목록: this.users.map(u => ({ userid: u.userid, 타입: typeof u.userid }))
+      });
+    }
+    return user;
   }
 
   async getUserByName(name) {
@@ -636,6 +657,115 @@ class DB {
 
   getBusinessHours() {
     return this.businessHours || null;
+  }
+
+  // 임시휴업 설정
+  setTemporaryClosed(closed) {
+    this.temporaryClosed = closed;
+    console.log('✅ 임시휴업 설정:', closed ? 'ON' : 'OFF');
+  }
+
+  getTemporaryClosed() {
+    return this.temporaryClosed || false;
+  }
+
+  // 브레이크타임 설정
+  setBreakTime(breakTime) {
+    this.breakTime = breakTime ? { ...breakTime } : null;
+    console.log('✅ 브레이크타임 설정:', this.breakTime);
+  }
+
+  getBreakTime() {
+    return this.breakTime || null;
+  }
+
+  // 메뉴 원가 설정
+  setMenuCost(menuId, cost) {
+    this.menuCosts[menuId] = cost;
+    console.log(`✅ 메뉴 원가 설정: ID ${menuId} = ${cost}원`);
+  }
+
+  getMenuCost(menuId) {
+    return this.menuCosts[menuId] || 0;
+  }
+
+  getAllMenuCosts() {
+    return { ...this.menuCosts };
+  }
+
+  // 메뉴별 판매 분석 (판매량, 원가, 수익)
+  getMenuSalesAnalysis() {
+    const menuMap = {};
+    
+    // 메뉴 정보 매핑
+    const menuInfoMap = {};
+    this.menu.forEach(menu => {
+      menuInfoMap[menu.name] = {
+        id: menu.id,
+        name: menu.name,
+        price: menu.price,
+        category: menu.category,
+        cost: this.menuCosts[menu.id] || Math.round(menu.price * 0.4)
+      };
+    });
+    
+    // 주문 데이터 분석
+    this.orders
+      .filter(o => o.status === 'completed')
+      .forEach(order => {
+        try {
+          const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+          
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              const menuName = item.name;
+              const menuInfo = menuInfoMap[menuName];
+              
+              if (!menuInfo) return;
+              
+              if (!menuMap[menuName]) {
+                menuMap[menuName] = {
+                  menuId: menuInfo.id,
+                  menuName: menuInfo.name,
+                  category: menuInfo.category,
+                  price: menuInfo.price,
+                  cost: menuInfo.cost,
+                  totalQuantity: 0,
+                  totalRevenue: 0,
+                  totalCost: 0,
+                  totalProfit: 0,
+                  orderCount: 0
+                };
+              }
+              
+              const quantity = item.quantity || 1;
+              const itemPrice = item.price || menuInfo.price;
+              const itemCost = menuInfo.cost;
+              
+              menuMap[menuName].totalQuantity += quantity;
+              menuMap[menuName].totalRevenue += itemPrice * quantity;
+              menuMap[menuName].totalCost += itemCost * quantity;
+              menuMap[menuName].totalProfit += (itemPrice - itemCost) * quantity;
+              menuMap[menuName].orderCount++;
+            });
+          }
+        } catch (e) {
+          // JSON 파싱 오류 무시
+        }
+      });
+    
+    // 수익률 계산
+    const result = Object.values(menuMap).map(menu => ({
+      ...menu,
+      profitMargin: menu.totalRevenue > 0 
+        ? Math.round((menu.totalProfit / menu.totalRevenue) * 100 * 100) / 100 
+        : 0,
+      avgProfitPerUnit: menu.totalQuantity > 0 
+        ? Math.round(menu.totalProfit / menu.totalQuantity) 
+        : 0
+    }));
+    
+    return result.sort((a, b) => b.totalProfit - a.totalProfit);
   }
 }
 

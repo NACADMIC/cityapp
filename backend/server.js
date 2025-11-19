@@ -250,12 +250,20 @@ app.post('/api/auth/login', async (req, res) => {
 // API: 사용자 정보 조회
 app.get('/api/auth/me/:userId', (req, res) => {
   try {
-    const user = db.getUserById(req.params.userId);
+    const userId = req.params.userId;
+    console.log('🔍 사용자 정보 조회 요청:', userId);
+    
+    const user = db.getUserById(userId);
     if (!user) {
-      return res.json({ success: false, error: '사용자를 찾을 수 없습니다.' });
+      console.error('❌ 사용자를 찾을 수 없음. 요청한 userId:', userId);
+      return res.json({ 
+        success: false, 
+        error: `사용자를 찾을 수 없습니다. (userId: ${userId})` 
+      });
     }
     
     const { password, ...userWithoutPassword } = user;
+    console.log('✅ 사용자 정보 반환:', { userId: userWithoutPassword.userId, name: userWithoutPassword.name });
     res.json({ success: true, user: userWithoutPassword });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -57,12 +57,17 @@ async function checkBusinessHours() {
     
     if (!data.isOpen) {
       // 영업시간 아님 - 안내 표시 (개발자 접속 링크 포함)
+      let reasonMessage = '현재 영업시간이 아닙니다';
+      if (data.statusMessage) {
+        reasonMessage = data.statusMessage;
+      }
+      
       document.body.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, #C8102E 0%, #8B0000 100%); color: white; text-align: center; padding: 20px; font-family: 'Noto Sans KR', sans-serif;">
           <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; max-width: 500px;">
             <h1 style="font-size: 48px; margin: 0 0 20px 0;">🏮</h1>
             <h2 style="font-size: 32px; margin: 0 0 20px 0; font-weight: bold;">시티반점</h2>
-            <p style="font-size: 24px; margin: 0 0 10px 0; font-weight: bold;">현재 영업시간이 아닙니다</p>
+            <p style="font-size: 24px; margin: 0 0 10px 0; font-weight: bold;">${reasonMessage}</p>
             <p style="font-size: 18px; margin: 0 0 30px 0; opacity: 0.9;">영업시간: ${data.businessHours}</p>
             <p style="font-size: 16px; margin: 0; opacity: 0.8;">현재 시간: ${data.currentTime}</p>
             <p style="font-size: 14px; margin: 20px 0 0 0; opacity: 0.7;">영업시간 내에 다시 방문해주세요!</p>
@@ -637,6 +642,29 @@ function renderCheckout() {
 // Place order
 document.getElementById('checkout-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  // 영업시간 체크 (개발자 모드 제외)
+  const urlParams = new URLSearchParams(window.location.search);
+  const devMode = urlParams.get('dev') === 'true' || localStorage.getItem('dev-mode') === 'true';
+  
+  if (!devMode) {
+    try {
+      const hoursRes = await fetch('/api/business-hours');
+      const hoursData = await hoursRes.json();
+      
+      if (!hoursData.isOpen) {
+        let reasonMessage = '현재 주문을 받을 수 없습니다';
+        if (hoursData.statusMessage) {
+          reasonMessage = hoursData.statusMessage;
+        }
+        alert(`${reasonMessage}\n영업시간: ${hoursData.businessHours}\n현재 시간: ${hoursData.currentTime}`);
+        return;
+      }
+    } catch (err) {
+      console.error('영업시간 체크 오류:', err);
+      // 서버 오류 시에도 주문 진행 (서버에서 다시 체크함)
+    }
+  }
 
   const customerName = document.getElementById('checkout-name').value.trim();
   const phone = document.getElementById('checkout-phone').value.trim();

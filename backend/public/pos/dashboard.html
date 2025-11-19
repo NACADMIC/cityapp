@@ -285,6 +285,7 @@
       <button class="tab-btn" onclick="switchTab('regions')">📍 지역 분석</button>
       <button class="tab-btn" onclick="switchTab('ri')">🏘️ 리 단위 통계</button>
       <button class="tab-btn" onclick="switchTab('apartments')">🏢 아파트 단지 통계</button>
+      <button class="tab-btn" onclick="switchTab('menu-analysis')">📊 메뉴별 판매 분석</button>
     </div>
 
     <!-- 매출 통계 탭 -->
@@ -611,6 +612,100 @@
             <tr><td colspan="6" class="loading">로딩 중...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- 메뉴별 판매 분석 탭 -->
+    <div id="menu-analysis-tab" class="tab-content">
+      <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0;">📊 메뉴별 판매 분석</h2>
+        <button class="btn btn-primary" onclick="openMenuCostSettings()" style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+          ⚙️ 원가 설정
+        </button>
+      </div>
+
+      <div class="stats-grid" style="margin-bottom: 30px;">
+        <div class="stat-card-large">
+          <div class="stat-label">총 판매 메뉴 수</div>
+          <div class="stat-value" id="total-menu-count">-</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">총 수익</div>
+          <div class="stat-value" id="total-profit">-</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">평균 수익률</div>
+          <div class="stat-value" id="avg-profit-margin">-</div>
+        </div>
+        <div class="stat-card-large">
+          <div class="stat-label">최고 수익 메뉴</div>
+          <div class="stat-value" id="top-profit-menu" style="font-size: 20px;">-</div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>💰 메뉴별 수익 순위</h3>
+        <div class="chart-wrapper">
+          <canvas id="menuProfitChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <h3>📈 메뉴별 판매량 vs 수익</h3>
+        <div class="chart-wrapper">
+          <canvas id="menuSalesProfitChart"></canvas>
+        </div>
+      </div>
+
+      <div class="table-container" style="margin-top: 30px;">
+        <h3>📋 메뉴별 상세 분석</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>메뉴명</th>
+              <th>카테고리</th>
+              <th>판매가</th>
+              <th>원가</th>
+              <th>판매량</th>
+              <th>총 매출</th>
+              <th>총 원가</th>
+              <th>총 수익</th>
+              <th>수익률</th>
+              <th>단위당 수익</th>
+            </tr>
+          </thead>
+          <tbody id="menu-analysis-table">
+            <tr><td colspan="10" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 원가 설정 팝업 -->
+    <div id="menu-cost-popup" class="popup-overlay" style="display: none;">
+      <div class="popup-content" style="max-width: 800px; max-height: 80vh; overflow-y: auto;">
+        <h2>⚙️ 메뉴 원가 설정</h2>
+        <div style="margin: 20px 0;">
+          <p style="color: #666; margin-bottom: 20px;">각 메뉴의 원가(1개당)를 설정하세요. 추후 단가 및 재고 관리와 연동됩니다.</p>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>메뉴명</th>
+                <th>카테고리</th>
+                <th>판매가</th>
+                <th>원가</th>
+                <th>수익률</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="menu-cost-table">
+              <tr><td colspan="6" class="loading">로딩 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="popup-actions">
+          <button class="btn btn-accept" onclick="closeMenuCostSettings()">닫기</button>
+        </div>
       </div>
     </div>
   </div>

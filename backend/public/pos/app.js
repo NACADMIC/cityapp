@@ -672,15 +672,38 @@ async function updateBusinessStatus() {
     
     const statusEl = document.getElementById('business-status');
     const statusText = document.getElementById('status-text');
+    const tempClosedBtn = document.getElementById('temporary-closed-btn');
     
+    // 임시휴업 버튼 업데이트
+    if (data.temporaryClosed) {
+      tempClosedBtn.textContent = '🔴 임시휴업';
+      tempClosedBtn.style.background = '#f44336';
+      tempClosedBtn.style.color = 'white';
+    } else {
+      tempClosedBtn.textContent = '🟢 영업중';
+      tempClosedBtn.style.background = '#4caf50';
+      tempClosedBtn.style.color = 'white';
+    }
+    
+    // 상태 표시 업데이트
     if (data.isOpen) {
       statusEl.style.background = '#4caf50';
       statusEl.style.color = 'white';
-      statusText.textContent = `🟢 영업중 (${data.businessHours})`;
+      let statusMsg = `🟢 영업중 (${data.businessHours})`;
+      if (data.statusMessage) {
+        statusMsg += ` - ${data.statusMessage}`;
+      }
+      statusText.textContent = statusMsg;
     } else {
       statusEl.style.background = '#ff9800';
       statusEl.style.color = 'white';
-      statusText.textContent = `🔴 영업시간 아님 (${data.businessHours})`;
+      let statusMsg = `🔴 영업시간 아님`;
+      if (data.statusMessage) {
+        statusMsg = `🔴 ${data.statusMessage}`;
+      } else {
+        statusMsg += ` (${data.businessHours})`;
+      }
+      statusText.textContent = statusMsg;
     }
   } catch (err) {
     console.error('영업시간 상태 업데이트 오류:', err);
@@ -764,6 +787,149 @@ async function saveBusinessHours() {
 renderOrders();
 updateStats();
 updateBusinessStatus();
+// 임시휴업 토글
+async function toggleTemporaryClosed() {
+  try {
+    const res = await fetch('/api/business-hours');
+    const data = await res.json();
+    const currentStatus = data.temporaryClosed;
+    
+    const newStatus = !currentStatus;
+    const confirmMsg = newStatus 
+      ? '임시휴업을 시작하시겠습니까? 주문을 받지 않습니다.' 
+      : '영업을 재개하시겠습니까?';
+    
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+    
+    const updateRes = await fetch('/api/temporary-closed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ closed: newStatus })
+    });
+    
+    const updateData = await updateRes.json();
+    if (updateData.success) {
+      alert(newStatus ? '임시휴업이 시작되었습니다.' : '영업이 재개되었습니다.');
+      updateBusinessStatus();
+    } else {
+      alert('설정 실패: ' + updateData.error);
+    }
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+}
+
+// 브레이크타임 설정 팝업 열기
+async function openBreakTimeSettings() {
+  try {
+    const res = await fetch('/api/business-hours');
+    const data = await res.json();
+    
+    if (data.breakTime) {
+      const startHour = Math.floor(data.breakTime.start);
+      const startMinute = Math.round((data.breakTime.start - startHour) * 60);
+      const endHour = Math.floor(data.breakTime.end);
+      const endMinute = Math.round((data.breakTime.end - endHour) * 60);
+      
+      document.getElementById('break-start-hour').value = startHour;
+      document.getElementById('break-start-minute').value = startMinute;
+      document.getElementById('break-end-hour').value = endHour;
+      document.getElementById('break-end-minute').value = endMinute;
+      
+      const formatTime = (time) => {
+        const h = Math.floor(time);
+        const m = Math.round((time - h) * 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      };
+      document.getElementById('current-break-time-display').textContent = 
+        `${formatTime(data.breakTime.start)} - ${formatTime(data.breakTime.end)}`;
+    } else {
+      document.getElementById('break-start-hour').value = 14;
+      document.getElementById('break-start-minute').value = 30;
+      document.getElementById('break-end-hour').value = 15;
+      document.getElementById('break-end-minute').value = 30;
+      document.getElementById('current-break-time-display').textContent = '없음';
+    }
+    
+    document.getElementById('break-time-popup').style.display = 'flex';
+  } catch (err) {
+    alert('브레이크타임 정보를 불러오는 중 오류가 발생했습니다: ' + err.message);
+  }
+}
+
+// 브레이크타임 설정 팝업 닫기
+function closeBreakTimeSettings() {
+  document.getElementById('break-time-popup').style.display = 'none';
+}
+
+// 브레이크타임 저장
+async function saveBreakTime() {
+  try {
+    const startHour = parseInt(document.getElementById('break-start-hour').value);
+    const startMinute = parseInt(document.getElementById('break-start-minute').value);
+    const endHour = parseInt(document.getElementById('break-end-hour').value);
+    const endMinute = parseInt(document.getElementById('break-end-minute').value);
+    
+    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
+      alert('모든 시간을 입력해주세요.');
+      return;
+    }
+    
+    const start = startHour + startMinute / 60;
+    const end = endHour + endMinute / 60;
+    
+    if (start >= end) {
+      alert('시작 시간은 종료 시간보다 빨라야 합니다.');
+      return;
+    }
+    
+    const res = await fetch('/api/break-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start, end })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('브레이크타임이 저장되었습니다!');
+      closeBreakTimeSettings();
+      updateBusinessStatus();
+    } else {
+      alert('저장 실패: ' + data.error);
+    }
+  } catch (err) {
+    alert('저장 오류: ' + err.message);
+  }
+}
+
+// 브레이크타임 해제
+async function clearBreakTime() {
+  if (!confirm('브레이크타임을 해제하시겠습니까?')) {
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/break-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ start: null, end: null })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('브레이크타임이 해제되었습니다!');
+      closeBreakTimeSettings();
+      updateBusinessStatus();
+    } else {
+      alert('해제 실패: ' + data.error);
+    }
+  } catch (err) {
+    alert('오류: ' + err.message);
+  }
+}
+
 setInterval(updateBusinessStatus, 60000); // 1분마다 영업시간 상태 업데이트
 
 console.log('🏮 POS 시스템 준비 완료!');

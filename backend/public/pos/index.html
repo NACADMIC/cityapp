@@ -26,6 +26,8 @@
       </label>
       <span>음성 알림</span>
       <button class="btn-test" onclick="openBusinessHoursSettings()">⏰ 영업시간 설정</button>
+      <button class="btn-test" id="temporary-closed-btn" onclick="toggleTemporaryClosed()">🟢 영업중</button>
+      <button class="btn-test" onclick="openBreakTimeSettings()">☕ 브레이크타임 설정</button>
       <button class="btn-test" onclick="testSound()">소리 테스트</button>
       <button class="btn-test" onclick="testOrder()">주문 테스트</button>
     </div>
@@ -120,6 +122,42 @@
       <div class="popup-actions">
         <button class="btn btn-accept" onclick="acceptOrder()">✓ 수락</button>
         <button class="btn btn-reject" onclick="rejectOrder()">✕ 거절</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 브레이크타임 설정 팝업 -->
+  <div id="break-time-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content" style="max-width: 500px;">
+      <h2>☕ 브레이크타임 설정</h2>
+      <div style="margin: 20px 0;">
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">시작 시간:</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="break-start-hour" min="0" max="23" value="14" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">시</span>
+            <input type="number" id="break-start-minute" min="0" max="59" step="30" value="30" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">분</span>
+          </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">종료 시간:</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="break-end-hour" min="0" max="23" value="15" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">시</span>
+            <input type="number" id="break-end-minute" min="0" max="59" step="30" value="30" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
+            <span style="font-size: 18px;">분</span>
+          </div>
+        </div>
+        <div style="padding: 15px; background: #fff3cd; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0; color: #856404; font-weight: 600;">현재 설정: <span id="current-break-time-display">없음</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">브레이크타임 중에는 주문을 받지 않습니다.</p>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="saveBreakTime()">저장</button>
+        <button class="btn btn-reject" onclick="clearBreakTime()">해제</button>
+        <button class="btn btn-reject" onclick="closeBreakTimeSettings()">취소</button>
       </div>
     </div>
   </div>

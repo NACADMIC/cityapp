@@ -4,7 +4,16 @@ if (sessionStorage.getItem('pos-authenticated') !== 'true') {
 }
 
 // 차트 인스턴스 저장
-let charts = {};
+let charts = {
+  dailySales: null,
+  timeDist: null,
+  popularMenu: null,
+  regionChart: null,
+  riChart: null,
+  apartmentChart: null,
+  menuProfit: null,
+  menuSalesProfit: null
+};
 
 // 햄버거 메뉴 토글
 function toggleMenu() {
@@ -41,8 +50,11 @@ function switchTab(tabName) {
     loadRegionsTab();
   } else if (tabName === 'ri') {
     loadRiTab();
-  } else if (tabName === 'apartments') {
+  } else   if (tabName === 'apartments') {
     loadApartmentsTab();
+  }
+  if (tabName === 'menu-analysis') {
+    loadMenuAnalysisTab();
   }
 }
 
@@ -785,6 +797,237 @@ function renderApartmentTable(data) {
       </tr>
     `;
   }).join('');
+}
+
+// ========== 메뉴별 판매 분석 탭 ==========
+async function loadMenuAnalysisTab() {
+  try {
+    const res = await fetch('/api/stats/menu-sales-analysis');
+    const data = await res.json();
+    
+    if (data.success && data.data.length > 0) {
+      const analysis = data.data;
+      
+      // 통계 카드 업데이트
+      document.getElementById('total-menu-count').textContent = `${analysis.length}개`;
+      
+      const totalProfit = analysis.reduce((sum, m) => sum + m.totalProfit, 0);
+      document.getElementById('total-profit').textContent = formatCurrency(totalProfit);
+      
+      const totalRevenue = analysis.reduce((sum, m) => sum + m.totalRevenue, 0);
+      const avgMargin = totalRevenue > 0 ? Math.round((totalProfit / totalRevenue) * 100 * 100) / 100 : 0;
+      document.getElementById('avg-profit-margin').textContent = `${avgMargin}%`;
+      
+      const topMenu = analysis[0];
+      document.getElementById('top-profit-menu').textContent = `${topMenu.menuName} (${formatCurrency(topMenu.totalProfit)})`;
+      
+      // 차트 렌더링
+      renderMenuProfitChart(analysis.slice(0, 10));
+      renderMenuSalesProfitChart(analysis.slice(0, 10));
+      
+      // 테이블 렌더링
+      renderMenuAnalysisTable(analysis);
+    } else {
+      document.getElementById('menu-analysis-table').innerHTML = '<tr><td colspan="10">데이터가 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('메뉴 분석 로드 오류:', error);
+  }
+}
+
+function renderMenuProfitChart(data) {
+  const ctx = document.getElementById('menuProfitChart');
+  
+  if (charts.menuProfit) {
+    charts.menuProfit.destroy();
+  }
+  
+  charts.menuProfit = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.menuName),
+      datasets: [{
+        label: '총 수익',
+        data: data.map(d => d.totalProfit),
+        backgroundColor: '#4caf50',
+        borderColor: '#388e3c',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (context) => `수익: ${formatCurrency(context.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (value) => formatCurrency(value)
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderMenuSalesProfitChart(data) {
+  const ctx = document.getElementById('menuSalesProfitChart');
+  
+  if (charts.menuSalesProfit) {
+    charts.menuSalesProfit.destroy();
+  }
+  
+  charts.menuSalesProfit = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: '메뉴별 판매량 vs 수익',
+        data: data.map(d => ({
+          x: d.totalQuantity,
+          y: d.totalProfit,
+          label: d.menuName
+        })),
+        backgroundColor: '#1976d2',
+        borderColor: '#0d47a1',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: () => '',
+            label: (context) => {
+              const point = context.raw;
+              return `${point.label}: 판매량 ${point.x}개, 수익 ${formatCurrency(point.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: '판매량' },
+          beginAtZero: true
+        },
+        y: {
+          title: { display: true, text: '총 수익' },
+          beginAtZero: true,
+          ticks: {
+            callback: (value) => formatCurrency(value)
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderMenuAnalysisTable(data) {
+  const tbody = document.getElementById('menu-analysis-table');
+  tbody.innerHTML = data.map(menu => `
+    <tr>
+      <td><strong>${menu.menuName}</strong></td>
+      <td>${menu.category}</td>
+      <td>${formatCurrency(menu.price)}</td>
+      <td>${formatCurrency(menu.cost)}</td>
+      <td>${menu.totalQuantity.toLocaleString()}개</td>
+      <td>${formatCurrency(menu.totalRevenue)}</td>
+      <td>${formatCurrency(menu.totalCost)}</td>
+      <td><strong style="color: #4caf50;">${formatCurrency(menu.totalProfit)}</strong></td>
+      <td><strong style="color: ${menu.profitMargin >= 50 ? '#4caf50' : menu.profitMargin >= 30 ? '#ff9800' : '#f44336'};">${menu.profitMargin}%</strong></td>
+      <td>${formatCurrency(menu.avgProfitPerUnit)}</td>
+    </tr>
+  `).join('');
+}
+
+// 원가 설정 팝업 열기
+async function openMenuCostSettings() {
+  try {
+    const res = await fetch('/api/menu-costs');
+    const data = await res.json();
+    
+    if (data.success) {
+      renderMenuCostTable(data.data);
+      document.getElementById('menu-cost-popup').style.display = 'flex';
+    }
+  } catch (error) {
+    console.error('원가 정보 로드 오류:', error);
+    alert('원가 정보를 불러오는 중 오류가 발생했습니다.');
+  }
+}
+
+function renderMenuCostTable(menus) {
+  const tbody = document.getElementById('menu-cost-table');
+  tbody.innerHTML = menus.map(menu => {
+    const profitMargin = menu.price > 0 ? Math.round(((menu.price - menu.cost) / menu.price) * 100 * 100) / 100 : 0;
+    return `
+      <tr>
+        <td><strong>${menu.name}</strong></td>
+        <td>${menu.category}</td>
+        <td>${formatCurrency(menu.price)}</td>
+        <td>
+          <input type="number" id="cost-${menu.id}" value="${menu.cost}" 
+                 style="width: 100px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+        </td>
+        <td style="color: ${profitMargin >= 50 ? '#4caf50' : profitMargin >= 30 ? '#ff9800' : '#f44336'};">
+          ${profitMargin}%
+        </td>
+        <td>
+          <button onclick="saveMenuCost(${menu.id})" 
+                  style="padding: 5px 15px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            저장
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// 원가 저장
+async function saveMenuCost(menuId) {
+  try {
+    const costInput = document.getElementById(`cost-${menuId}`);
+    const cost = parseInt(costInput.value);
+    
+    if (isNaN(cost) || cost < 0) {
+      alert('올바른 원가를 입력해주세요.');
+      return;
+    }
+    
+    const res = await fetch(`/api/menu-costs/${menuId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cost })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('원가가 저장되었습니다!');
+      // 테이블 새로고침
+      openMenuCostSettings();
+      // 분석 탭도 새로고침
+      if (document.getElementById('menu-analysis-tab').classList.contains('active')) {
+        loadMenuAnalysisTab();
+      }
+    } else {
+      alert('저장 실패: ' + data.error);
+    }
+  } catch (error) {
+    alert('저장 오류: ' + error.message);
+  }
+}
+
+// 원가 설정 팝업 닫기
+function closeMenuCostSettings() {
+  document.getElementById('menu-cost-popup').style.display = 'none';
 }
 
 console.log('📊 대시보드 준비 완료!');

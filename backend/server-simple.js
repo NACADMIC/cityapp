@@ -35,6 +35,12 @@ let businessHours = {
   close: 21   // 오후 9시
 };
 
+// 임시휴업 상태
+let temporaryClosed = false;
+
+// 브레이크타임 설정 (기본값: 없음)
+let breakTime = null;
+
 // 영업시간을 DB에서 불러오기
 function loadBusinessHours() {
   try {
@@ -57,9 +63,24 @@ function loadBusinessHours() {
 // DB 초기화 후 영업시간 로드 (약간의 딜레이)
 setTimeout(() => {
   loadBusinessHours();
+  // 임시휴업 상태 로드
+  if (db && typeof db.getTemporaryClosed === 'function') {
+    temporaryClosed = db.getTemporaryClosed();
+    console.log('✅ 임시휴업 상태 로드:', temporaryClosed);
+  }
+  // 브레이크타임 로드
+  if (db && typeof db.getBreakTime === 'function') {
+    breakTime = db.getBreakTime();
+    console.log('✅ 브레이크타임 로드:', breakTime);
+  }
 }, 100);
 
 function isBusinessHours() {
+  // 임시휴업 체크
+  if (temporaryClosed) {
+    return false;
+  }
+  
   // 한국 시간으로 변환 (UTC+9)
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -67,7 +88,21 @@ function isBusinessHours() {
   const minute = koreaTime.getMinutes();
   const currentTime = hour + minute / 60; // 9시 30분 = 9.5
   
-  return currentTime >= businessHours.open && currentTime < businessHours.close;
+  // 영업시간 체크
+  if (currentTime < businessHours.open || currentTime >= businessHours.close) {
+    return false;
+  }
+  
+  // 브레이크타임 체크
+  if (breakTime) {
+    const breakStart = breakTime.start;
+    const breakEnd = breakTime.end;
+    if (currentTime >= breakStart && currentTime < breakEnd) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 app.get('/api/business-hours', (req, res) => {
@@ -84,12 +119,25 @@ app.get('/api/business-hours', (req, res) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
   
+  let statusMessage = '';
+  if (temporaryClosed) {
+    statusMessage = '임시휴업';
+  } else if (breakTime) {
+    const currentTime = hour + minute / 60;
+    if (currentTime >= breakTime.start && currentTime < breakTime.end) {
+      statusMessage = `브레이크타임 (${formatTime(breakTime.start)} - ${formatTime(breakTime.end)})`;
+    }
+  }
+  
   res.json({
     isOpen,
     currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
     businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
     open: businessHours.open,
-    close: businessHours.close
+    close: businessHours.close,
+    temporaryClosed,
+    breakTime,
+    statusMessage
   });
 });
 
@@ -111,6 +159,54 @@ app.post('/api/business-hours', (req, res) => {
     
     console.log('✅ 영업시간 업데이트:', businessHours);
     res.json({ success: true, businessHours });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 임시휴업 설정
+app.post('/api/temporary-closed', (req, res) => {
+  try {
+    const { closed } = req.body;
+    temporaryClosed = closed === true;
+    db.setTemporaryClosed(temporaryClosed);
+    console.log('✅ 임시휴업 설정:', temporaryClosed ? 'ON' : 'OFF');
+    res.json({ success: true, temporaryClosed });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 브레이크타임 설정
+app.post('/api/break-time', (req, res) => {
+  try {
+    const { start, end } = req.body;
+    
+    if (start === null && end === null) {
+      // 브레이크타임 해제
+      breakTime = null;
+      db.setBreakTime(null);
+      console.log('✅ 브레이크타임 해제');
+      return res.json({ success: true, breakTime: null });
+    }
+    
+    if (typeof start !== 'number' || typeof end !== 'number') {
+      return res.status(400).json({ success: false, error: '잘못된 시간 형식입니다.' });
+    }
+    
+    if (start < 0 || start >= 24 || end < 0 || end > 24) {
+      return res.status(400).json({ success: false, error: '시간은 0-24 사이여야 합니다.' });
+    }
+    
+    if (start >= end) {
+      return res.status(400).json({ success: false, error: '시작 시간은 종료 시간보다 빨라야 합니다.' });
+    }
+    
+    breakTime = { start, end };
+    db.setBreakTime(breakTime);
+    
+    console.log('✅ 브레이크타임 업데이트:', breakTime);
+    res.json({ success: true, breakTime });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -197,9 +293,20 @@ app.post('/api/auth/login', async (req, res) => {
 // API: 회원 정보
 app.get('/api/auth/me/:userId', async (req, res) => {
   try {
-    const user = await db.getUserById(req.params.userId);
+    const userId = req.params.userId;
+    console.log('🔍 사용자 정보 조회 요청:', userId);
+    console.log('📊 현재 사용자 수:', db.users.length);
+    console.log('📋 사용자 목록:', db.users.map(u => ({ userid: u.userid, name: u.name })));
+    
+    const user = await db.getUserById(userId);
+    console.log('✅ 찾은 사용자:', user ? { userid: user.userid, name: user.name } : '없음');
+    
     if (!user) {
-      return res.json({ success: false, error: '회원을 찾을 수 없습니다.' });
+      console.error('❌ 사용자를 찾을 수 없음. 요청한 userId:', userId);
+      return res.json({ 
+        success: false, 
+        error: `회원을 찾을 수 없습니다. (userId: ${userId})` 
+      });
     }
     res.json({
       success: true,
@@ -207,10 +314,11 @@ app.get('/api/auth/me/:userId', async (req, res) => {
         userId: user.userid,
         name: user.name,
         phone: user.phone,
-        points: user.points
+        points: user.points || 0
       }
     });
   } catch (error) {
+    console.error('❌ 사용자 정보 조회 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -294,6 +402,29 @@ app.post('/api/phone/verify-code', async (req, res) => {
 // API: 주문
 app.post('/api/orders', async (req, res) => {
   try {
+    // 영업시간 체크
+    if (!isBusinessHours()) {
+      let errorMessage = '현재 주문을 받을 수 없습니다';
+      if (temporaryClosed) {
+        errorMessage = '임시휴업 중입니다. 주문을 받지 않습니다.';
+      } else if (breakTime) {
+        const now = new Date();
+        const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+        const hour = koreaTime.getHours();
+        const minute = koreaTime.getMinutes();
+        const currentTime = hour + minute / 60;
+        if (currentTime >= breakTime.start && currentTime < breakTime.end) {
+          const formatTime = (time) => {
+            const h = Math.floor(time);
+            const m = Math.round((time - h) * 60);
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+          };
+          errorMessage = `브레이크타임 중입니다 (${formatTime(breakTime.start)} - ${formatTime(breakTime.end)})`;
+        }
+      }
+      return res.json({ success: false, error: errorMessage });
+    }
+    
     const {
       userId, customerName, phone, address, items,
       totalAmount, usedPoints = 0, isGuest = false, phoneVerified = false
@@ -536,6 +667,51 @@ app.get('/api/stats/time-distribution', (req, res) => {
   try {
     const distribution = db.getTimeDistribution();
     res.json({ success: true, data: distribution });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴별 판매 분석 (판매량, 원가, 수익)
+app.get('/api/stats/menu-sales-analysis', (req, res) => {
+  try {
+    const analysis = db.getMenuSalesAnalysis();
+    res.json({ success: true, data: analysis });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 원가 조회
+app.get('/api/menu-costs', (req, res) => {
+  try {
+    const costs = db.getAllMenuCosts();
+    const menus = db.getAllMenu();
+    const menuList = menus.map(menu => ({
+      id: menu.id,
+      name: menu.name,
+      price: menu.price,
+      category: menu.category,
+      cost: costs[menu.id] || Math.round(menu.price * 0.4)
+    }));
+    res.json({ success: true, data: menuList });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 원가 설정
+app.post('/api/menu-costs/:menuId', (req, res) => {
+  try {
+    const menuId = parseInt(req.params.menuId);
+    const { cost } = req.body;
+    
+    if (isNaN(menuId) || typeof cost !== 'number' || cost < 0) {
+      return res.status(400).json({ success: false, error: '잘못된 요청입니다.' });
+    }
+    
+    db.setMenuCost(menuId, cost);
+    res.json({ success: true, menuId, cost });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
