@@ -1005,31 +1005,26 @@ async function loadBusyStatus() {
       const statusText = document.getElementById('busy-status-text');
       const statusMessage = document.getElementById('busy-status-message');
       
-      if (banner && statusText && statusMessage) {
+      if (banner && statusText) {
+        // statusMessage는 제거 (더 깔끔하게)
         if (data.status === 'very-busy') {
-          banner.style.background = '#ffebee';
-          banner.style.borderColor = '#f44336';
+          banner.style.background = 'rgba(244, 67, 54, 0.2)';
+          banner.style.borderColor = 'rgba(244, 67, 54, 0.5)';
           statusText.textContent = '🔴 매우 바쁨';
-          statusText.style.color = '#c62828';
-          statusMessage.textContent = '주문이 많아 배달 시간이 지연될 수 있습니다. 양해 부탁드립니다.';
-          statusMessage.style.color = '#c62828';
-          banner.style.display = 'block';
+          statusText.style.color = '#ffcdd2';
+          banner.style.display = 'flex';
         } else if (data.status === 'busy') {
-          banner.style.background = '#fff3e0';
-          banner.style.borderColor = '#ff9800';
+          banner.style.background = 'rgba(255, 152, 0, 0.2)';
+          banner.style.borderColor = 'rgba(255, 152, 0, 0.5)';
           statusText.textContent = '🟠 바쁨';
-          statusText.style.color = '#e65100';
-          statusMessage.textContent = '현재 주문이 많아 배달 시간이 다소 소요될 수 있습니다.';
-          statusMessage.style.color = '#e65100';
-          banner.style.display = 'block';
+          statusText.style.color = '#ffe0b2';
+          banner.style.display = 'flex';
         } else if (data.status === 'normal') {
-          banner.style.background = '#e8f5e9';
-          banner.style.borderColor = '#4caf50';
+          banner.style.background = 'rgba(76, 175, 80, 0.2)';
+          banner.style.borderColor = 'rgba(76, 175, 80, 0.5)';
           statusText.textContent = '🟢 보통';
-          statusText.style.color = '#2e7d32';
-          statusMessage.textContent = '정상적으로 주문 가능합니다.';
-          statusMessage.style.color = '#2e7d32';
-          banner.style.display = 'block';
+          statusText.style.color = '#c8e6c9';
+          banner.style.display = 'flex';
         } else {
           banner.style.display = 'none';
         }
