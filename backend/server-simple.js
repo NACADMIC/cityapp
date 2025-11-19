@@ -17,18 +17,9 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(bodyParser.json());
 
-// API 경로를 먼저 체크하는 미들웨어 (정적 파일 서빙보다 우선)
-// 이 미들웨어는 API 경로를 보호하지만 실제 라우팅은 하지 않음
-// 실제 API 라우트는 아래에 등록됨
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    console.log('🔍 [미들웨어] API 경로 감지:', req.path, '- API 라우트로 전달');
-    // API 경로는 다음 미들웨어로 (API 라우트로)
-    return next();
-  }
-  // API가 아니면 다음으로 (정적 파일 서빙으로)
-  next();
-});
+// API 경로 체크 미들웨어 제거
+// Express는 라우트를 등록한 순서대로 매칭하므로,
+// API 라우트가 먼저 등록되어 있으면 자동으로 우선 처리됨
 
 const db = new Database();
 
@@ -975,27 +966,8 @@ async function generateTestData() {
 }
 
 // 정적 파일 서빙 (모든 API 라우트가 등록된 후에만 등록)
-// API 경로를 명시적으로 제외하는 미들웨어
-app.use((req, res, next) => {
-  // API 경로는 정적 파일 서빙에서 완전히 제외
-  if (req.path.startsWith('/api/')) {
-    console.error('❌ [중요] API 경로가 정적 파일 서빙에 도달함!');
-    console.error('   경로:', req.path);
-    console.error('   URL:', req.url);
-    console.error('   이는 API 라우트가 등록되지 않았거나 라우팅 순서 문제입니다!');
-    // 404 반환 (API 라우트가 없으면 404가 맞음)
-    res.status(404).json({ 
-      success: false, 
-      error: 'API 엔드포인트를 찾을 수 없습니다.',
-      path: req.path
-    });
-    return;
-  }
-  // 정적 파일 서빙
-  next();
-});
-
-// 정적 파일 서빙 (API 경로가 아닌 경우에만)
+// Express는 라우트를 등록한 순서대로 매칭하므로, 
+// API 라우트가 먼저 등록되어 있으면 정적 파일 서빙은 API가 매칭되지 않은 경우에만 실행됨
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 기본 경로 리다이렉트 (정적 파일 서빙 이후)
