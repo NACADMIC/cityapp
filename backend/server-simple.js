@@ -116,10 +116,30 @@ function isBusinessHours() {
 
 app.get('/api/business-hours', (req, res) => {
   console.log('📡 [API] GET /api/business-hours 요청 받음');
-  console.log('📡 [API] 요청 경로:', req.path);
-  console.log('📡 [API] 요청 URL:', req.url);
   
   try {
+    // 변수 초기화 확인
+    if (typeof businessHours === 'undefined') {
+      console.error('❌ businessHours가 정의되지 않음');
+      businessHours = {
+        0: { open: 9.5, close: 21 },
+        1: { open: 9.5, close: 21 },
+        2: { open: 9.5, close: 21 },
+        3: { open: 9.5, close: 21 },
+        4: { open: 9.5, close: 21 },
+        5: { open: 9.5, close: 21 },
+        6: { open: 9.5, close: 21 }
+      };
+    }
+    if (typeof breakTime === 'undefined') {
+      console.error('❌ breakTime이 정의되지 않음');
+      breakTime = {};
+    }
+    if (typeof temporaryClosed === 'undefined') {
+      console.error('❌ temporaryClosed가 정의되지 않음');
+      temporaryClosed = false;
+    }
+    
     const isOpen = isBusinessHours();
     const now = new Date();
     const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -129,6 +149,9 @@ app.get('/api/business-hours', (req, res) => {
     
     // 시간 포맷팅
     const formatTime = (time) => {
+      if (typeof time !== 'number' || isNaN(time)) {
+        return '00:00';
+      }
       const h = Math.floor(time);
       const m = Math.round((time - h) * 60);
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -140,7 +163,7 @@ app.get('/api/business-hours', (req, res) => {
     let statusMessage = '';
     if (temporaryClosed) {
       statusMessage = '임시휴업';
-    } else if (todayBreakTime && todayBreakTime.start !== undefined) {
+    } else if (todayBreakTime && typeof todayBreakTime.start !== 'undefined' && typeof todayBreakTime.end !== 'undefined') {
       const currentTime = hour + minute / 60;
       if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
         statusMessage = `브레이크타임 (${formatTime(todayBreakTime.start)} - ${formatTime(todayBreakTime.end)})`;
@@ -169,8 +192,13 @@ app.get('/api/business-hours', (req, res) => {
     res.json(response);
   } catch (error) {
     console.error('❌ [API] /api/business-hours 오류:', error);
+    console.error('❌ 오류 스택:', error.stack);
     res.setHeader('Content-Type', 'application/json');
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
@@ -216,6 +244,11 @@ app.post('/api/business-hours', (req, res) => {
 app.post('/api/temporary-closed', (req, res) => {
   console.log('📡 POST /api/temporary-closed 요청 받음');
   try {
+    // 변수 초기화 확인
+    if (typeof temporaryClosed === 'undefined') {
+      temporaryClosed = false;
+    }
+    
     const { closed } = req.body;
     temporaryClosed = closed === true;
     db.setTemporaryClosed(temporaryClosed);
@@ -223,6 +256,9 @@ app.post('/api/temporary-closed', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, temporaryClosed });
   } catch (error) {
+    console.error('❌ [API] /api/temporary-closed 오류:', error);
+    console.error('❌ 오류 스택:', error.stack);
+    res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -231,6 +267,11 @@ app.post('/api/temporary-closed', (req, res) => {
 app.post('/api/break-time', (req, res) => {
   console.log('📡 POST /api/break-time 요청 받음');
   try {
+    // 변수 초기화 확인
+    if (typeof breakTime === 'undefined') {
+      breakTime = {};
+    }
+    
     const { breakTimes } = req.body; // { 0: {start, end}, 1: {start, end}, ... } 또는 { day: 0, start: null, end: null } (해제)
     
     if (!breakTimes || typeof breakTimes !== 'object') {
@@ -278,6 +319,9 @@ app.post('/api/break-time', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, breakTime });
   } catch (error) {
+    console.error('❌ [API] /api/break-time 오류:', error);
+    console.error('❌ 오류 스택:', error.stack);
+    res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ success: false, error: error.message });
   }
 });
