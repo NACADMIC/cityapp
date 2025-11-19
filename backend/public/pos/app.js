@@ -40,26 +40,34 @@ function updateStoreNameInUI() {
 }
 
 // 더보기 메뉴 토글
-function toggleMoreMenu() {
+function toggleMoreMenu(event) {
+  if (event) {
+    event.stopPropagation();
+  }
   const menu = document.getElementById('more-menu');
   const btn = document.getElementById('more-menu-btn');
   if (menu && btn) {
+    const isActive = menu.classList.contains('active');
     menu.classList.toggle('active');
-    btn.style.background = menu.classList.contains('active') 
+    btn.style.background = !isActive 
       ? 'rgba(255,255,255,0.35)' 
       : 'rgba(255,255,255,0.2)';
   }
 }
 
-// 외부 클릭 시 메뉴 닫기
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('more-menu');
-  const btn = document.getElementById('more-menu-btn');
-  if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
-    menu.classList.remove('active');
-    btn.style.background = 'rgba(255,255,255,0.2)';
-  }
-});
+// 외부 클릭 시 메뉴 닫기 (약간의 지연을 두어 토글 함수가 먼저 실행되도록)
+setTimeout(() => {
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('more-menu');
+    const btn = document.getElementById('more-menu-btn');
+    if (menu && btn && menu.classList.contains('active')) {
+      if (!menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.remove('active');
+        btn.style.background = 'rgba(255,255,255,0.2)';
+      }
+    }
+  });
+}, 100);
 
 // 볼륨 로드 및 초기화
 function loadVolume() {
@@ -86,6 +94,16 @@ function updateVolume(value) {
     valueDisplay.textContent = orderVolume + '%';
   }
   console.log('🔊 주문 소리 크기:', orderVolume + '%');
+}
+
+// 사이트 편집 모드 열기
+function openSiteEditor() {
+  const editWindow = window.open('/pos/site-editor.html', 'siteEditor', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+  if (editWindow) {
+    editWindow.focus();
+  } else {
+    alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+  }
 }
 
 // 페이지 로드 시 가게 정보 및 볼륨 로드

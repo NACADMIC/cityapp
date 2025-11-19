@@ -21,12 +21,15 @@ body {
   position: relative;
   z-index: 100;
   min-height: 70px;
+  flex-wrap: wrap;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+  z-index: 101;
 }
 
 .header h1 {
@@ -193,6 +196,7 @@ body {
   gap: 10px;
   flex-wrap: wrap;
   position: relative;
+  z-index: 101;
 }
 
 .header-controls > span {
@@ -232,7 +236,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   padding: 8px;
-  z-index: 1000;
+  z-index: 10000;
   min-width: 150px;
   flex-direction: column;
   gap: 4px;
@@ -637,18 +641,21 @@ input:checked + .slider:before {
     padding: 10px 12px;
     flex-wrap: wrap;
     min-height: auto;
+    gap: 8px;
   }
   
   .header-left {
-    flex: 1;
+    flex: 0 0 auto;
     min-width: 0;
+    max-width: calc(100% - 50px);
   }
   
   .header h1 {
     font-size: 1.1em;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px;
+    max-width: 100%;
+    white-space: nowrap;
   }
   
   .header-controls {
@@ -660,6 +667,7 @@ input:checked + .slider:before {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 2px;
+    order: 3;
   }
   
   .header-controls::-webkit-scrollbar {
@@ -708,6 +716,7 @@ input:checked + .slider:before {
     right: 0;
     top: calc(100% + 5px);
     min-width: 140px;
+    z-index: 10000;
   }
   
   .more-menu .btn-test {
@@ -828,16 +837,25 @@ input:checked + .slider:before {
 @media (max-width: 480px) {
   .header {
     padding: 8px 10px;
+    gap: 6px;
+  }
+  
+  .header-left {
+    max-width: calc(100% - 40px);
   }
   
   .header h1 {
     font-size: 1em;
-    max-width: 120px;
+    max-width: 100%;
   }
   
   .header-controls {
     gap: 4px;
     margin-top: 6px;
+  }
+  
+  .more-menu {
+    z-index: 10000;
   }
   
   #business-status {

@@ -365,6 +365,11 @@
         <span class="menu-text">지역 분석</span>
       </a>
       <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
+        <span class="menu-icon">🎨</span>
+        <span class="menu-text">사이트 디자인 편집</span>
+      </a>
+      <div class="menu-divider"></div>
       <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
         <span class="menu-icon">🚪</span>
         <span class="menu-text">로그아웃</span>
@@ -1163,6 +1168,16 @@
     }
 
         // 편집 모드 열기 (새 창)
+        // 사이트 편집 모드 열기
+        function openSiteEditor() {
+          const editWindow = window.open('/pos/site-editor.html', 'siteEditor', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+          if (editWindow) {
+            editWindow.focus();
+          } else {
+            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+          }
+        }
+
         function openEditMode() {
           const editWindow = window.open('/pos/menu-editor.html', 'menuEditor', 'width=1400,height=900,scrollbars=yes,resizable=yes');
           if (editWindow) {

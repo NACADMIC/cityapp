@@ -3,6 +3,16 @@ if (sessionStorage.getItem('pos-authenticated') !== 'true') {
   window.location.href = '/pos/login.html';
 }
 
+// 사이트 편집 모드 열기
+function openSiteEditor() {
+  const editWindow = window.open('/pos/site-editor.html', 'siteEditor', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+  if (editWindow) {
+    editWindow.focus();
+  } else {
+    alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+  }
+}
+
 // 차트 인스턴스 저장
 let charts = {
   dailySales: null,

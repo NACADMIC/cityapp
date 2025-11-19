@@ -28,7 +28,7 @@
       <button class="btn-test btn-main" onclick="openBusinessHoursSettings()">⏰ 영업시간</button>
       <button class="btn-test btn-main" id="temporary-closed-btn" onclick="toggleTemporaryClosed()">🟢 영업중</button>
       <button class="btn-test btn-main" onclick="openBreakTimeSettings()">☕ 브레이크</button>
-      <button class="btn-more" onclick="toggleMoreMenu()" id="more-menu-btn">⋯</button>
+      <button class="btn-more" onclick="toggleMoreMenu(event)" id="more-menu-btn">⋯</button>
       <div class="more-menu" id="more-menu">
         <div class="volume-control">
           <label style="display: block; margin-bottom: 8px; font-size: 13px; color: #333; font-weight: 600;">🔊 주문 소리 크기</label>
@@ -87,6 +87,11 @@
       <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
         <span class="menu-icon">📍</span>
         <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
+        <span class="menu-icon">🎨</span>
+        <span class="menu-text">사이트 디자인 편집</span>
       </a>
       <div class="menu-divider"></div>
       <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
