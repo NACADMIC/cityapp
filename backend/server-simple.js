@@ -17,6 +17,19 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(bodyParser.json());
 
+// API 경로를 먼저 체크하는 미들웨어 (정적 파일 서빙보다 우선)
+// 이 미들웨어는 API 경로를 보호하지만 실제 라우팅은 하지 않음
+// 실제 API 라우트는 아래에 등록됨
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    console.log('🔍 [미들웨어] API 경로 감지:', req.path, '- API 라우트로 전달');
+    // API 경로는 다음 미들웨어로 (API 라우트로)
+    return next();
+  }
+  // API가 아니면 다음으로 (정적 파일 서빙으로)
+  next();
+});
+
 const db = new Database();
 
 console.log('✅ 메모리 DB 사용 (Railway 최적화)');
@@ -111,53 +124,63 @@ function isBusinessHours() {
 }
 
 app.get('/api/business-hours', (req, res) => {
-  const isOpen = isBusinessHours();
-  const now = new Date();
-  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-  const dayOfWeek = koreaTime.getDay();
-  const hour = koreaTime.getHours();
-  const minute = koreaTime.getMinutes();
+  console.log('📡 [API] GET /api/business-hours 요청 받음');
+  console.log('📡 [API] 요청 경로:', req.path);
+  console.log('📡 [API] 요청 URL:', req.url);
   
-  // 시간 포맷팅
-  const formatTime = (time) => {
-    const h = Math.floor(time);
-    const m = Math.round((time - h) * 60);
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  };
-  
-  const todayHours = businessHours[dayOfWeek] || { open: 9.5, close: 21 };
-  const todayBreakTime = breakTime[dayOfWeek];
-  
-  let statusMessage = '';
-  if (temporaryClosed) {
-    statusMessage = '임시휴업';
-  } else if (todayBreakTime && todayBreakTime.start !== undefined) {
-    const currentTime = hour + minute / 60;
-    if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
-      statusMessage = `브레이크타임 (${formatTime(todayBreakTime.start)} - ${formatTime(todayBreakTime.end)})`;
+  try {
+    const isOpen = isBusinessHours();
+    const now = new Date();
+    const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const dayOfWeek = koreaTime.getDay();
+    const hour = koreaTime.getHours();
+    const minute = koreaTime.getMinutes();
+    
+    // 시간 포맷팅
+    const formatTime = (time) => {
+      const h = Math.floor(time);
+      const m = Math.round((time - h) * 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+    
+    const todayHours = businessHours[dayOfWeek] || { open: 9.5, close: 21 };
+    const todayBreakTime = breakTime[dayOfWeek];
+    
+    let statusMessage = '';
+    if (temporaryClosed) {
+      statusMessage = '임시휴업';
+    } else if (todayBreakTime && todayBreakTime.start !== undefined) {
+      const currentTime = hour + minute / 60;
+      if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
+        statusMessage = `브레이크타임 (${formatTime(todayBreakTime.start)} - ${formatTime(todayBreakTime.end)})`;
+      }
     }
+    
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    
+    const response = {
+      isOpen,
+      currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      currentDay: dayOfWeek,
+      currentDayName: dayNames[dayOfWeek],
+      businessHours: `${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}`,
+      open: todayHours.open,
+      close: todayHours.close,
+      allBusinessHours: businessHours, // 모든 요일의 영업시간
+      temporaryClosed,
+      breakTime: todayBreakTime || null,
+      allBreakTime: breakTime, // 모든 요일의 브레이크타임
+      statusMessage
+    };
+    
+    console.log('✅ [API] /api/business-hours 응답 전송');
+    res.setHeader('Content-Type', 'application/json');
+    res.json(response);
+  } catch (error) {
+    console.error('❌ [API] /api/business-hours 오류:', error);
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ success: false, error: error.message });
   }
-  
-  const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-  
-  const response = {
-    isOpen,
-    currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-    currentDay: dayOfWeek,
-    currentDayName: dayNames[dayOfWeek],
-    businessHours: `${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}`,
-    open: todayHours.open,
-    close: todayHours.close,
-    allBusinessHours: businessHours, // 모든 요일의 영업시간
-    temporaryClosed,
-    breakTime: todayBreakTime || null,
-    allBreakTime: breakTime, // 모든 요일의 브레이크타임
-    statusMessage
-  };
-  
-  console.log('✅ /api/business-hours 응답:', JSON.stringify(response).substring(0, 100));
-  res.setHeader('Content-Type', 'application/json');
-  res.json(response);
 });
 
 // API: 영업시간 설정 (요일별)
@@ -951,15 +974,31 @@ async function generateTestData() {
   }
 }
 
-// 정적 파일 서빙 (API 경로는 이미 위에서 처리되므로 안전)
-// API 라우트가 모두 등록된 후에 정적 파일 서빙 등록
-const staticMiddleware = express.static(path.join(__dirname, 'public'));
-app.use((req, res, next) => {
+// 정적 파일 서빙 (모든 API 라우트가 등록된 후에만 등록)
+// API 경로를 명시적으로 제외하는 미들웨어
+const staticFileHandler = express.static(path.join(__dirname, 'public'), {
   // API 경로는 정적 파일 서빙에서 제외
+  index: false
+});
+
+app.use((req, res, next) => {
+  // API 경로는 정적 파일 서빙에서 완전히 제외
   if (req.path.startsWith('/api/')) {
-    return next();
+    console.error('❌ [중요] API 경로가 정적 파일 서빙에 도달함!');
+    console.error('   경로:', req.path);
+    console.error('   URL:', req.url);
+    console.error('   이는 API 라우트가 등록되지 않았거나 라우팅 순서 문제입니다!');
+    // 404 대신 500으로 반환하여 문제를 명확히 함
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({ 
+      success: false, 
+      error: 'API 라우트가 등록되지 않았습니다. 서버를 재시작해주세요.',
+      path: req.path,
+      url: req.url
+    });
   }
-  staticMiddleware(req, res, next);
+  // 정적 파일 서빙
+  staticFileHandler(req, res, next);
 });
 
 // 기본 경로 리다이렉트 (정적 파일 서빙 이후)
@@ -969,6 +1008,16 @@ app.get('/', (req, res) => {
 
 // 서버 시작
 const PORT = process.env.PORT || 3000;
+
+// 서버 시작 전 라우트 확인
+console.log('\n📋 등록된 API 라우트:');
+console.log('  GET  /api/business-hours');
+console.log('  POST /api/business-hours');
+console.log('  POST /api/temporary-closed');
+console.log('  POST /api/break-time');
+console.log('  (기타 API 라우트들...)');
+console.log('📋 정적 파일 서빙: /public (API 경로 제외)\n');
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log('\n');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
