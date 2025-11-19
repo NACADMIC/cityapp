@@ -476,6 +476,29 @@ app.get('/api/menu/:id/options', (req, res) => {
   }
 });
 
+// API: 가게 정보 조회
+app.get('/api/store/info', (req, res) => {
+  try {
+    const storeInfo = db.getStoreInfo();
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, storeInfo });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 가게 정보 저장
+app.post('/api/store/info', (req, res) => {
+  try {
+    const { name, phone, license, address } = req.body;
+    const storeInfo = db.setStoreInfo({ name, phone, license, address });
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, storeInfo });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 회원가입
 app.post('/api/auth/register', async (req, res) => {
   try {

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>가게 관리 - 시티반점 POS</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .store-management-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    .page-header {
+      margin-bottom: 30px;
+    }
+    .page-header h2 {
+      font-size: 1.8em;
+      color: #1976d2;
+      margin: 0;
+    }
+    .section-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .section-title {
+      font-size: 1.3em;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .btn-save {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn-save:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #4caf50;
+    }
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+    .business-hours-grid {
+      display: grid;
+      gap: 15px;
+      margin-top: 15px;
+    }
+    .day-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 1fr;
+      gap: 15px;
+      align-items: center;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .day-name {
+      font-weight: 600;
+      color: #333;
+    }
+    .time-input {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .time-input input {
+      flex: 1;
+    }
+    .break-time-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 1fr;
+      gap: 15px;
+      align-items: center;
+      padding: 10px 15px;
+      background: #fff3e0;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .status-open {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    .status-closed {
+      background: #ffebee;
+      color: #c62828;
+    }
+    .status-break {
+      background: #fff3e0;
+      color: #e65100;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>🏮 시티반점</h1>
+    </div>
+    <div class="header-controls">
+      <a href="/pos" style="color: white; text-decoration: none; padding: 8px 14px; background: rgba(255,255,255,0.2); border-radius: 6px; font-size: 13px;">← 주문 관리</a>
+    </div>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">전체현황·임시중지</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/store-management.html" class="menu-item active" onclick="toggleMenu()">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">가게관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">가게통계</span>
+        <span class="menu-badge">업데이트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/menu-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">가게 메뉴판 편집</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=options" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">메뉴·옵션 관리</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=discounts" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏷️</span>
+        <span class="menu-text">메뉴별 할인 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+
+  <div class="store-management-container">
+    <div class="page-header">
+      <h2>🏪 가게 관리</h2>
+    </div>
+
+    <!-- 가게 정보 -->
+    <div class="section-card">
+      <div class="section-title">📝 가게 정보</div>
+      <form id="store-info-form">
+        <div class="form-group">
+          <label>가게명</label>
+          <input type="text" id="store-name" value="시티반점" placeholder="가게명을 입력하세요">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>전화번호</label>
+            <input type="tel" id="store-phone" value="031-123-4567" placeholder="031-123-4567">
+          </div>
+          <div class="form-group">
+            <label>사업자등록번호</label>
+            <input type="text" id="store-license" value="" placeholder="123-45-67890">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>주소</label>
+          <input type="text" id="store-address" value="경기도 안성시 공도읍" placeholder="주소를 입력하세요">
+        </div>
+        <button type="button" class="btn-save" onclick="saveStoreInfo()">가게 정보 저장</button>
+      </form>
+    </div>
+
+    <!-- 영업 상태 -->
+    <div class="section-card">
+      <div class="section-title">🟢 영업 상태</div>
+      <div class="form-group">
+        <div class="toggle-switch">
+          <label class="switch">
+            <input type="checkbox" id="temporary-closed-toggle" onchange="toggleTemporaryClosed()">
+            <span class="slider"></span>
+          </label>
+          <span id="temporary-closed-text" style="font-weight: 600;">임시휴업</span>
+        </div>
+        <div id="current-status" style="margin-top: 15px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <div style="font-weight: 600; margin-bottom: 8px;">현재 상태</div>
+          <div id="status-display">로딩 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 영업시간 설정 -->
+    <div class="section-card">
+      <div class="section-title">⏰ 영업시간 설정</div>
+      <div class="business-hours-grid" id="business-hours-grid">
+        <!-- 동적으로 생성됨 -->
+      </div>
+      <button type="button" class="btn-save" onclick="saveBusinessHours()" style="margin-top: 20px;">영업시간 저장</button>
+    </div>
+
+    <!-- 브레이크타임 설정 -->
+    <div class="section-card">
+      <div class="section-title">☕ 브레이크타임 설정</div>
+      <div class="business-hours-grid" id="break-time-grid">
+        <!-- 동적으로 생성됨 -->
+      </div>
+      <button type="button" class="btn-save" onclick="saveBreakTime()" style="margin-top: 20px;">브레이크타임 저장</button>
+    </div>
+  </div>
+
+  <script>
+    // Check authentication
+    if (sessionStorage.getItem('pos-authenticated') !== 'true') {
+      window.location.href = 'login.html';
+    }
+
+    let businessHours = {};
+    let breakTime = {};
+    let temporaryClosed = false;
+
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+    // 사이드 메뉴 토글
+    function toggleMenu() {
+      const sideMenu = document.getElementById('side-menu');
+      const overlay = document.getElementById('menu-overlay');
+      sideMenu.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // 영업시간 로드
+    async function loadBusinessHours() {
+      try {
+        const res = await fetch('/api/business-hours');
+        const data = await res.json();
+        if (data.success || data.allBusinessHours) {
+          businessHours = data.allBusinessHours || data.businessHours || {};
+          temporaryClosed = data.temporaryClosed || false;
+          breakTime = data.allBreakTime || data.breakTime || {};
+          
+          renderBusinessHours();
+          renderBreakTime();
+          updateStatus();
+          updateTemporaryClosedToggle();
+        }
+      } catch (error) {
+        console.error('영업시간 로드 오류:', error);
+      }
+    }
+
+    // 영업시간 렌더링
+    function renderBusinessHours() {
+      const container = document.getElementById('business-hours-grid');
+      container.innerHTML = '';
+      
+      for (let day = 0; day <= 6; day++) {
+        const hours = businessHours[day] || { open: 9.5, close: 21 };
+        const openHour = Math.floor(hours.open);
+        const openMin = Math.round((hours.open - openHour) * 60);
+        const closeHour = Math.floor(hours.close);
+        const closeMin = Math.round((hours.close - closeHour) * 60);
+        
+        container.innerHTML += `
+          <div class="day-row">
+            <div class="day-name">${dayNames[day]}</div>
+            <div class="time-input">
+              <label>오픈</label>
+              <input type="time" data-day="${day}" data-type="open" value="${String(openHour).padStart(2, '0')}:${String(openMin).padStart(2, '0')}">
+            </div>
+            <div class="time-input">
+              <label>마감</label>
+              <input type="time" data-day="${day}" data-type="close" value="${String(closeHour).padStart(2, '0')}:${String(closeMin).padStart(2, '0')}">
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 브레이크타임 렌더링
+    function renderBreakTime() {
+      const container = document.getElementById('break-time-grid');
+      container.innerHTML = '';
+      
+      for (let day = 0; day <= 6; day++) {
+        const bt = breakTime[day];
+        const startHour = bt ? Math.floor(bt.start) : 0;
+        const startMin = bt ? Math.round((bt.start - startHour) * 60) : 0;
+        const endHour = bt ? Math.floor(bt.end) : 0;
+        const endMin = bt ? Math.round((bt.end - endHour) * 60) : 0;
+        
+        container.innerHTML += `
+          <div class="day-row">
+            <div class="day-name">${dayNames[day]}</div>
+            <div class="time-input">
+              <label>시작</label>
+              <input type="time" data-day="${day}" data-type="start" value="${bt ? String(startHour).padStart(2, '0') + ':' + String(startMin).padStart(2, '0') : ''}" placeholder="설정 안함">
+            </div>
+            <div class="time-input">
+              <label>종료</label>
+              <input type="time" data-day="${day}" data-type="end" value="${bt ? String(endHour).padStart(2, '0') + ':' + String(endMin).padStart(2, '0') : ''}" placeholder="설정 안함">
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 영업시간 저장
+    async function saveBusinessHours() {
+      const hours = {};
+      
+      document.querySelectorAll('#business-hours-grid input[data-type="open"]').forEach(input => {
+        const day = parseInt(input.dataset.day);
+        const time = input.value;
+        if (time) {
+          const [h, m] = time.split(':').map(Number);
+          hours[day] = hours[day] || {};
+          hours[day].open = h + m / 60;
+        }
+      });
+      
+      document.querySelectorAll('#business-hours-grid input[data-type="close"]').forEach(input => {
+        const day = parseInt(input.dataset.day);
+        const time = input.value;
+        if (time) {
+          const [h, m] = time.split(':').map(Number);
+          hours[day] = hours[day] || {};
+          hours[day].close = h + m / 60;
+        }
+      });
+
+      try {
+        const res = await fetch('/api/business-hours', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hours })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('영업시간이 저장되었습니다.');
+          businessHours = hours;
+          updateStatus();
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
+    // 브레이크타임 저장
+    async function saveBreakTime() {
+      const breakTimes = {};
+      
+      for (let day = 0; day <= 6; day++) {
+        const startInput = document.querySelector(`#break-time-grid input[data-day="${day}"][data-type="start"]`);
+        const endInput = document.querySelector(`#break-time-grid input[data-day="${day}"][data-type="end"]`);
+        
+        if (startInput.value && endInput.value) {
+          const [sh, sm] = startInput.value.split(':').map(Number);
+          const [eh, em] = endInput.value.split(':').map(Number);
+          breakTimes[day] = {
+            start: sh + sm / 60,
+            end: eh + em / 60
+          };
+        }
+      }
+
+      try {
+        const res = await fetch('/api/break-time', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ breakTimes })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('브레이크타임이 저장되었습니다.');
+          breakTime = breakTimes;
+          updateStatus();
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
+    // 임시휴업 토글
+    async function toggleTemporaryClosed() {
+      const checked = document.getElementById('temporary-closed-toggle').checked;
+      
+      try {
+        const res = await fetch('/api/temporary-closed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ closed: checked })
+        });
+        const data = await res.json();
+        if (data.success) {
+          temporaryClosed = checked;
+          updateStatus();
+          updateTemporaryClosedToggle();
+        } else {
+          alert('설정 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('설정 오류: ' + error.message);
+      }
+    }
+
+    // 임시휴업 토글 상태 업데이트
+    function updateTemporaryClosedToggle() {
+      document.getElementById('temporary-closed-toggle').checked = temporaryClosed;
+      document.getElementById('temporary-closed-text').textContent = temporaryClosed ? '임시휴업 중' : '영업 중';
+    }
+
+    // 현재 상태 업데이트
+    function updateStatus() {
+      const now = new Date();
+      const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+      const dayOfWeek = koreaTime.getDay();
+      const hour = koreaTime.getHours();
+      const minute = koreaTime.getMinutes();
+      const currentTime = hour + minute / 60;
+
+      let statusText = '';
+      let statusClass = '';
+
+      if (temporaryClosed) {
+        statusText = '임시휴업 중';
+        statusClass = 'status-closed';
+      } else {
+        const todayHours = businessHours[dayOfWeek];
+        const todayBreakTime = breakTime[dayOfWeek];
+        
+        if (!todayHours || currentTime < todayHours.open || currentTime >= todayHours.close) {
+          statusText = '영업시간 외';
+          statusClass = 'status-closed';
+        } else if (todayBreakTime && currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
+          statusText = '브레이크타임 중';
+          statusClass = 'status-break';
+        } else {
+          statusText = '영업 중';
+          statusClass = 'status-open';
+        }
+      }
+
+      const formatTime = (time) => {
+        const h = Math.floor(time);
+        const m = Math.round((time - h) * 60);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      };
+
+      const todayHours = businessHours[dayOfWeek] || { open: 9.5, close: 21 };
+      const statusDisplay = document.getElementById('status-display');
+      statusDisplay.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <span class="status-badge ${statusClass}">${statusText}</span>
+          <span style="color: #666;">${dayNames[dayOfWeek]} ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}</span>
+        </div>
+        <div style="color: #666; font-size: 14px;">
+          오늘 영업시간: ${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}
+        </div>
+      `;
+    }
+
+    // 가게 정보 로드
+    async function loadStoreInfo() {
+      try {
+        const res = await fetch('/api/store/info');
+        const data = await res.json();
+        if (data.success && data.storeInfo) {
+          document.getElementById('store-name').value = data.storeInfo.name || '시티반점';
+          document.getElementById('store-phone').value = data.storeInfo.phone || '';
+          document.getElementById('store-license').value = data.storeInfo.license || '';
+          document.getElementById('store-address').value = data.storeInfo.address || '';
+        }
+      } catch (error) {
+        console.error('가게 정보 로드 오류:', error);
+      }
+    }
+
+    // 가게 정보 저장
+    async function saveStoreInfo() {
+      const storeInfo = {
+        name: document.getElementById('store-name').value,
+        phone: document.getElementById('store-phone').value,
+        license: document.getElementById('store-license').value,
+        address: document.getElementById('store-address').value
+      };
+
+      try {
+        const res = await fetch('/api/store/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(storeInfo)
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('가게 정보가 저장되었습니다.');
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
+    // 초기화
+    loadStoreInfo();
+    loadBusinessHours();
+    setInterval(updateStatus, 60000); // 1분마다 상태 업데이트
+  </script>
+</body>
+</html>
+

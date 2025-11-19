@@ -12,6 +12,12 @@ class DB {
     this.menuCosts = {}; // 메뉴별 원가 { menuId: cost }
     this.menuDiscounts = {}; // 메뉴별 할인 { menuId: { type: 'percent'|'fixed', value: number } }
     this.menuOptions = {}; // 메뉴별 옵션 { menuId: [{ name, price }] }
+    this.storeInfo = { // 가게 정보
+      name: '시티반점',
+      phone: '031-123-4567',
+      license: '',
+      address: '경기도 안성시 공도읍'
+    };
     this.initialized = false;
     this.init();
   }
@@ -176,6 +182,17 @@ class DB {
 
   getAllMenuOptions() {
     return { ...this.menuOptions };
+  }
+
+  // 가게 정보 관리
+  setStoreInfo(info) {
+    this.storeInfo = { ...this.storeInfo, ...info };
+    console.log('✅ 가게 정보 업데이트:', this.storeInfo);
+    return this.storeInfo;
+  }
+
+  getStoreInfo() {
+    return { ...this.storeInfo };
   }
 
   async createUser(phone, name, email, address, password) {
