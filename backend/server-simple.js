@@ -7,6 +7,8 @@ const { v4: uuidv4 } = require('uuid');
 const Database = require('./database-simple');
 const os = require('os');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,6 +24,45 @@ app.use(bodyParser.json());
 // API 라우트가 먼저 등록되어 있으면 자동으로 우선 처리됨
 
 const db = new Database();
+
+// 이미지 업로드 설정
+const uploadDir = path.join(__dirname, 'public', 'images', 'menu');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // 파일명을 영문으로 변환 (한글 파일명 방지)
+    const ext = path.extname(file.originalname);
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    // 한글 제거하고 영문/숫자만 사용
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20) || 'image';
+    cb(null, `${safeName}_${timestamp}_${randomStr}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB 제한
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('이미지 파일만 업로드 가능합니다. (jpg, png, gif, webp)'));
+    }
+  }
+});
 
 console.log('✅ 메모리 DB 사용 (Railway 최적화)');
 
@@ -471,6 +512,20 @@ app.get('/api/menu/:id/options', (req, res) => {
     const menuId = parseInt(req.params.id);
     const options = db.getMenuOptions(menuId);
     res.json({ success: true, options });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 이미지 업로드
+app.post('/api/upload/image', upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: '이미지 파일이 없습니다.' });
+    }
+    
+    const imageUrl = `/images/menu/${req.file.filename}`;
+    res.json({ success: true, imageUrl });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

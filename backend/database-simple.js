@@ -64,49 +64,111 @@ class DB {
   }
 
   async initMenu() {
+    // 기본 이미지 URL (나중에 실제 이미지로 교체 가능)
+    const defaultImage = 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop';
+    
     this.menu = [
-      // 오늘의 메뉴
-      { id: 1, name: '짜장면', category: '오늘의메뉴', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 1, description: '진한 짜장소스와 쫄깃한 면발이 일품인 시티반점의 대표 메뉴입니다.' },
-      { id: 2, name: '짬뽕', category: '오늘의메뉴', price: 7000, image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&h=400&fit=crop', bestseller: 1, description: '신선한 해산물과 매콤한 국물이 일품인 짬뽕입니다.' },
+      // ===== 대표메뉴 =====
+      { id: 1, name: '[바삭부들] 안심탕수육(소)', category: '추천메뉴', price: 20000, image: defaultImage, bestseller: 1, description: '[바삭하고부드러운] 고급스럽고 부드러운 안심 고기로 만든 탕수육' },
+      { id: 2, name: '[바삭부들] 안심탕수육(중)', category: '추천메뉴', price: 25000, image: defaultImage, bestseller: 1, description: '[바삭하고부드러운] 고급스럽고 부드러운 안심 고기로 만든 탕수육' },
+      { id: 3, name: '[바삭부들] 안심탕수육(대)', category: '추천메뉴', price: 30000, image: defaultImage, bestseller: 1, description: '[바삭하고부드러운] 고급스럽고 부드러운 안심 고기로 만든 탕수육' },
+      { id: 4, name: '(특별메뉴)고추간짜장[실장추천](1인분)', category: '추천메뉴', price: 11000, image: defaultImage, bestseller: 1, description: '고추간짜장 드실려고 직접 가게까지 오실 정도로 특별한 메뉴 고추간짜장 더 밋있게 먹는 꿀팁 : .면을 다 드시고 남은 장에 밥을 비벼 드시면 더 즐거워집니다.' },
+      { id: 5, name: '[명품]중화비빔밥 [실장추천](1인분)', category: '추천메뉴', price: 11000, image: defaultImage, bestseller: 1, description: '경상도식 중화비빔밥 (공도에서 거의 처음으로 진짜 중화비빔밥이 어떤 음식인지 소개한 곳) 중화 비빔밥 : 해물, 야채와 함께 매콤하게 직화로 볶고 위에 계란까지 올라갔어요.' },
       
-      // 추천 메뉴
-      { id: 3, name: '탕수육', category: '추천메뉴', price: 15000, image: 'https://images.unsplash.com/photo-1626776876729-bab4eda639c7?w=400&h=400&fit=crop', bestseller: 1, description: '바삭한 튀김과 새콤달콤한 소스가 조화로운 탕수육입니다.' },
-      { id: 4, name: '깐풍기', category: '추천메뉴', price: 18000, image: 'https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=400&h=400&fit=crop', bestseller: 1, description: '매콤달콤한 양념과 바삭한 닭고기가 일품인 깐풍기입니다.' },
-      { id: 5, name: '양장피', category: '추천메뉴', price: 20000, image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop', bestseller: 0, description: '부드러운 양지와 신선한 채소가 어우러진 양장피입니다.' },
+      // ===== 신메뉴 =====
+      { id: 6, name: '고기듬뿍 (짜장)(1인분)', category: '추천메뉴', price: 10000, image: defaultImage, bestseller: 0, description: '고급 안심고기가 왕창 들어 있습니다. (안심고기 170g 추가) [고기 양에 놀라고, 안심고기와 짜장과의 어울림에 놀라고] 고기집 1인분 정도의 양이 추가로 들어 있습니다. 곱배기 안드셔도 배불러요. 그리고 남은 소스 절대 못버립니다. 꼭 밥이랑 같이 드세요 고기를 좋아하시는 분들에게 추천드립니다.' },
+      { id: 7, name: '바지락폭탄 (짬뽕)(1인분)', category: '추천메뉴', price: 11000, image: defaultImage, bestseller: 0, description: '쫄깃쫄깃한 바지락이 너무 많이 들어 있습니다. (다른 해물은 들어가지 않습니다.) 들어가있는 알(껍질이 없는) 바지략양에 놀라지 마세요 어줍잖게 바지락 개수 10개 들어가지 않습니다. 최소 80~100마리 이상 들어가 있습니다. (바지락 개수 한번 세서 알려주시면 감사합니다 ㅠ.ㅠ)' },
+      { id: 8, name: '고기듬뿍 (간짜장)(1인분)', category: '추천메뉴', price: 12000, image: defaultImage, bestseller: 0, description: '고급 안심고기가 왕창 들어 있습니다. (안심고기 170g 추가) [고기 양에 놀라고, 안심고기와 간짜장과의 어울림에 놀라고] 고기집 1인분 정도의 양이 추가로 들어 있습니다. 곱배기 안드셔도 배불러요. 그리고 남은 소스 절대 못버립니다. 꼭 밥이랑 같이 드세요 고기를 좋아하시는 분들에게 추천드립니다.' },
+      { id: 9, name: '고기듬뿍 (고추간짜장)(1인분)', category: '추천메뉴', price: 14000, image: defaultImage, bestseller: 0, description: '고급 안심고기가 왕창 들어 있습니다. (안심고기 170g 추가) [고기양에 놀라고, 안심고기와 고추간짜장과의 어울림에 놀라고] 고기집 1인분 정도의 양이 추가로 들어 있습니다. 곱배기 안드셔도 배불러요. 그리고 남은 소스 절대 못버립니다. 꼭 밥이랑 같이 드세요 고기를 좋아하시는 분들에게 추천드립니다.' },
+      { id: 10, name: '시티짜장 + 군만두(5P) 세트', category: '세트메뉴', price: 9900, image: defaultImage, bestseller: 0 },
       
-      // 면류
-      { id: 6, name: '짜장면', category: '면류', price: 6000, image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 7, name: '짬뽕', category: '면류', price: 7000, image: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 8, name: '울면', category: '면류', price: 7000, image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 9, name: '간짜장', category: '면류', price: 7000, image: 'https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400&h=400&fit=crop', bestseller: 0 },
+      // ===== 면류 =====
+      { id: 11, name: '[안심] 시티짜장(1인분)', category: '면류', price: 6900, image: defaultImage, bestseller: 0, description: '[안심]하고 드셔도 됩니다. 부드럽고 고급진 안심 고기로 볶은 짜장' },
+      { id: 12, name: '[안심] 간짜장(1인분)', category: '면류', price: 9000, image: defaultImage, bestseller: 0, description: '[안심]하고 드셔도 됩니다. 부드럽고 고급진 안심고기와 아삭한 양파와 같이 볶은 간짜장' },
+      { id: 13, name: '(통오징어1마리)직화짬뽕(1인분)', category: '면류', price: 9500, image: defaultImage, bestseller: 0, description: '오징어다리까지 들어있는 짬뽕 정말 흔하지 않죠 매일 들어오는 신선한 야채, 통오징어 한마리가 들어가 있는 직화짬뽕 [가위가 꼭 필요하세요]' },
+      { id: 14, name: '열직화짬뽕(매운)(1인분)', category: '면류', price: 10500, image: defaultImage, bestseller: 0, description: '요즘 핫하게 나가고 있는 열직화짬뽕 ( 일반짬뽕보다 2~3배 정도 매워요) 청양고추와 매운고추가루로 조리해요 (캡사이신 사용X)' },
+      { id: 15, name: '(특별메뉴)고추간짜장[실장추천](1인분)', category: '면류', price: 11000, image: defaultImage, bestseller: 1, description: '고추간짜장 드실려고 직접 가게까지 오실 정도로 특별한 메뉴 고추간짜장 더 밋있게 먹는 꿀팁 : .면을 다 드시고 남은 장에 밥을 비벼 드시면 더 즐거워집니다.' },
+      { id: 16, name: '야끼우동[실장추천](1인분)', category: '면류', price: 11000, image: defaultImage, bestseller: 1, description: '경상도식 볶음 짬뽕 한번 먹으면 또 생각나는 그 맛 (철판야끼우동은 홀에서만 판매해요)' },
+      { id: 17, name: '삼선간짜장(1인분)', category: '면류', price: 11000, image: defaultImage, bestseller: 0, description: '부드럽고 고급진 안심고기, 여러가지 삼선해물 그리고 아삭한 양파와 같이 볶은 삼선간짜장' },
+      { id: 18, name: '백짬뽕(삼선)(1인분)', category: '면류', price: 11000, image: defaultImage, bestseller: 0, description: '여러가지 삼선 해물과 고추가루를 뺀 하얀 국물에 약간 매운 맛을 가미한 직화백짬뽕' },
+      { id: 19, name: '삼선우동(1인분)', category: '면류', price: 11000, image: defaultImage, bestseller: 0, description: '여러가지 삼선해물과 함께 조리한 맑은 색에 담백한 맛을 지닌 삼선우동' },
+      { id: 20, name: '삼선울면(1인분)', category: '면류', price: 11000, image: defaultImage, bestseller: 0, description: '여러가지 삼선해물을 넣어 우동과는 다르게 걸쭉하게 만든 삼선울면' },
+      { id: 21, name: '황제고추간짜장(해물듬뿍)(1인분)', category: '면류', price: 13000, image: defaultImage, bestseller: 0, description: '여러가지 해물이 듬뿍 들어가 있는 고추간짜장 업그레이드 버전' },
+      { id: 22, name: '(특)삼선짬뽕(1인분)', category: '면류', price: 13000, image: defaultImage, bestseller: 0, description: '(푸짐하게) 통오징어, 여러가지 해물이 추가로 들어가 있어요. (삼선짬뽕에 들어가는 해물은 계절에 따라 바뀔 수 있어요) 통오징어라 가위가 필요해요~' },
+      { id: 23, name: '소고기짬뽕(1인분)', category: '면류', price: 13000, image: defaultImage, bestseller: 0, description: '불향가득 소고기를 직화에 볶아서 풍미를 더한 소고기짬뽕 [사진상으로는 들어가는 고기양을 나타내기 위해 다른 색으로 표현하였지만 실제로는 짬뽕과 어울어져 조리됩니다.]' },
+      { id: 24, name: '해물쟁반짜장(2인)(2인분)', category: '면류', price: 18000, image: defaultImage, bestseller: 0, description: '면 2인분, 몇가지 해물과 짜장을 직화로 볶은 해물쟁반짜장2인 (해물쟁반짜장은 면이 따로 나가지 않습니다)' },
+      { id: 25, name: '짬짜면(1인분)', category: '면류', price: 10000, image: defaultImage, bestseller: 0 },
+      { id: 26, name: '볶짜면(1인분)', category: '면류', price: 10000, image: defaultImage, bestseller: 0 },
+      { id: 27, name: '볶짬면(1인분)', category: '면류', price: 10000, image: defaultImage, bestseller: 0 },
+      { id: 28, name: '탕짜면(1인분)', category: '면류', price: 12000, image: defaultImage, bestseller: 0 },
+      { id: 29, name: '탕짬면(1인분)', category: '면류', price: 12000, image: defaultImage, bestseller: 0 },
+      { id: 30, name: '미니짬뽕국물(작은사이즈아님)(1인분)', category: '면류', price: 3000, image: defaultImage, bestseller: 0 },
       
-      // 밥류
-      { id: 10, name: '볶음밥', category: '밥류', price: 7000, image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 11, name: '짜장밥', category: '밥류', price: 6500, image: 'https://images.unsplash.com/photo-1645177628172-a94c30a5f0cc?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 12, name: '짬뽕밥', category: '밥류', price: 7500, image: 'https://images.unsplash.com/photo-1609501676725-7186f017a4b7?w=400&h=400&fit=crop', bestseller: 0 },
+      // ===== 밥류 =====
+      { id: 31, name: '[구름계란] 볶음밥(1인분)', category: '밥류', price: 9000, image: defaultImage, bestseller: 0, description: '구름모양 계란 짜장소스, 짬뽕국물 그리고 야들야들 볶음밥 [세가지 맛을 한번에 다 드실 수 있습니다.]' },
+      { id: 32, name: '짬뽕밥(1인분)', category: '밥류', price: 10000, image: defaultImage, bestseller: 0, description: '1, 직화짬뽕과 같은 내용이지만 면 대신 공기밥으로 나갑니다. 2. 배달시 당면이 국물을 다 흡수하기 때문에 당면은 들어가지 않습니다.' },
+      { id: 33, name: '잡채밥(1인분)', category: '밥류', price: 10000, image: defaultImage, bestseller: 0, description: '탱글탱글한 당면, 여러가지 야채와 유슬고기를 불향으로 조리한 잡채밥' },
+      { id: 34, name: '마파두부덮밥(1인분)', category: '밥류', price: 10000, image: defaultImage, bestseller: 0 },
+      { id: 35, name: '[총총] 새우볶음밥(1인분)', category: '밥류', price: 11000, image: defaultImage, bestseller: 0, description: '총총총 박혀있는 새우, 짜장소스, 짬뽕국물 그리고 야들야들 볶음밥 [세가지 맛을 한번에 다 드실 수 있습니다.]' },
+      { id: 36, name: '삼선볶음밥(1인분)', category: '밥류', price: 11000, image: defaultImage, bestseller: 0, description: '여러가지 삼선 해물, 짜장소스, 짬뽕국물 그리고 야들야들 볶음밥 [세가지 맛을 한번에 다 드실 수 있습니다.]' },
+      { id: 37, name: '[명품]중화비빔밥 [실장추천](1인분)', category: '밥류', price: 11000, image: defaultImage, bestseller: 1, description: '경상도식 중화비빔밥 (공도에서 거의 처음으로 진짜 중화비빔밥이 어떤 음식인지 소개한 곳) 중화 비빔밥 : 해물, 야채와 함께 매콤하게 직화로 볶고 위에 계란까지 올라갔어요.' },
+      { id: 38, name: '속풀이순두부짬뽕밥(1인분)', category: '밥류', price: 11000, image: defaultImage, bestseller: 0, description: '순두부 한통이 통째로 들어가 있어요 짬뽕과 순두부의 조화가 제법이에요' },
+      { id: 39, name: '한돈제육덮밥[불향가득](1인분)', category: '밥류', price: 11000, image: defaultImage, bestseller: 0, description: '냄새부터 불향 가득한 직화제육덮밥 (제육을 좋아하시는 분들에게는 강력추천)' },
+      { id: 40, name: '고추잡채밥(1인분)', category: '밥류', price: 12000, image: defaultImage, bestseller: 0, description: '여러 신선한 야채 그리고 아삭한 피망 맛과 불향이 잘 어울러진 고추잡채밥 고추잡채밥에는 잡채(당면)가 들어가지 않습니다.' },
+      { id: 41, name: '유산슬밥(1인분)', category: '밥류', price: 13000, image: defaultImage, bestseller: 0, description: '해삼, 죽순, 버섯류로 조리하고 자극적이지 않은 담백하고 고급스러운 맛' },
+      { id: 42, name: '잡탕밥(해물듬뿍)(1인분)', category: '밥류', price: 14000, image: defaultImage, bestseller: 0, description: '여러가지 삼선해물과 신선한 야채를 직화로 조리하여 만든 고급스럽고 매콤한 맛이 가미된 잡탕밥' },
+      { id: 43, name: '탕볶밥(1인분)', category: '밥류', price: 12000, image: defaultImage, bestseller: 0 },
       
-      // 디저트
-      { id: 13, name: '군만두', category: '디저트', price: 5000, image: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 14, name: '물만두', category: '디저트', price: 5000, image: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 15, name: '짬뽕순두부', category: '디저트', price: 8000, image: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=400&h=400&fit=crop', bestseller: 0 },
+      // ===== 특별요리 =====
+      { id: 44, name: '[바삭부들] 안심탕수육(소)', category: '추천메뉴', price: 20000, image: defaultImage, bestseller: 1, description: '[바삭하고부드러운] 고급스럽고 부드러운 안심 고기로 만든 탕수육' },
+      { id: 45, name: '[바삭부들] 안심탕수육(중)', category: '추천메뉴', price: 25000, image: defaultImage, bestseller: 1, description: '[바삭하고부드러운] 고급스럽고 부드러운 안심 고기로 만든 탕수육' },
+      { id: 46, name: '[바삭부들] 안심탕수육(대)', category: '추천메뉴', price: 30000, image: defaultImage, bestseller: 1, description: '[바삭하고부드러운] 고급스럽고 부드러운 안심 고기로 만든 탕수육' },
+      { id: 47, name: '삼선술국(요리류)', category: '추천메뉴', price: 15000, image: defaultImage, bestseller: 0, description: '여러가지 삼선해물과 함께 조리한 삼선 술국 (삼선 짬뽕과 차이: 면이 들어가지 않고 야채와 해물이 더 많이 들어가있습니다) (가위가 필요해요)' },
+      { id: 48, name: '양장피(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '[화려한 비쥬얼] 여러가지 신선한 야채, 해물, 그리고 전분을 이용해서 만든 피를 톡쏘는 겨자와 곁들어 먹는 고급 요리' },
+      { id: 49, name: '황비홍깐풍기(바삭, 매콤 치킨 스타일)(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '닭고기를 전분을 사용하여 튀기고 고추기름과 마늘, 생강, 고추를 기본으로 한 매콤한 깐풍 소스 양념에 채소들을 곁들여 직화로 만든 고급요리' },
+      { id: 50, name: '칠리새우(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '(새우크기에 따라)17~19마리를 신선한 기름에 튀기고 직접 만든 매콤한 칠리 소스와 새우를 직화로 버무린 고급 요리' },
+      { id: 51, name: '크림새우(크림소스의 달콤한 맛~)(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '(새우크기에 따라)17~19마리를 신선한 기름에 튀기고 직접 만든 달콤한 크림 소스와 새우를 직화로 버무린 고급 요리' },
+      { id: 52, name: '고추잡채(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '여러 신선한 야채 그리고 아삭한 피망 맛과 불향이 잘 어울러진 고급요리 추가로 푹신하게 찐 꽃빵 4개 포함' },
+      { id: 53, name: '유산슬(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '해삼, 죽순, 버섯류로 조리하고 자극적이지 않은 담백한 고급요리' },
+      { id: 54, name: '팔보채(요리류)', category: '추천메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '여러가지 삼선해물과 신선한 야채를 직화로 조리하여 만든 고급스럽고 매콤한 맛이 가미된 고급요리' },
       
-      // 음료
-      { id: 16, name: '코카콜라 2L', category: '음료', price: 3500, image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 17, name: '제로콜라', category: '음료', price: 2500, image: 'https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 18, name: '사이다', category: '음료', price: 2000, image: 'https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 19, name: '매실', category: '음료', price: 3000, image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&h=400&fit=crop', bestseller: 0 },
+      // ===== 1인세트 =====
+      { id: 55, name: '탕수육+짜장+군만두(2)(1인세트)', category: '세트메뉴', price: 18000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 짜장 세트 (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 56, name: '탕수육+간짜장+군만두(2)(1인세트)', category: '세트메뉴', price: 20000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 간짜장 세트 (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 57, name: '탕수육+볶음밥+군만두(2)(1인세트)', category: '세트메뉴', price: 20000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육+ 볶음밥 세트 (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 58, name: '탕수육+직화짬뽕+군만두(2)(1인세트)', category: '세트메뉴', price: 20500, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 짬뽕 세트 (짬뽕에 직접 손질한 100% 통오징어가 들어가 가위가 필요해요) (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 59, name: '탕수육+열직화짬뽕(매운)+군만두(2)(1인세트)', category: '세트메뉴', price: 21500, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 미니탕수육 + 열짬뽕(매운) 세트 (직접 손질한 100% 통오징어가 들어가 가위가 필요해요) (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 60, name: '탕수육+고추간짜장+군만두(2)(1인세트)', category: '세트메뉴', price: 22000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 미니탕수육 + 고추간짜장 세트 (1인세트 주문시 1,000원 할인 효과) 고추간짜장 드실려고 직접 가게까지 오실 정도로 특별한 메뉴 고추간짜장 더 밋있게 먹는 꿀팁 : .면을 다 드시고 남은 장에 밥을 비벼 드시면 더 즐거워집니다.' },
+      { id: 61, name: '탕수육+중화비빔밥+군만두(2)(1인세트)', category: '세트메뉴', price: 22000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 중화비빔밥 세트 (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 62, name: '탕수육+야끼우동+군만두(2)(1인세트)', category: '세트메뉴', price: 22000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 야끼우동 세트 (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 63, name: '탕수육+황제고추간짜장+군만두(2)(1인세트)', category: '세트메뉴', price: 24000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 여러가지 삼선 해물을 넣어 조리한 황제고추간짜장 세트 (1인세트 주문시 1,000원 할인 효과)' },
+      { id: 64, name: '탕수육+(특)삼선짬뽕+군만두(2)(1인세트)', category: '세트메뉴', price: 24000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 통오징어, 여러가지 해물이 들어간 (특)삼선짬뽕 세트 (삼선짬뽕에 들어가는 해물은 계절에 따라 바뀔 수 있어요) (가위가 필요하세요~~) (1인세트 주문시 1,000원 할인 효과)' },
       
-      // 맥주
-      { id: 20, name: '테라', category: '맥주', price: 4500, image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 21, name: '카스', category: '맥주', price: 4000, image: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 22, name: '기네스', category: '맥주', price: 6000, image: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 23, name: '아사히', category: '맥주', price: 5000, image: 'https://images.unsplash.com/photo-1618885472179-5e474019f2a9?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 24, name: '칭따오', category: '맥주', price: 4500, image: 'https://images.unsplash.com/photo-1612528443702-f6741f70a049?w=400&h=400&fit=crop', bestseller: 0 },
+      // ===== 2인세트 =====
+      { id: 65, name: '탕수육+짜장2+군만두(2)(2인세트)', category: '세트메뉴', price: 24000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 짜장면 2인 세트 (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 66, name: '탕수육+짜장+짬뽕+군만두(2)(2인세트)', category: '세트메뉴', price: 26500, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 짜장, 짬뽕 2인 세트 (짬뽕에 직접 손질한 100% 통오징어가 들어가 가위가 필요해요) (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 67, name: '탕수육+간짜장2+군만두(2)(2인세트)', category: '세트메뉴', price: 28000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 간짜장 2인 세트 (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 68, name: '탕수육+볶음밥2+군만두(2)(2인세트)', category: '세트메뉴', price: 28000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육+ 볶음밥 2인 세트 (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 69, name: '탕수육+해물쟁반짜장2인+군만두(2)(2인세트)', category: '세트메뉴', price: 28000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육+ 해물쟁반 2인 세트 (2인세트 주문시 3,000원 할인 효과)' },
+      { id: 70, name: '탕수육+짬뽕+간짜장+군만두(2)(2인세트)', category: '세트메뉴', price: 28500, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 짬뽕, 간짜장 세트 (짬뽕에 직접 손질한 100% 통오징어가 들어가 가위가 필요해요) (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 71, name: '탕수육+짬뽕2+군만두(2)(2인세트)', category: '세트메뉴', price: 29000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 짬뽕 2인 세트 (짬뽕에 직접 손질한 100% 통오징어가 들어가 가위가 필요해요) (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 72, name: '탕수육+고추간짜장2+군만두(2)(2인세트)', category: '세트메뉴', price: 32000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 고추간짜장 2인 세트 (2인세트 주문시 1,500원 할인 효과)' },
+      { id: 73, name: '탕수육+황제고추간짜장2+군만두(2)(2인세트)', category: '세트메뉴', price: 36000, image: defaultImage, bestseller: 0, description: '고급스럽고 부드러운 안심 고기로 만든 [바삭바삭부들부들] 미니탕수육 + 여러가지 삼선 해물을 넣어 조리한 황제고추간짜장 세트 (2인세트 주문시 2,000원 할인 효과)' },
+      { id: 74, name: '시티짜장 + 통오징어짬뽕 1+1 세트', category: '세트메뉴', price: 15000, image: defaultImage, bestseller: 0 },
       
-      // 소주
-      { id: 25, name: '참이슬', category: '소주', price: 4500, image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 26, name: '처음처럼', category: '소주', price: 4500, image: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=400&h=400&fit=crop', bestseller: 0 },
-      { id: 27, name: '연태고량주(중)', category: '소주', price: 25000, image: 'https://images.unsplash.com/photo-1596040008861-378f1a2c8e62?w=400&h=400&fit=crop', bestseller: 0 }
+      // ===== 사이드메뉴 =====
+      { id: 75, name: '공기밥', category: '디저트', price: 1000, image: defaultImage, bestseller: 0 },
+      { id: 76, name: '연유꽃빵튀김(4P)', category: '디저트', price: 3000, image: defaultImage, bestseller: 0, description: '꽃빵 튀김과 연유크림 소스' },
+      { id: 77, name: '군만두(8p)', category: '디저트', price: 5000, image: defaultImage, bestseller: 0, description: '군만두 (8p) + 미니간장' },
+      { id: 78, name: '사이다(500ml)', category: '음료', price: 2000, image: defaultImage, bestseller: 0 },
+      { id: 79, name: '콜라(500ml)', category: '음료', price: 2000, image: defaultImage, bestseller: 0 },
+      { id: 80, name: '멘보샤(6P)', category: '디저트', price: 6000, image: defaultImage, bestseller: 0, description: '일명 새우토스트 식빵 사이에 으깬 새우를 튀긴 멘보샤' },
+      { id: 81, name: '칠리만두(8P)', category: '디저트', price: 7000, image: defaultImage, bestseller: 0, description: '매콤한 칠리소스로 조리한 칠리만두랍니다.' },
+      
+      // ===== 리뷰 이벤트 =====
+      { id: 82, name: '미니짜장밥(리뷰중복불가)(.)', category: '디저트', price: 500, image: defaultImage, bestseller: 0 },
+      { id: 83, name: '꽃빵튀김4P(연유X)리뷰중복불가(.)', category: '디저트', price: 1000, image: defaultImage, bestseller: 0, description: '후기 꽃빵튀김에는 연유가 따로 들어가지 않아요' },
+      { id: 84, name: '군만두(8P)리뷰중복불가(.)', category: '디저트', price: 2400, image: defaultImage, bestseller: 0 }
     ];
     
     // 메뉴별 기본 원가 설정 (판매가의 40% 가정)

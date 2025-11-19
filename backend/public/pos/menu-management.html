@@ -461,6 +461,7 @@
             <option value="추천메뉴">추천메뉴</option>
             <option value="면류">면류</option>
             <option value="밥류">밥류</option>
+            <option value="세트메뉴">세트메뉴</option>
             <option value="디저트">디저트</option>
             <option value="음료">음료</option>
             <option value="맥주">맥주</option>
@@ -473,8 +474,15 @@
           <input type="number" id="menu-price" min="0" required>
         </div>
         <div class="form-group">
-          <label>이미지 URL</label>
-          <input type="url" id="menu-image" placeholder="https://...">
+          <label>이미지</label>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="file" id="menu-image-file" accept="image/*" style="padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+            <div style="font-size: 12px; color: #666;">또는</div>
+            <input type="url" id="menu-image" placeholder="이미지 URL 입력 (https://...)">
+            <div id="image-preview" style="display: none; margin-top: 10px;">
+              <img id="preview-img" src="" alt="미리보기" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;">
+            </div>
+          </div>
         </div>
         <div class="form-group">
           <label>
@@ -624,6 +632,8 @@
       document.getElementById('menu-category').value = '기타';
       document.getElementById('menu-price').value = '';
       document.getElementById('menu-image').value = '';
+      document.getElementById('menu-image-file').value = '';
+      document.getElementById('image-preview').style.display = 'none';
       document.getElementById('menu-bestseller').checked = false;
       document.getElementById('menu-popup').style.display = 'flex';
     }
@@ -639,9 +649,52 @@
       document.getElementById('menu-category').value = menu.category;
       document.getElementById('menu-price').value = menu.price;
       document.getElementById('menu-image').value = menu.image || '';
+      document.getElementById('menu-image-file').value = '';
+      document.getElementById('image-preview').style.display = menu.image ? 'block' : 'none';
+      if (menu.image) {
+        document.getElementById('preview-img').src = menu.image;
+      }
       document.getElementById('menu-bestseller').checked = menu.bestseller === 1;
       document.getElementById('menu-popup').style.display = 'flex';
     }
+
+    // 파일 선택 시 미리보기
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('menu-image-file');
+      const urlInput = document.getElementById('menu-image');
+      const preview = document.getElementById('image-preview');
+      const previewImg = document.getElementById('preview-img');
+      
+      if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              previewImg.src = e.target.result;
+              preview.style.display = 'block';
+              urlInput.value = ''; // URL 입력 초기화
+            };
+            reader.readAsDataURL(file);
+          } else {
+            preview.style.display = 'none';
+          }
+        });
+      }
+      
+      if (urlInput) {
+        urlInput.addEventListener('input', (e) => {
+          const url = e.target.value.trim();
+          if (url) {
+            previewImg.src = url;
+            preview.style.display = 'block';
+            fileInput.value = ''; // 파일 선택 초기화
+          } else {
+            preview.style.display = 'none';
+          }
+        });
+      }
+    });
 
     // 메뉴 저장
     async function saveMenu() {
@@ -649,7 +702,8 @@
       const name = document.getElementById('menu-name').value;
       const category = document.getElementById('menu-category').value;
       const price = parseInt(document.getElementById('menu-price').value);
-      const image = document.getElementById('menu-image').value;
+      let image = document.getElementById('menu-image').value;
+      const fileInput = document.getElementById('menu-image-file');
       const bestseller = document.getElementById('menu-bestseller').checked ? 1 : 0;
 
       if (!name || !price) {
@@ -658,6 +712,25 @@
       }
 
       try {
+        // 파일 업로드가 있으면 먼저 업로드
+        if (fileInput.files && fileInput.files.length > 0) {
+          const formData = new FormData();
+          formData.append('image', fileInput.files[0]);
+          
+          const uploadRes = await fetch('/api/upload/image', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const uploadData = await uploadRes.json();
+          if (uploadData.success) {
+            image = uploadData.imageUrl;
+          } else {
+            alert('이미지 업로드 실패: ' + uploadData.error);
+            return;
+          }
+        }
+
         let res;
         if (id) {
           // 수정
