@@ -1001,7 +1001,7 @@ h2 {
   align-items: center;
   padding: 8px 0 env(safe-area-inset-bottom);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 1001;
   border-top: 2px solid #FFD700;
 }
 

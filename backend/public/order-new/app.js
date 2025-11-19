@@ -972,13 +972,23 @@ async function loadStoreInfo() {
 function updateStoreNameInUI() {
   // 모든 가게명 표시 요소 업데이트
   document.querySelectorAll('[data-store-name]').forEach(el => {
-    el.textContent = storeName;
+    // 로그인 관련 화면(auth-select, login, register)은 연등 없이 가게명만 표시
+    if (el.closest('#auth-select-screen') || el.closest('#login-screen') || el.closest('#register-screen')) {
+      el.textContent = storeName;
+    } else {
+      // 메뉴 화면 등 다른 곳은 연등 포함
+      el.textContent = `🏮 ${storeName}`;
+    }
   });
   // title 태그 업데이트
   document.title = `${storeName} - 주문`;
-  // h1 태그들 업데이트
+  // h1 태그들 업데이트 (로그인 화면 제외)
   const h1Elements = document.querySelectorAll('h1');
   h1Elements.forEach(h1 => {
+    // 로그인 관련 화면의 h1은 건드리지 않음 (이미 위에 logo div가 있음)
+    if (h1.closest('#auth-select-screen') || h1.closest('#login-screen') || h1.closest('#register-screen')) {
+      return;
+    }
     if (h1.textContent.includes('시티반점') || h1.textContent.includes('🏮')) {
       h1.textContent = `🏮 ${storeName}`;
     }
