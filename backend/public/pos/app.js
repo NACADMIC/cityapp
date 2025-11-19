@@ -668,6 +668,20 @@ function toggleMenu() {
 async function updateBusinessStatus() {
   try {
     const res = await fetch('/api/business-hours');
+    
+    // 응답이 JSON인지 확인
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      return; // 조용히 실패 (반복 호출 방지)
+    }
+    
+    if (!res.ok) {
+      console.error('❌ HTTP 오류:', res.status, res.statusText);
+      return;
+    }
+    
     const data = await res.json();
     
     const statusEl = document.getElementById('business-status');
@@ -828,6 +842,19 @@ async function saveBusinessHours() {
       body: JSON.stringify({ hours })
     });
     
+    // 응답이 JSON인지 확인
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.\n서버를 재시작해주세요.');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
     if (data.success) {
       alert('영업시간이 저장되었습니다!');
@@ -849,6 +876,20 @@ updateBusinessStatus();
 async function toggleTemporaryClosed() {
   try {
     const res = await fetch('/api/business-hours');
+    
+    // 응답이 JSON인지 확인
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.\n서버를 재시작해주세요.');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
     const currentStatus = data.temporaryClosed;
     
@@ -867,6 +908,19 @@ async function toggleTemporaryClosed() {
       body: JSON.stringify({ closed: newStatus })
     });
     
+    // 응답이 JSON인지 확인
+    const updateContentType = updateRes.headers.get('content-type');
+    if (!updateContentType || !updateContentType.includes('application/json')) {
+      const text = await updateRes.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.\n서버를 재시작해주세요.');
+      return;
+    }
+    
+    if (!updateRes.ok) {
+      throw new Error(`HTTP ${updateRes.status}: ${updateRes.statusText}`);
+    }
+    
     const updateData = await updateRes.json();
     if (updateData.success) {
       alert(newStatus ? '임시휴업이 시작되었습니다.' : '영업이 재개되었습니다.');
@@ -883,6 +937,20 @@ async function toggleTemporaryClosed() {
 async function openBreakTimeSettings() {
   try {
     const res = await fetch('/api/business-hours');
+    
+    // 응답이 JSON인지 확인
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.\n서버를 재시작해주세요.');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
     
     const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -1010,6 +1078,19 @@ async function saveBreakTime() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ breakTimes })
     });
+    
+    // 응답이 JSON인지 확인
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.\n서버를 재시작해주세요.');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
     
     const data = await res.json();
     if (data.success) {
