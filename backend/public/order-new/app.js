@@ -427,6 +427,9 @@ function updateCartCount() {
     navCartBadge.textContent = count;
     navCartBadge.style.display = count > 0 ? 'block' : 'none';
   }
+  
+  // 사이드 메뉴 장바구니 뱃지 업데이트
+  updateSideCartCount();
 }
 
 // Render cart
@@ -1032,6 +1035,30 @@ async function loadBusyStatus() {
     }
   } catch (error) {
     console.error('바쁨 상태 로드 오류:', error);
+  }
+}
+
+// 사이드 메뉴 토글
+function toggleSideMenu() {
+  const sideMenu = document.getElementById('side-menu');
+  const overlay = document.getElementById('menu-overlay');
+  if (sideMenu && overlay) {
+    sideMenu.classList.toggle('active');
+    overlay.classList.toggle('active');
+  }
+}
+
+// 장바구니 개수 업데이트 (사이드 메뉴용)
+function updateSideCartCount() {
+  const sideCartCount = document.getElementById('side-cart-count');
+  if (sideCartCount) {
+    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (count > 0) {
+      sideCartCount.textContent = count;
+      sideCartCount.style.display = 'inline-block';
+    } else {
+      sideCartCount.style.display = 'none';
+    }
   }
 }
 

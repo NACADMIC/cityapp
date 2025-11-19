@@ -291,9 +291,16 @@
   <!-- Menu Screen -->
   <div id="menu-screen" class="screen">
     <div class="header" style="position: relative; justify-content: space-between; padding: 20px 24px;">
-      <!-- 왼쪽: 바쁨 상태 -->
-      <div id="busy-status-banner" style="display: none; flex: 0 0 auto; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3);">
-        <span id="busy-status-text" style="font-size: 12px; font-weight: 700; white-space: nowrap;"></span>
+      <!-- 왼쪽: 햄버거 메뉴 + 바쁨 상태 -->
+      <div style="display: flex; align-items: center; gap: 12px; flex: 0 0 auto;">
+        <button class="hamburger-btn" onclick="toggleSideMenu()" style="background: none; border: none; cursor: pointer; padding: 8px; display: flex; flex-direction: column; gap: 5px; transition: all 0.3s; z-index: 1001;">
+          <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
+        </button>
+        <div id="busy-status-banner" style="display: none; flex: 0 0 auto; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3);">
+          <span id="busy-status-text" style="font-size: 12px; font-weight: 700; white-space: nowrap;"></span>
+        </div>
       </div>
       
       <!-- 중앙: 로고 -->
@@ -355,6 +362,27 @@
       </button>
     </nav>
   </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📱 메뉴</h2>
+      <button class="close-btn" onclick="toggleSideMenu()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="javascript:void(0)" class="menu-item" onclick="goToPointHistory(); toggleSideMenu();">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 내역</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="showAuthSelect(); sessionStorage.removeItem('currentUser'); currentUser = null; isGuest = false; toggleSideMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleSideMenu()"></div>
 
   <!-- Cart Screen -->
   <div id="cart-screen" class="screen">
