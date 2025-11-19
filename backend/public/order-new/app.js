@@ -368,6 +368,8 @@ function renderMenu(category = 'all') {
     filtered = menuItems;
   } else if (category === '인기') {
     filtered = menuItems.filter(item => item.bestseller === 1);
+  } else if (category === '주류') {
+    filtered = menuItems.filter(item => item.category === '맥주' || item.category === '소주');
   } else {
     filtered = menuItems.filter(item => item.category === category);
   }
@@ -392,9 +394,21 @@ function renderMenu(category = 'all') {
 
 // Category tabs
 document.addEventListener('DOMContentLoaded', () => {
+  // 일반 카테고리 탭
   document.querySelectorAll('.category-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.special-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderMenu(tab.dataset.category);
+    });
+  });
+  
+  // 특별 메뉴 탭 (오늘의메뉴, 추천메뉴)
+  document.querySelectorAll('.special-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.special-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       renderMenu(tab.dataset.category);
     });

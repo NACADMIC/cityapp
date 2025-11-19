@@ -176,6 +176,42 @@ h2 {
   50% { transform: scale(1.2); }
 }
 
+/* ===== SPECIAL MENU TABS ===== */
+.special-menu-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.special-tab {
+  padding: 8px 20px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 2px solid #FFD700;
+  border-radius: 20px;
+  color: #FFD700;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.special-tab:hover {
+  background: #FFD700;
+  color: #000000;
+}
+
+.special-tab.active {
+  background: #FFD700;
+  color: #000000;
+  border-color: #FFD700;
+  font-weight: 800;
+}
+
 /* ===== CATEGORY TABS ===== */
 .category-tabs {
   display: flex;
