@@ -29,17 +29,22 @@ console.log('✅ 메모리 DB 사용 (Railway 최적화)');
 
 let posClients = [];
 
-// 영업시간 설정 (기본값)
+// 영업시간 설정 (요일별 기본값) - 0=일요일, 1=월요일, ..., 6=토요일
 let businessHours = {
-  open: 9.5,  // 오전 9시 30분
-  close: 21   // 오후 9시
+  0: { open: 9.5, close: 21 },  // 일요일
+  1: { open: 9.5, close: 21 },  // 월요일
+  2: { open: 9.5, close: 21 },  // 화요일
+  3: { open: 9.5, close: 21 },  // 수요일
+  4: { open: 9.5, close: 21 },  // 목요일
+  5: { open: 9.5, close: 21 },  // 금요일
+  6: { open: 9.5, close: 21 }   // 토요일
 };
 
 // 임시휴업 상태
 let temporaryClosed = false;
 
-// 브레이크타임 설정 (기본값: 없음)
-let breakTime = null;
+// 브레이크타임 설정 (요일별, 기본값: 없음)
+let breakTime = {};
 
 // 영업시간을 DB에서 불러오기
 function loadBusinessHours() {
@@ -47,7 +52,7 @@ function loadBusinessHours() {
     // DB가 초기화되었는지 확인
     if (db && typeof db.getBusinessHours === 'function') {
       const saved = db.getBusinessHours();
-      if (saved && saved.open !== undefined && saved.close !== undefined) {
+      if (saved && typeof saved === 'object') {
         businessHours = saved;
         console.log('✅ 영업시간 로드:', businessHours);
         return;
@@ -84,20 +89,26 @@ function isBusinessHours() {
   // 한국 시간으로 변환 (UTC+9)
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const dayOfWeek = koreaTime.getDay(); // 0=일요일, 6=토요일
   const hour = koreaTime.getHours();
   const minute = koreaTime.getMinutes();
   const currentTime = hour + minute / 60; // 9시 30분 = 9.5
   
+  // 해당 요일의 영업시간 가져오기
+  const todayHours = businessHours[dayOfWeek];
+  if (!todayHours || !todayHours.open || !todayHours.close) {
+    return false; // 영업시간이 설정되지 않은 요일
+  }
+  
   // 영업시간 체크
-  if (currentTime < businessHours.open || currentTime >= businessHours.close) {
+  if (currentTime < todayHours.open || currentTime >= todayHours.close) {
     return false;
   }
   
-  // 브레이크타임 체크
-  if (breakTime) {
-    const breakStart = breakTime.start;
-    const breakEnd = breakTime.end;
-    if (currentTime >= breakStart && currentTime < breakEnd) {
+  // 해당 요일의 브레이크타임 체크
+  const todayBreakTime = breakTime[dayOfWeek];
+  if (todayBreakTime && todayBreakTime.start !== undefined && todayBreakTime.end !== undefined) {
+    if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
       return false;
     }
   }
@@ -109,6 +120,7 @@ app.get('/api/business-hours', (req, res) => {
   const isOpen = isBusinessHours();
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const dayOfWeek = koreaTime.getDay();
   const hour = koreaTime.getHours();
   const minute = koreaTime.getMinutes();
   
@@ -119,42 +131,64 @@ app.get('/api/business-hours', (req, res) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
   
+  const todayHours = businessHours[dayOfWeek] || { open: 9.5, close: 21 };
+  const todayBreakTime = breakTime[dayOfWeek];
+  
   let statusMessage = '';
   if (temporaryClosed) {
     statusMessage = '임시휴업';
-  } else if (breakTime) {
+  } else if (todayBreakTime && todayBreakTime.start !== undefined) {
     const currentTime = hour + minute / 60;
-    if (currentTime >= breakTime.start && currentTime < breakTime.end) {
-      statusMessage = `브레이크타임 (${formatTime(breakTime.start)} - ${formatTime(breakTime.end)})`;
+    if (currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
+      statusMessage = `브레이크타임 (${formatTime(todayBreakTime.start)} - ${formatTime(todayBreakTime.end)})`;
     }
   }
+  
+  const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
   
   res.json({
     isOpen,
     currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-    businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
-    open: businessHours.open,
-    close: businessHours.close,
+    currentDay: dayOfWeek,
+    currentDayName: dayNames[dayOfWeek],
+    businessHours: `${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}`,
+    open: todayHours.open,
+    close: todayHours.close,
+    allBusinessHours: businessHours, // 모든 요일의 영업시간
     temporaryClosed,
-    breakTime,
+    breakTime: todayBreakTime || null,
+    allBreakTime: breakTime, // 모든 요일의 브레이크타임
     statusMessage
   });
 });
 
-// API: 영업시간 설정
+// API: 영업시간 설정 (요일별)
 app.post('/api/business-hours', (req, res) => {
   try {
-    const { open, close } = req.body;
+    const { hours } = req.body; // { 0: {open, close}, 1: {open, close}, ... }
     
-    if (typeof open !== 'number' || typeof close !== 'number') {
-      return res.status(400).json({ success: false, error: '잘못된 시간 형식입니다.' });
+    if (!hours || typeof hours !== 'object') {
+      return res.status(400).json({ success: false, error: '잘못된 요청입니다.' });
     }
     
-    if (open < 0 || open >= 24 || close < 0 || close > 24) {
-      return res.status(400).json({ success: false, error: '시간은 0-24 사이여야 합니다.' });
+    // 각 요일의 영업시간 검증
+    for (let day = 0; day <= 6; day++) {
+      if (hours[day]) {
+        const { open, close } = hours[day];
+        if (typeof open !== 'number' || typeof close !== 'number') {
+          return res.status(400).json({ success: false, error: `요일 ${day}의 시간 형식이 잘못되었습니다.` });
+        }
+        if (open < 0 || open >= 24 || close < 0 || close > 24) {
+          return res.status(400).json({ success: false, error: `요일 ${day}의 시간은 0-24 사이여야 합니다.` });
+        }
+        if (open >= close) {
+          return res.status(400).json({ success: false, error: `요일 ${day}의 오픈 시간은 마감 시간보다 빨라야 합니다.` });
+        }
+      }
     }
     
-    businessHours = { open, close };
+    // 기존 설정과 병합
+    businessHours = { ...businessHours, ...hours };
     db.saveBusinessHours(businessHours);
     
     console.log('✅ 영업시간 업데이트:', businessHours);
@@ -177,32 +211,50 @@ app.post('/api/temporary-closed', (req, res) => {
   }
 });
 
-// API: 브레이크타임 설정
+// API: 브레이크타임 설정 (요일별)
 app.post('/api/break-time', (req, res) => {
   try {
-    const { start, end } = req.body;
+    const { breakTimes } = req.body; // { 0: {start, end}, 1: {start, end}, ... } 또는 { day: 0, start: null, end: null } (해제)
     
-    if (start === null && end === null) {
-      // 브레이크타임 해제
-      breakTime = null;
-      db.setBreakTime(null);
-      console.log('✅ 브레이크타임 해제');
-      return res.json({ success: true, breakTime: null });
+    if (!breakTimes || typeof breakTimes !== 'object') {
+      return res.status(400).json({ success: false, error: '잘못된 요청입니다.' });
     }
     
-    if (typeof start !== 'number' || typeof end !== 'number') {
-      return res.status(400).json({ success: false, error: '잘못된 시간 형식입니다.' });
+    // 각 요일의 브레이크타임 검증 및 설정
+    for (let day = 0; day <= 6; day++) {
+      if (breakTimes[day] !== undefined) {
+        const dayBreak = breakTimes[day];
+        
+        // null이면 해당 요일 브레이크타임 해제
+        if (dayBreak === null) {
+          delete breakTime[day];
+          continue;
+        }
+        
+        const { start, end } = dayBreak;
+        
+        // 둘 다 null이면 해제
+        if (start === null && end === null) {
+          delete breakTime[day];
+          continue;
+        }
+        
+        if (typeof start !== 'number' || typeof end !== 'number') {
+          return res.status(400).json({ success: false, error: `요일 ${day}의 시간 형식이 잘못되었습니다.` });
+        }
+        
+        if (start < 0 || start >= 24 || end < 0 || end > 24) {
+          return res.status(400).json({ success: false, error: `요일 ${day}의 시간은 0-24 사이여야 합니다.` });
+        }
+        
+        if (start >= end) {
+          return res.status(400).json({ success: false, error: `요일 ${day}의 시작 시간은 종료 시간보다 빨라야 합니다.` });
+        }
+        
+        breakTime[day] = { start, end };
+      }
     }
     
-    if (start < 0 || start >= 24 || end < 0 || end > 24) {
-      return res.status(400).json({ success: false, error: '시간은 0-24 사이여야 합니다.' });
-    }
-    
-    if (start >= end) {
-      return res.status(400).json({ success: false, error: '시작 시간은 종료 시간보다 빨라야 합니다.' });
-    }
-    
-    breakTime = { start, end };
     db.setBreakTime(breakTime);
     
     console.log('✅ 브레이크타임 업데이트:', breakTime);
@@ -407,19 +459,22 @@ app.post('/api/orders', async (req, res) => {
       let errorMessage = '현재 주문을 받을 수 없습니다';
       if (temporaryClosed) {
         errorMessage = '임시휴업 중입니다. 주문을 받지 않습니다.';
-      } else if (breakTime) {
+      } else {
         const now = new Date();
         const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+        const dayOfWeek = koreaTime.getDay();
         const hour = koreaTime.getHours();
         const minute = koreaTime.getMinutes();
         const currentTime = hour + minute / 60;
-        if (currentTime >= breakTime.start && currentTime < breakTime.end) {
+        
+        const todayBreakTime = breakTime[dayOfWeek];
+        if (todayBreakTime && currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
           const formatTime = (time) => {
             const h = Math.floor(time);
             const m = Math.round((time - h) * 60);
             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
           };
-          errorMessage = `브레이크타임 중입니다 (${formatTime(breakTime.start)} - ${formatTime(breakTime.end)})`;
+          errorMessage = `브레이크타임 중입니다 (${formatTime(todayBreakTime.start)} - ${formatTime(todayBreakTime.end)})`;
         }
       }
       return res.json({ success: false, error: errorMessage });

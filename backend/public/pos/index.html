@@ -128,35 +128,20 @@
 
   <!-- 브레이크타임 설정 팝업 -->
   <div id="break-time-popup" class="popup-overlay" style="display: none;">
-    <div class="popup-content" style="max-width: 500px;">
-      <h2>☕ 브레이크타임 설정</h2>
+    <div class="popup-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+      <h2>☕ 요일별 브레이크타임 설정</h2>
       <div style="margin: 20px 0;">
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 600;">시작 시간:</label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="number" id="break-start-hour" min="0" max="23" value="14" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">시</span>
-            <input type="number" id="break-start-minute" min="0" max="59" step="30" value="30" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">분</span>
-          </div>
+        <div id="break-time-days-container">
+          <!-- 요일별 입력 필드가 여기에 동적으로 생성됩니다 -->
         </div>
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 600;">종료 시간:</label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="number" id="break-end-hour" min="0" max="23" value="15" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">시</span>
-            <input type="number" id="break-end-minute" min="0" max="59" step="30" value="30" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">분</span>
-          </div>
-        </div>
-        <div style="padding: 15px; background: #fff3cd; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0; color: #856404; font-weight: 600;">현재 설정: <span id="current-break-time-display">없음</span></p>
+        <div style="padding: 15px; background: #fff3cd; border-radius: 8px; margin-bottom: 20px; margin-top: 20px;">
+          <p style="margin: 0; color: #856404; font-weight: 600;">현재 요일: <span id="current-break-day-display">-</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">오늘 브레이크타임: <span id="current-break-time-display">없음</span></p>
           <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">브레이크타임 중에는 주문을 받지 않습니다.</p>
         </div>
       </div>
       <div class="popup-actions">
         <button class="btn btn-accept" onclick="saveBreakTime()">저장</button>
-        <button class="btn btn-reject" onclick="clearBreakTime()">해제</button>
         <button class="btn btn-reject" onclick="closeBreakTimeSettings()">취소</button>
       </div>
     </div>
@@ -164,30 +149,16 @@
 
   <!-- 영업시간 설정 팝업 -->
   <div id="business-hours-popup" class="popup-overlay" style="display: none;">
-    <div class="popup-content" style="max-width: 500px;">
-      <h2>⏰ 영업시간 설정</h2>
+    <div class="popup-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+      <h2>⏰ 요일별 영업시간 설정</h2>
       <div style="margin: 20px 0;">
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 600;">오픈 시간:</label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="number" id="open-hour" min="0" max="23" value="9" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">시</span>
-            <input type="number" id="open-minute" min="0" max="59" step="30" value="30" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">분</span>
-          </div>
+        <div id="business-hours-days-container">
+          <!-- 요일별 입력 필드가 여기에 동적으로 생성됩니다 -->
         </div>
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 600;">마감 시간:</label>
-          <div style="display: flex; gap: 10px; align-items: center;">
-            <input type="number" id="close-hour" min="0" max="23" value="21" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">시</span>
-            <input type="number" id="close-minute" min="0" max="59" step="30" value="0" style="width: 80px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;">
-            <span style="font-size: 18px;">분</span>
-          </div>
-        </div>
-        <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0; color: #1976d2; font-weight: 600;">현재 설정: <span id="current-hours-display">-</span></p>
+        <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; margin-bottom: 20px; margin-top: 20px;">
+          <p style="margin: 0; color: #1976d2; font-weight: 600;">현재 요일: <span id="current-day-display">-</span></p>
           <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">현재 시간: <span id="current-time-display">-</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">오늘 영업시간: <span id="current-hours-display">-</span></p>
         </div>
       </div>
       <div class="popup-actions">

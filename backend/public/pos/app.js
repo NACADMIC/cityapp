@@ -716,20 +716,56 @@ async function openBusinessHoursSettings() {
     const res = await fetch('/api/business-hours');
     const data = await res.json();
     
-    // 현재 설정값으로 입력 필드 채우기
-    const openHour = Math.floor(data.open);
-    const openMinute = Math.round((data.open - openHour) * 60);
-    const closeHour = Math.floor(data.close);
-    const closeMinute = Math.round((data.close - closeHour) * 60);
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const allHours = data.allBusinessHours || {};
     
-    document.getElementById('open-hour').value = openHour;
-    document.getElementById('open-minute').value = openMinute;
-    document.getElementById('close-hour').value = closeHour;
-    document.getElementById('close-minute').value = closeMinute;
+    // 요일별 입력 필드 생성
+    const container = document.getElementById('business-hours-days-container');
+    container.innerHTML = '';
+    
+    for (let day = 0; day <= 6; day++) {
+      const dayHours = allHours[day] || { open: 9.5, close: 21 };
+      const openHour = Math.floor(dayHours.open);
+      const openMinute = Math.round((dayHours.open - openHour) * 60);
+      const closeHour = Math.floor(dayHours.close);
+      const closeMinute = Math.round((dayHours.close - closeHour) * 60);
+      
+      const dayDiv = document.createElement('div');
+      dayDiv.style.cssText = 'margin-bottom: 25px; padding: 20px; background: #f5f5f5; border-radius: 8px;';
+      dayDiv.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #333;">${dayNames[day]}</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">오픈 시간:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="open-hour-${day}" min="0" max="23" value="${openHour}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">시</span>
+              <input type="number" id="open-minute-${day}" min="0" max="59" step="30" value="${openMinute}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">분</span>
+            </div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">마감 시간:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="close-hour-${day}" min="0" max="23" value="${closeHour}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">시</span>
+              <input type="number" id="close-minute-${day}" min="0" max="59" step="30" value="${closeMinute}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">분</span>
+            </div>
+          </div>
+        </div>
+      `;
+      container.appendChild(dayDiv);
+    }
     
     // 현재 설정 표시
-    document.getElementById('current-hours-display').textContent = data.businessHours;
-    document.getElementById('current-time-display').textContent = data.currentTime;
+    document.getElementById('current-day-display').textContent = data.currentDayName || '-';
+    document.getElementById('current-time-display').textContent = data.currentTime || '-';
+    document.getElementById('current-hours-display').textContent = data.businessHours || '-';
     
     // 팝업 표시
     document.getElementById('business-hours-popup').style.display = 'flex';
@@ -746,28 +782,36 @@ function closeBusinessHoursSettings() {
 // 영업시간 저장
 async function saveBusinessHours() {
   try {
-    const openHour = parseInt(document.getElementById('open-hour').value);
-    const openMinute = parseInt(document.getElementById('open-minute').value);
-    const closeHour = parseInt(document.getElementById('close-hour').value);
-    const closeMinute = parseInt(document.getElementById('close-minute').value);
+    const hours = {};
     
-    if (isNaN(openHour) || isNaN(openMinute) || isNaN(closeHour) || isNaN(closeMinute)) {
-      alert('모든 시간을 입력해주세요.');
-      return;
-    }
-    
-    const open = openHour + openMinute / 60;
-    const close = closeHour + closeMinute / 60;
-    
-    if (open >= close) {
-      alert('오픈 시간은 마감 시간보다 빨라야 합니다.');
-      return;
+    // 각 요일의 영업시간 수집
+    for (let day = 0; day <= 6; day++) {
+      const openHour = parseInt(document.getElementById(`open-hour-${day}`).value);
+      const openMinute = parseInt(document.getElementById(`open-minute-${day}`).value);
+      const closeHour = parseInt(document.getElementById(`close-hour-${day}`).value);
+      const closeMinute = parseInt(document.getElementById(`close-minute-${day}`).value);
+      
+      if (isNaN(openHour) || isNaN(openMinute) || isNaN(closeHour) || isNaN(closeMinute)) {
+        alert(`요일 ${day}의 모든 시간을 입력해주세요.`);
+        return;
+      }
+      
+      const open = openHour + openMinute / 60;
+      const close = closeHour + closeMinute / 60;
+      
+      if (open >= close) {
+        const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+        alert(`${dayNames[day]}의 오픈 시간은 마감 시간보다 빨라야 합니다.`);
+        return;
+      }
+      
+      hours[day] = { open, close };
     }
     
     const res = await fetch('/api/business-hours', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ open, close })
+      body: JSON.stringify({ hours })
     });
     
     const data = await res.json();
@@ -827,29 +871,74 @@ async function openBreakTimeSettings() {
     const res = await fetch('/api/business-hours');
     const data = await res.json();
     
-    if (data.breakTime) {
-      const startHour = Math.floor(data.breakTime.start);
-      const startMinute = Math.round((data.breakTime.start - startHour) * 60);
-      const endHour = Math.floor(data.breakTime.end);
-      const endMinute = Math.round((data.breakTime.end - endHour) * 60);
+    const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+    const allBreakTime = data.allBreakTime || {};
+    
+    // 요일별 입력 필드 생성
+    const container = document.getElementById('break-time-days-container');
+    container.innerHTML = '';
+    
+    for (let day = 0; day <= 6; day++) {
+      const dayBreak = allBreakTime[day];
+      let startHour = 14, startMinute = 30, endHour = 15, endMinute = 30;
       
-      document.getElementById('break-start-hour').value = startHour;
-      document.getElementById('break-start-minute').value = startMinute;
-      document.getElementById('break-end-hour').value = endHour;
-      document.getElementById('break-end-minute').value = endMinute;
+      if (dayBreak && dayBreak.start !== undefined) {
+        startHour = Math.floor(dayBreak.start);
+        startMinute = Math.round((dayBreak.start - startHour) * 60);
+        endHour = Math.floor(dayBreak.end);
+        endMinute = Math.round((dayBreak.end - endHour) * 60);
+      }
       
-      const formatTime = (time) => {
-        const h = Math.floor(time);
-        const m = Math.round((time - h) * 60);
-        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      };
+      const dayDiv = document.createElement('div');
+      dayDiv.style.cssText = 'margin-bottom: 25px; padding: 20px; background: #fff3cd; border-radius: 8px;';
+      dayDiv.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; font-size: 18px; color: #333;">${dayNames[day]}</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">시작 시간:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="break-start-hour-${day}" min="0" max="23" value="${startHour}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">시</span>
+              <input type="number" id="break-start-minute-${day}" min="0" max="59" step="30" value="${startMinute}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">분</span>
+            </div>
+          </div>
+          <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px;">종료 시간:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <input type="number" id="break-end-hour-${day}" min="0" max="23" value="${endHour}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">시</span>
+              <input type="number" id="break-end-minute-${day}" min="0" max="59" step="30" value="${endMinute}" 
+                     style="width: 70px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+              <span style="font-size: 14px;">분</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="break-enabled-${day}" ${dayBreak ? 'checked' : ''} 
+                   style="width: 18px; height: 18px; cursor: pointer;">
+            <span style="font-size: 14px; color: #666;">브레이크타임 사용</span>
+          </label>
+        </div>
+      `;
+      container.appendChild(dayDiv);
+    }
+    
+    // 현재 설정 표시
+    document.getElementById('current-break-day-display').textContent = data.currentDayName || '-';
+    const formatTime = (time) => {
+      const h = Math.floor(time);
+      const m = Math.round((time - h) * 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+    if (data.breakTime && data.breakTime.start !== undefined) {
       document.getElementById('current-break-time-display').textContent = 
         `${formatTime(data.breakTime.start)} - ${formatTime(data.breakTime.end)}`;
     } else {
-      document.getElementById('break-start-hour').value = 14;
-      document.getElementById('break-start-minute').value = 30;
-      document.getElementById('break-end-hour').value = 15;
-      document.getElementById('break-end-minute').value = 30;
       document.getElementById('current-break-time-display').textContent = '없음';
     }
     
@@ -867,28 +956,45 @@ function closeBreakTimeSettings() {
 // 브레이크타임 저장
 async function saveBreakTime() {
   try {
-    const startHour = parseInt(document.getElementById('break-start-hour').value);
-    const startMinute = parseInt(document.getElementById('break-start-minute').value);
-    const endHour = parseInt(document.getElementById('break-end-hour').value);
-    const endMinute = parseInt(document.getElementById('break-end-minute').value);
+    const breakTimes = {};
     
-    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
-      alert('모든 시간을 입력해주세요.');
-      return;
-    }
-    
-    const start = startHour + startMinute / 60;
-    const end = endHour + endMinute / 60;
-    
-    if (start >= end) {
-      alert('시작 시간은 종료 시간보다 빨라야 합니다.');
-      return;
+    // 각 요일의 브레이크타임 수집
+    for (let day = 0; day <= 6; day++) {
+      const enabled = document.getElementById(`break-enabled-${day}`).checked;
+      
+      if (!enabled) {
+        // 브레이크타임 해제
+        breakTimes[day] = null;
+        continue;
+      }
+      
+      const startHour = parseInt(document.getElementById(`break-start-hour-${day}`).value);
+      const startMinute = parseInt(document.getElementById(`break-start-minute-${day}`).value);
+      const endHour = parseInt(document.getElementById(`break-end-hour-${day}`).value);
+      const endMinute = parseInt(document.getElementById(`break-end-minute-${day}`).value);
+      
+      if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute)) {
+        const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+        alert(`${dayNames[day]}의 모든 시간을 입력해주세요.`);
+        return;
+      }
+      
+      const start = startHour + startMinute / 60;
+      const end = endHour + endMinute / 60;
+      
+      if (start >= end) {
+        const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+        alert(`${dayNames[day]}의 시작 시간은 종료 시간보다 빨라야 합니다.`);
+        return;
+      }
+      
+      breakTimes[day] = { start, end };
     }
     
     const res = await fetch('/api/break-time', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start, end })
+      body: JSON.stringify({ breakTimes })
     });
     
     const data = await res.json();
@@ -901,32 +1007,6 @@ async function saveBreakTime() {
     }
   } catch (err) {
     alert('저장 오류: ' + err.message);
-  }
-}
-
-// 브레이크타임 해제
-async function clearBreakTime() {
-  if (!confirm('브레이크타임을 해제하시겠습니까?')) {
-    return;
-  }
-  
-  try {
-    const res = await fetch('/api/break-time', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ start: null, end: null })
-    });
-    
-    const data = await res.json();
-    if (data.success) {
-      alert('브레이크타임이 해제되었습니다!');
-      closeBreakTimeSettings();
-      updateBusinessStatus();
-    } else {
-      alert('해제 실패: ' + data.error);
-    }
-  } catch (err) {
-    alert('오류: ' + err.message);
   }
 }
 

@@ -6,9 +6,9 @@ class DB {
     this.orders = [];
     this.pointHistory = [];
     this.phoneVerification = [];
-    this.businessHours = null;
+    this.businessHours = null; // 요일별 영업시간 { 0: {open, close}, 1: {open, close}, ... } (0=일요일, 6=토요일)
     this.temporaryClosed = false; // 임시휴업 상태
-    this.breakTime = null; // 브레이크타임 설정 { start: 14.5, end: 15.5 } (오후 2시 30분 ~ 3시 30분)
+    this.breakTime = null; // 요일별 브레이크타임 { 0: {start, end}, 1: {start, end}, ... }
     this.menuCosts = {}; // 메뉴별 원가 { menuId: cost }
     this.initialized = false;
     this.init();
@@ -646,12 +646,10 @@ class DB {
       .sort((a, b) => b.orderCount - a.orderCount);
   }
 
-  // 영업시간 저장/조회
+  // 영업시간 저장/조회 (요일별)
   saveBusinessHours(hours) {
-    if (!this.businessHours) {
-      this.businessHours = {};
-    }
-    this.businessHours = { ...hours };
+    // hours는 { 0: {open, close}, 1: {open, close}, ... } 형식
+    this.businessHours = hours ? { ...hours } : null;
     console.log('✅ 영업시간 저장:', this.businessHours);
   }
 
@@ -669,8 +667,9 @@ class DB {
     return this.temporaryClosed || false;
   }
 
-  // 브레이크타임 설정
+  // 브레이크타임 설정 (요일별)
   setBreakTime(breakTime) {
+    // breakTime은 { 0: {start, end}, 1: {start, end}, ... } 형식 또는 null
     this.breakTime = breakTime ? { ...breakTime } : null;
     console.log('✅ 브레이크타임 설정:', this.breakTime);
   }
