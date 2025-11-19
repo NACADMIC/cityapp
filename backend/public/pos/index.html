@@ -14,7 +14,7 @@
         <span></span>
         <span></span>
       </button>
-      <h1>🏮 시티반점 POS</h1>
+      <h1>🏮 시티반점</h1>
     </div>
     <div class="header-controls">
       <div id="business-status" style="padding: 8px 14px; border-radius: 8px; margin-right: 8px; font-weight: 600; font-size: 13px; white-space: nowrap;">
@@ -40,28 +40,48 @@
       <button class="close-btn" onclick="toggleMenu()">✕</button>
     </div>
     <nav class="side-menu-nav">
-      <a href="/pos" class="menu-item active">
-        <span class="menu-icon">🏠</span>
-        <span class="menu-text">주문 관리</span>
+      <a href="/pos" class="menu-item active" onclick="toggleMenu()">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">전체현황·임시중지</span>
       </a>
-      <a href="/pos/dashboard.html" class="menu-item">
-        <span class="menu-icon">📈</span>
-        <span class="menu-text">매출 통계</span>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openBusinessHoursSettings(); toggleMenu();">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">가게관리</span>
       </a>
-      <a href="/pos/dashboard.html?tab=settlement" class="menu-item">
+      <a href="/pos/dashboard.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">가게통계</span>
+        <span class="menu-badge">업데이트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="alert('메뉴판 편집 기능은 준비 중입니다.'); toggleMenu();">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">가게 메뉴판 편집</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="alert('메뉴·옵션 관리 기능은 준비 중입니다.'); toggleMenu();">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">메뉴·옵션 관리</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="alert('메뉴별 할인 관리 기능은 준비 중입니다.'); toggleMenu();">
+        <span class="menu-icon">🏷️</span>
+        <span class="menu-text">메뉴별 할인 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item" onclick="toggleMenu()">
         <span class="menu-icon">💰</span>
         <span class="menu-text">정산 정보</span>
       </a>
-      <a href="/pos/dashboard.html?tab=customers" class="menu-item">
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item" onclick="toggleMenu()">
         <span class="menu-icon">👥</span>
         <span class="menu-text">고객 분석</span>
       </a>
-      <a href="/pos/dashboard.html?tab=regions" class="menu-item">
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
         <span class="menu-icon">📍</span>
         <span class="menu-text">지역 분석</span>
       </a>
       <div class="menu-divider"></div>
-      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated')">
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
         <span class="menu-icon">🚪</span>
         <span class="menu-text">로그아웃</span>
       </a>
