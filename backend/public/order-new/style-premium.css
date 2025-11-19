@@ -255,6 +255,18 @@ h2 {
   box-shadow: 0 8px 25px rgba(78, 205, 196, 0.5);
 }
 
+.special-tab-popular {
+  background: linear-gradient(135deg, #FF8C00 0%, #FF6347 50%, #FF8C00 100%);
+  background-size: 200% 200%;
+  color: white;
+  animation: gradient-shift 3s ease infinite 1s;
+}
+
+.special-tab-popular:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(255, 140, 0, 0.5);
+}
+
 .special-tab.active {
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
@@ -267,6 +279,11 @@ h2 {
 }
 
 .special-tab-recommend.active {
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
+  color: #000000;
+}
+
+.special-tab-popular.active {
   background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
   color: #000000;
 }
