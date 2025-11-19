@@ -976,10 +976,7 @@ async function generateTestData() {
 
 // 정적 파일 서빙 (모든 API 라우트가 등록된 후에만 등록)
 // API 경로를 명시적으로 제외하는 미들웨어
-const staticFileHandler = express.static(path.join(__dirname, 'public'), {
-  // API 경로는 정적 파일 서빙에서 제외
-  index: false
-});
+const staticFileHandler = express.static(path.join(__dirname, 'public'));
 
 app.use((req, res, next) => {
   // API 경로는 정적 파일 서빙에서 완전히 제외
@@ -988,7 +985,7 @@ app.use((req, res, next) => {
     console.error('   경로:', req.path);
     console.error('   URL:', req.url);
     console.error('   이는 API 라우트가 등록되지 않았거나 라우팅 순서 문제입니다!');
-    // 404 대신 500으로 반환하여 문제를 명확히 함
+    // JSON 응답 보장
     res.setHeader('Content-Type', 'application/json');
     return res.status(500).json({ 
       success: false, 
