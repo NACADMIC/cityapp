@@ -433,7 +433,7 @@ function updateCartCount() {
 }
 
 // Render cart
-function renderCart() {
+async function renderCart() {
   const cartItemsDiv = document.getElementById('cart-items');
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -441,6 +441,10 @@ function renderCart() {
     cartItemsDiv.innerHTML = '<div class="empty-cart"><div class="empty-cart-icon">🛒</div><p>장바구니가 비어있습니다</p></div>';
     document.getElementById('items-total').textContent = '0원';
     document.getElementById('total-price').textContent = '0원';
+    const deliveryFeeRow = document.getElementById('delivery-fee-row');
+    const minOrderWarning = document.getElementById('min-order-warning');
+    if (deliveryFeeRow) deliveryFeeRow.style.display = 'none';
+    if (minOrderWarning) minOrderWarning.style.display = 'none';
     return;
   }
 
@@ -461,6 +465,52 @@ function renderCart() {
 
   document.getElementById('items-total').textContent = itemsTotal.toLocaleString() + '원';
 
+  // 배달료 및 최소 주문 금액 계산
+  let deliveryFee = 0;
+  let minOrderAmount = 15000;
+  let freeDeliveryThreshold = 20000;
+  
+  try {
+    const storeRes = await fetch('/api/store/info');
+    const storeData = await storeRes.json();
+    if (storeData.storeInfo) {
+      minOrderAmount = storeData.storeInfo.minOrderAmount || 15000;
+      freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
+      const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
+      
+      // 배달료 계산
+      if (itemsTotal < freeDeliveryThreshold) {
+        deliveryFee = baseDeliveryFee;
+      }
+    }
+  } catch (err) {
+    console.error('배달료 계산 오류:', err);
+  }
+  
+  // 배달료 표시
+  const deliveryFeeRow = document.getElementById('delivery-fee-row');
+  const deliveryFeeAmount = document.getElementById('delivery-fee');
+  if (deliveryFeeRow && deliveryFeeAmount) {
+    if (deliveryFee > 0) {
+      deliveryFeeRow.style.display = 'flex';
+      deliveryFeeAmount.textContent = deliveryFee.toLocaleString() + '원';
+    } else {
+      deliveryFeeRow.style.display = 'none';
+    }
+  }
+  
+  // 최소 주문 금액 경고 표시
+  const minOrderWarning = document.getElementById('min-order-warning');
+  const minOrderAmountDisplay = document.getElementById('min-order-amount');
+  if (minOrderWarning && minOrderAmountDisplay) {
+    if (itemsTotal < minOrderAmount) {
+      minOrderWarning.style.display = 'block';
+      minOrderAmountDisplay.textContent = minOrderAmount.toLocaleString();
+    } else {
+      minOrderWarning.style.display = 'none';
+    }
+  }
+
   const pointSection = document.getElementById('point-section');
   const earnPointsInfo = document.getElementById('earn-points-info');
   
@@ -476,8 +526,8 @@ function renderCart() {
       usePointsInput.value = usedPoints;
     }
     
-    const finalAmount = itemsTotal - usedPoints;
-    const earnPoints = Math.floor(finalAmount * 0.10);
+    const finalAmount = itemsTotal - usedPoints + deliveryFee;
+    const earnPoints = Math.floor((itemsTotal - usedPoints) * 0.10);
     
     // 보유 포인트 표시
     const userPointsDisplay = document.getElementById('user-points-display');
@@ -508,7 +558,8 @@ function renderCart() {
     if (pointSection) pointSection.style.display = 'none';
     if (earnPointsInfo) earnPointsInfo.style.display = 'none';
     usedPoints = 0;
-    document.getElementById('total-price').textContent = itemsTotal.toLocaleString() + '원';
+    const finalAmount = itemsTotal + deliveryFee;
+    document.getElementById('total-price').textContent = finalAmount.toLocaleString() + '원';
   }
 }
 
@@ -598,11 +649,28 @@ function removeFromCart(idx) {
 }
 
 // Render checkout
-function renderCheckout() {
+async function renderCheckout() {
   const checkoutItemsDiv = document.getElementById('checkout-items');
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const finalAmount = itemsTotal - usedPoints;
-  const earnPoints = Math.floor(finalAmount * 0.10);
+  
+  // 배달료 계산
+  let deliveryFee = 0;
+  try {
+    const storeRes = await fetch('/api/store/info');
+    const storeData = await storeRes.json();
+    if (storeData.storeInfo) {
+      const freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
+      const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
+      if (itemsTotal < freeDeliveryThreshold) {
+        deliveryFee = baseDeliveryFee;
+      }
+    }
+  } catch (err) {
+    console.error('배달료 계산 오류:', err);
+  }
+  
+  const finalAmount = itemsTotal - usedPoints + deliveryFee;
+  const earnPoints = Math.floor((itemsTotal - usedPoints) * 0.10);
 
   checkoutItemsDiv.innerHTML = cart.map(item => `
     <div class="checkout-item">
@@ -612,6 +680,12 @@ function renderCheckout() {
   `).join('');
 
   document.getElementById('checkout-items-total').textContent = itemsTotal.toLocaleString() + '원';
+  if (deliveryFee > 0) {
+    const deliveryRow = document.createElement('div');
+    deliveryRow.className = 'checkout-item';
+    deliveryRow.innerHTML = `<span>배달료</span><span>${deliveryFee.toLocaleString()}원</span>`;
+    checkoutItemsDiv.appendChild(deliveryRow);
+  }
   document.getElementById('checkout-total').textContent = finalAmount.toLocaleString() + '원';
 
   const checkoutPointsSection = document.getElementById('checkout-points-section');
@@ -673,9 +747,37 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
   const customerName = document.getElementById('checkout-name').value.trim();
   const phone = document.getElementById('checkout-phone').value.trim();
   const address = document.getElementById('checkout-address').value.trim();
+  const specialRequest = document.getElementById('checkout-request').value.trim();
   const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
 
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  // 배달료 계산 (서버에서 최종 확인)
+  let deliveryFee = 0;
+  try {
+    const storeRes = await fetch('/api/store/info');
+    const storeData = await storeRes.json();
+    if (storeData.storeInfo) {
+      const minOrder = storeData.storeInfo.minOrderAmount || 15000;
+      const freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
+      const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
+      
+      // 최소 주문 금액 체크
+      if (itemsTotal < minOrder) {
+        alert(`최소 주문 금액은 ${minOrder.toLocaleString()}원입니다.\n현재 주문 금액: ${itemsTotal.toLocaleString()}원`);
+        return;
+      }
+      
+      // 배달료 계산 (무료 배달 기준 미만이면 배달료 추가)
+      if (itemsTotal < freeDeliveryThreshold) {
+        deliveryFee = baseDeliveryFee;
+      }
+    }
+  } catch (err) {
+    console.error('배달료 계산 오류:', err);
+  }
+
+  const finalAmount = itemsTotal - usedPoints + deliveryFee;
 
   const orderData = {
     userId: currentUser ? currentUser.userId : null,
@@ -684,8 +786,11 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     address,
     items: cart,
     totalAmount: itemsTotal,
+    deliveryFee,
+    finalAmount,
     usedPoints,
     paymentMethod,
+    specialRequest,
     isGuest,
     phoneVerified: isGuest
   };

@@ -401,6 +401,15 @@
           <span id="items-total">0원</span>
         </div>
         
+        <div class="summary-row" id="delivery-fee-row" style="display: none;">
+          <span>배달료</span>
+          <span id="delivery-fee">0원</span>
+        </div>
+        
+        <div id="min-order-warning" style="display: none; background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 14px; color: #856404;">
+          ⚠️ 최소 주문 금액: <span id="min-order-amount">15,000</span>원
+        </div>
+        
         <div id="point-section" class="point-section" style="display: none;">
           <div class="point-header">
             <div>
@@ -466,6 +475,11 @@
         <div class="form-group">
           <label>배달 주소</label>
           <textarea id="checkout-address" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>주문 요청사항 (선택)</label>
+          <textarea id="checkout-request" placeholder="예: 문 앞에 놓아주세요, 양파 빼주세요 등" rows="3" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
         </div>
 
         <div class="form-group">

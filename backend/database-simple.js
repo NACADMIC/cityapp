@@ -24,7 +24,10 @@ class DB {
       license: '',
       address: '경기도 안성시 공도읍',
       kakaoChannelUrl: '', // 카카오톡 채널 URL (예: https://pf.kakao.com/_xxxxx)
-      chatServiceUrl: '' // 실시간 채팅 서비스 URL (나중에 외부 서비스 연동)
+      chatServiceUrl: '', // 실시간 채팅 서비스 URL (나중에 외부 서비스 연동)
+      minOrderAmount: 15000, // 최소 주문 금액
+      deliveryFee: 3000, // 기본 배달료
+      freeDeliveryThreshold: 20000 // 무료 배달 기준 금액
     };
     this.siteConfig = { // 사이트 설정 (페이지 빌더용)
       pages: {
@@ -312,14 +315,16 @@ class DB {
     const order = {
       id: this.orders.length + 1,
       userid: orderData.userId || null,
-      orderid: orderData.orderId,
+      orderid: orderData.orderid || orderData.orderId,
       customername: orderData.customerName,
       customerphone: orderData.phone,
       address: orderData.address,
       items: JSON.stringify(orderData.items),
-      totalprice: orderData.totalAmount,
+      totalprice: orderData.totalprice || orderData.totalAmount,
+      deliveryFee: orderData.deliveryFee || 0,
       usedpoints: orderData.usedPoints || 0,
       earnedpoints: orderData.earnedPoints || 0,
+      specialRequest: orderData.specialRequest || '',
       paymentmethod: orderData.paymentMethod || 'cash',
       status: orderData.status || 'pending',
       isguest: orderData.userId ? 0 : 1,

@@ -490,8 +490,12 @@ app.get('/api/store/info', (req, res) => {
 // API: 가게 정보 저장
 app.post('/api/store/info', (req, res) => {
   try {
-    const { name, owner, phone, license, address, kakaoChannelUrl, chatServiceUrl } = req.body;
-    const storeInfo = db.setStoreInfo({ name, owner, phone, license, address, kakaoChannelUrl, chatServiceUrl });
+    const { name, owner, phone, license, address, kakaoChannelUrl, chatServiceUrl, 
+            minOrderAmount, deliveryFee, freeDeliveryThreshold } = req.body;
+    const storeInfo = db.setStoreInfo({ 
+      name, owner, phone, license, address, kakaoChannelUrl, chatServiceUrl,
+      minOrderAmount, deliveryFee, freeDeliveryThreshold
+    });
     res.setHeader('Content-Type', 'application/json');
     res.json({ success: true, storeInfo });
   } catch (error) {
@@ -931,8 +935,17 @@ app.post('/api/orders', async (req, res) => {
     
     const {
       userId, customerName, phone, address, items,
-      totalAmount, usedPoints = 0, isGuest = false, phoneVerified = false
+      totalAmount, deliveryFee = 0, finalAmount: clientFinalAmount, usedPoints = 0, 
+      specialRequest = '', paymentMethod = 'cash',
+      isGuest = false, phoneVerified = false
     } = req.body;
+
+    // 최소 주문 금액 체크
+    const storeInfo = db.getStoreInfo();
+    const minOrderAmount = storeInfo.minOrderAmount || 15000;
+    if (totalAmount < minOrderAmount) {
+      return res.json({ success: false, error: `최소 주문 금액은 ${minOrderAmount.toLocaleString()}원입니다.` });
+    }
 
     const orderId = 'ORD-' + Date.now();
     
@@ -943,8 +956,10 @@ app.post('/api/orders', async (req, res) => {
       }
     }
 
-    const finalAmount = totalAmount - usedPoints;
-    const earnedPoints = userId && !isGuest ? Math.floor(finalAmount * 0.10) : 0;
+    // 최종 금액 계산 (배달료 포함)
+    const calculatedFinalAmount = totalAmount - usedPoints + deliveryFee;
+    const finalAmount = clientFinalAmount || calculatedFinalAmount;
+    const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - usedPoints) * 0.10) : 0;
 
     await db.createOrder({
       orderid: orderId,
@@ -954,8 +969,11 @@ app.post('/api/orders', async (req, res) => {
       address,
       items,
       totalprice: finalAmount,
+      deliveryFee,
       usedpoints: usedPoints,
       earnedpoints: earnedPoints,
+      specialRequest,
+      paymentMethod,
       isguest: isGuest,
       phoneverified: phoneVerified,
       status: 'pending'
