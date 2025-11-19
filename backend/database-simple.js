@@ -21,6 +21,25 @@ class DB {
       kakaoChannelUrl: '', // 카카오톡 채널 URL (예: https://pf.kakao.com/_xxxxx)
       chatServiceUrl: '' // 실시간 채팅 서비스 URL (나중에 외부 서비스 연동)
     };
+    this.siteConfig = { // 사이트 설정 (페이지 빌더용)
+      pages: {
+        'auth-select': {
+          blocks: [
+            { type: 'logo', content: '🏮', style: { fontSize: '64px', textAlign: 'center' } },
+            { type: 'heading', content: '시티반점', style: { fontSize: '48px', fontWeight: '900', color: '#1a1a1a', textAlign: 'center', marginBottom: '12px' } },
+            { type: 'text', content: '맛있는 중국요리 배달', style: { fontSize: '18px', color: '#666', textAlign: 'center', marginBottom: '30px' } },
+            { type: 'button', content: '회원 로그인', style: { backgroundColor: '#1976d2', color: 'white', padding: '18px', borderRadius: '12px', width: '100%', marginBottom: '15px' } },
+            { type: 'button', content: '비회원 주문', style: { backgroundColor: '#757575', color: 'white', padding: '18px', borderRadius: '12px', width: '100%' } }
+          ]
+        }
+      },
+      globalStyles: {
+        primaryColor: '#1976d2',
+        secondaryColor: '#757575',
+        backgroundColor: '#ffffff',
+        fontFamily: 'Pretendard, sans-serif'
+      }
+    };
     this.initialized = false;
     this.init();
   }
@@ -196,6 +215,16 @@ class DB {
 
   getStoreInfo() {
     return { ...this.storeInfo };
+  }
+  
+  setSiteConfig(config) {
+    this.siteConfig = { ...this.siteConfig, ...config };
+    console.log('✅ 사이트 설정 업데이트:', this.siteConfig);
+    return this.siteConfig;
+  }
+
+  getSiteConfig() {
+    return { ...this.siteConfig };
   }
 
   async createUser(phone, name, email, address, password) {

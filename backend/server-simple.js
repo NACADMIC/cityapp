@@ -499,6 +499,29 @@ app.post('/api/store/info', (req, res) => {
   }
 });
 
+// API: 사이트 설정 조회
+app.get('/api/site/config', (req, res) => {
+  try {
+    const siteConfig = db.getSiteConfig();
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, siteConfig });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 사이트 설정 저장
+app.post('/api/site/config', (req, res) => {
+  try {
+    const { pages, globalStyles } = req.body;
+    const siteConfig = db.setSiteConfig({ pages, globalStyles });
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, siteConfig });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 회원가입
 app.post('/api/auth/register', async (req, res) => {
   try {
