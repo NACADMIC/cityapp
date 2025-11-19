@@ -16,12 +16,6 @@ const io = socketIo(server, {
 
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// 기본 경로 리다이렉트
-app.get('/', (req, res) => {
-  res.redirect('/order-new');
-});
 
 const db = new Database();
 
@@ -946,6 +940,14 @@ async function generateTestData() {
     console.error('❌ 경고: 주문이 DB에 저장되지 않았습니다!');
   }
 }
+
+// 정적 파일 서빙 (모든 API 라우트 이후에 등록 - 라우팅 순서 중요!)
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 기본 경로 리다이렉트 (정적 파일 서빙 이후)
+app.get('/', (req, res) => {
+  res.redirect('/order-new');
+});
 
 // 서버 시작
 const PORT = process.env.PORT || 3000;

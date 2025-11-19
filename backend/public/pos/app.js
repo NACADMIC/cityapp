@@ -714,6 +714,20 @@ async function updateBusinessStatus() {
 async function openBusinessHoursSettings() {
   try {
     const res = await fetch('/api/business-hours');
+    
+    // 응답이 JSON인지 확인
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await res.text();
+      console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+      alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.\n서버를 재시작해주세요.');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
     
     const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
