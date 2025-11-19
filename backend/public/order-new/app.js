@@ -1022,6 +1022,14 @@ async function loadBusyStatus() {
           statusMessage.textContent = '현재 주문이 많아 배달 시간이 다소 소요될 수 있습니다.';
           statusMessage.style.color = '#e65100';
           banner.style.display = 'block';
+        } else if (data.status === 'normal') {
+          banner.style.background = '#e8f5e9';
+          banner.style.borderColor = '#4caf50';
+          statusText.textContent = '🟢 보통';
+          statusText.style.color = '#2e7d32';
+          statusMessage.textContent = '정상적으로 주문 가능합니다.';
+          statusMessage.style.color = '#2e7d32';
+          banner.style.display = 'block';
         } else {
           banner.style.display = 'none';
         }

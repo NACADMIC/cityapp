@@ -290,8 +290,11 @@
 
   <!-- Menu Screen -->
   <div id="menu-screen" class="screen">
-    <div class="header">
+    <div class="header" style="position: relative;">
       <h1 onclick="location.reload()" data-store-name>🏮 시티반점</h1>
+      <div id="header-phone" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #FFD700; font-size: 14px; font-weight: 600; cursor: pointer; display: none; opacity: 0.9; transition: opacity 0.3s;" onclick="callStore()" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">
+        📞 <span id="header-phone-number"></span>
+      </div>
     </div>
 
     <div id="user-info" class="user-info" style="display: none;">
@@ -539,6 +542,10 @@
     <div id="floating-kakao-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #FEE500 0%, #FDD835 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(254, 229, 0, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="openKakaoChannel()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(254, 229, 0, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(254, 229, 0, 0.4)';">
       <span style="font-size: 28px;">💛</span>
     </div>
+    <!-- 전화 버튼 -->
+    <div id="floating-phone-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="callStore()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)';">
+      <span style="font-size: 28px;">📞</span>
+    </div>
   </div>
   
   <!-- 푸터 (가게 정보) - 로그인 화면에만 표시 -->
@@ -571,6 +578,14 @@
             footerHTML += `<div style="font-size: 9px; color: #aaa; margin-top: 3px;">사업자등록번호: ${info.license}</div>`;
           }
           document.getElementById('footer-content').innerHTML = footerHTML;
+          
+          // 헤더 전화번호 표시
+          const headerPhone = document.getElementById('header-phone');
+          const headerPhoneNumber = document.getElementById('header-phone-number');
+          if (headerPhone && headerPhoneNumber && info.phone) {
+            headerPhoneNumber.textContent = info.phone;
+            headerPhone.style.display = 'block';
+          }
           
           // 플로팅 버튼들 표시 (항상 표시)
           const floatingButtons = document.getElementById('floating-inquiry-buttons');
