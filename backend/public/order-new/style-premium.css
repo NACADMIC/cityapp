@@ -1466,6 +1466,36 @@ h2 {
   text-align: left;
 }
 
+.option-price-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.option-price-btn {
+  padding: 14px 16px;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.option-price-btn:hover {
+  border-color: #1976d2;
+  background: #e3f2fd;
+}
+
+.option-price-btn.active {
+  border-color: #1976d2;
+  background: #1976d2;
+  color: white;
+}
+
 .option-item {
   display: flex;
   align-items: center;

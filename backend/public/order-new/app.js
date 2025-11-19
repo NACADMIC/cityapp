@@ -400,6 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // 메뉴 상세 팝업 표시
 let currentMenuDetail = null;
 let selectedOptions = [];
+let selectedOptionPrice = 0;
 let selectedQuantity = 1;
 
 async function showMenuDetail(itemId) {
@@ -408,6 +409,7 @@ async function showMenuDetail(itemId) {
   
   currentMenuDetail = item;
   selectedOptions = [];
+  selectedOptionPrice = 0;
   selectedQuantity = 1;
   
   // 옵션 로드
@@ -439,25 +441,24 @@ async function showMenuDetail(itemId) {
       <p class="menu-detail-price">${item.price.toLocaleString()}원</p>
       ${item.description ? `<p class="menu-detail-description">${item.description}</p>` : ''}
       
-      ${menuOptions.length > 0 ? `
-        <div class="menu-options-section">
-          <h3>옵션 선택</h3>
-          ${menuOptions.map((opt, idx) => `
-            <label class="option-item">
-              <input type="checkbox" value="${idx}" onchange="toggleOption(${idx}, '${opt.name}', ${opt.price || 0})">
-              <span class="option-name">${opt.name}</span>
-              ${opt.price ? `<span class="option-price">+${opt.price.toLocaleString()}원</span>` : ''}
-            </label>
-          `).join('')}
+      <div class="menu-options-section">
+        <h3>추가 옵션 (가격)</h3>
+        <div class="option-price-buttons">
+          <button class="option-price-btn" onclick="toggleOptionPrice(0)" data-price="0">기본</button>
+          <button class="option-price-btn" onclick="toggleOptionPrice(1000)" data-price="1000">+1,000원</button>
+          <button class="option-price-btn" onclick="toggleOptionPrice(2000)" data-price="2000">+2,000원</button>
+          <button class="option-price-btn" onclick="toggleOptionPrice(3000)" data-price="3000">+3,000원</button>
+          <button class="option-price-btn" onclick="toggleOptionPrice(5000)" data-price="5000">+5,000원</button>
         </div>
-      ` : ''}
+        <input type="number" id="custom-option-price" placeholder="직접 입력 (원)" min="0" style="width: 100%; padding: 12px; margin-top: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px;" onchange="toggleOptionPrice(parseInt(this.value) || 0)">
+      </div>
       
       <div class="quantity-section">
         <h3>수량</h3>
         <div class="quantity-controls">
-          <button onclick="decreaseQuantity()" class="qty-btn">-</button>
+          <button onclick="decreaseMenuQuantity()" class="qty-btn">-</button>
           <span id="selected-quantity" class="qty-value">${selectedQuantity}</span>
-          <button onclick="increaseQuantity()" class="qty-btn">+</button>
+          <button onclick="increaseMenuQuantity()" class="qty-btn">+</button>
         </div>
       </div>
       
@@ -480,32 +481,50 @@ function closeMenuDetail() {
   document.getElementById('menu-detail-popup').style.display = 'none';
   currentMenuDetail = null;
   selectedOptions = [];
+  selectedOptionPrice = 0;
   selectedQuantity = 1;
 }
 
-function toggleOption(idx, name, price) {
-  const checkbox = event.target;
-  const option = { idx, name, price };
+function toggleOptionPrice(price) {
+  selectedOptionPrice = price || 0;
   
-  if (checkbox.checked) {
-    selectedOptions.push(option);
-  } else {
-    selectedOptions = selectedOptions.filter(opt => opt.idx !== idx);
+  // 버튼 스타일 업데이트
+  document.querySelectorAll('.option-price-btn').forEach(btn => {
+    const btnPrice = parseInt(btn.dataset.price) || 0;
+    if (btnPrice === selectedOptionPrice) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  
+  // 직접 입력 필드 업데이트
+  const customInput = document.getElementById('custom-option-price');
+  if (customInput && price > 0 && ![1000, 2000, 3000, 5000].includes(price)) {
+    customInput.value = price;
+  } else if (customInput && [0, 1000, 2000, 3000, 5000].includes(price)) {
+    customInput.value = '';
   }
   
   updateMenuDetailTotal();
 }
 
-function increaseQuantity() {
+function increaseMenuQuantity() {
   selectedQuantity++;
-  document.getElementById('selected-quantity').textContent = selectedQuantity;
+  const qtyElement = document.getElementById('selected-quantity');
+  if (qtyElement) {
+    qtyElement.textContent = selectedQuantity;
+  }
   updateMenuDetailTotal();
 }
 
-function decreaseQuantity() {
+function decreaseMenuQuantity() {
   if (selectedQuantity > 1) {
     selectedQuantity--;
-    document.getElementById('selected-quantity').textContent = selectedQuantity;
+    const qtyElement = document.getElementById('selected-quantity');
+    if (qtyElement) {
+      qtyElement.textContent = selectedQuantity;
+    }
     updateMenuDetailTotal();
   }
 }
@@ -514,8 +533,7 @@ function updateMenuDetailTotal() {
   if (!currentMenuDetail) return;
   
   const basePrice = currentMenuDetail.price;
-  const optionsPrice = selectedOptions.reduce((sum, opt) => sum + (opt.price || 0), 0);
-  const totalPrice = (basePrice + optionsPrice) * selectedQuantity;
+  const totalPrice = (basePrice + selectedOptionPrice) * selectedQuantity;
   
   const totalElement = document.getElementById('menu-detail-total-price');
   if (totalElement) {
@@ -527,18 +545,17 @@ function addToCartWithOptions() {
   if (!currentMenuDetail) return;
   
   const basePrice = currentMenuDetail.price;
-  const optionsPrice = selectedOptions.reduce((sum, opt) => sum + (opt.price || 0), 0);
-  const totalPrice = basePrice + optionsPrice;
+  const totalPrice = basePrice + selectedOptionPrice;
   
   // 옵션 정보를 문자열로 저장
-  const optionsText = selectedOptions.length > 0 
-    ? selectedOptions.map(opt => opt.name + (opt.price ? ` (+${opt.price.toLocaleString()}원)` : '')).join(', ')
+  const optionsText = selectedOptionPrice > 0 
+    ? `+${selectedOptionPrice.toLocaleString()}원`
     : '';
   
   // 기존 장바구니에 같은 메뉴+옵션 조합이 있는지 확인
-  const cartKey = `${currentMenuDetail.id}_${optionsText}`;
+  const cartKey = `${currentMenuDetail.id}_${selectedOptionPrice}`;
   const existing = cart.find(c => {
-    const cKey = `${c.id}_${c.optionsText || ''}`;
+    const cKey = `${c.id}_${c.optionPrice || 0}`;
     return cKey === cartKey;
   });
   
@@ -548,7 +565,7 @@ function addToCartWithOptions() {
     cart.push({
       ...currentMenuDetail,
       quantity: selectedQuantity,
-      options: selectedOptions,
+      optionPrice: selectedOptionPrice,
       optionsText: optionsText,
       price: totalPrice // 옵션 포함 가격
     });
