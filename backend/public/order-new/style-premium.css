@@ -828,15 +828,42 @@ h2 {
   align-items: center;
   font-weight: 700;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   color: rgba(255, 255, 255, 0.95);
-  font-size: 16px;
+  font-size: 13px;
+}
+
+.user-name-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.user-name-suffix {
+  margin-left: 2px;
+}
+
+.user-phone {
+  color: #FFD700;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  transition: all 0.3s;
+}
+
+.user-phone:hover {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: rgba(255, 215, 0, 0.5);
 }
 
 .points {
   color: #FFD700;
   font-weight: 800;
-  font-size: 17px;
+  font-size: 13px;
 }
 
 /* ===== ANIMATIONS ===== */
