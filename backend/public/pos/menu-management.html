@@ -307,6 +307,20 @@
       <button class="tab-btn" onclick="switchTab('discounts')" style="padding: 12px 24px; border: none; background: none; cursor: pointer; font-size: 15px; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s;">🏷️ 할인 관리</button>
     </div>
 
+    <!-- 일괄 적용 컨트롤 (옵션/할인 탭에서만 표시) -->
+    <div id="bulk-controls" style="display: none; background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <h3 style="margin: 0 0 15px 0; color: #1976d2;">일괄 적용</h3>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button class="btn-add" onclick="selectAllMenus()" style="background: #2196f3;">전체 선택</button>
+        <button class="btn-add" onclick="deselectAllMenus()" style="background: #757575;">전체 해제</button>
+        <span id="selected-count" style="color: #666; margin-left: 10px;">선택된 메뉴: 0개</span>
+        <div style="margin-left: auto; display: flex; gap: 10px;">
+          <button id="bulk-options-btn" class="btn-add" onclick="applyOptionsToSelected()" style="background: #ff9800; display: none;">선택 메뉴에 옵션 적용</button>
+          <button id="bulk-discount-btn" class="btn-add" onclick="applyDiscountToSelected()" style="background: #9c27b0; display: none;">선택 메뉴에 할인 적용</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 메뉴 관리 탭 -->
     <div id="menu-tab" class="tab-content">
       <div id="menu-list" class="menu-grid">
@@ -663,8 +677,19 @@
         });
         const data = await res.json();
         if (data.success) {
-          alert('옵션이 저장되었습니다.');
+          const selectedIds = getSelectedMenuIds();
+          if (selectedIds.length > 1 && selectedIds.includes(currentMenuId)) {
+            // 여러 메뉴가 선택되어 있고 현재 메뉴도 포함되어 있으면 일괄 적용 제안
+            if (confirm('저장되었습니다. 선택한 다른 메뉴들에도 같은 옵션을 적용하시겠습니까?')) {
+              await applyOptionsToSelected();
+            } else {
+              alert('옵션이 저장되었습니다.');
+            }
+          } else {
+            alert('옵션이 저장되었습니다.');
+          }
           closeOptionsPopup();
+          loadOptionsManagement();
         } else {
           alert('저장 실패: ' + data.error);
         }
@@ -746,14 +771,21 @@
         document.getElementById('page-title').textContent = '📝 가게 메뉴판 편집';
         document.getElementById('add-btn').style.display = 'block';
         document.getElementById('add-btn').onclick = openAddMenuPopup;
+        document.getElementById('bulk-controls').style.display = 'none';
         loadMenus();
       } else if (tabName === 'options') {
         document.getElementById('page-title').textContent = '⚙️ 메뉴·옵션 관리';
         document.getElementById('add-btn').style.display = 'none';
+        document.getElementById('bulk-controls').style.display = 'block';
+        document.getElementById('bulk-options-btn').style.display = 'block';
+        document.getElementById('bulk-discount-btn').style.display = 'none';
         loadOptionsManagement();
       } else if (tabName === 'discounts') {
         document.getElementById('page-title').textContent = '🏷️ 메뉴별 할인 관리';
         document.getElementById('add-btn').style.display = 'none';
+        document.getElementById('bulk-controls').style.display = 'block';
+        document.getElementById('bulk-options-btn').style.display = 'none';
+        document.getElementById('bulk-discount-btn').style.display = 'block';
         loadDiscountsManagement();
       }
     }
@@ -792,9 +824,14 @@
           menuCards.push(`
             <div class="menu-card">
               <div class="menu-card-header">
-                <div>
-                  <h3 class="menu-name">${menu.name}</h3>
-                  <span class="menu-category">${menu.category}</span>
+                <div style="flex: 1;">
+                  <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" class="menu-checkbox" data-menu-id="${menu.id}" onchange="updateSelectedCount()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <div>
+                      <h3 class="menu-name" style="margin: 0;">${menu.name}</h3>
+                      <span class="menu-category">${menu.category}</span>
+                    </div>
+                  </label>
                 </div>
               </div>
               <div style="margin-top: 15px;">
@@ -811,7 +848,7 @@
                 }
               </div>
               <div class="menu-actions">
-                <button class="btn-options" onclick="openOptionsPopup(${menu.id})" style="width: 100%;">옵션 관리</button>
+                <button class="btn-options" onclick="openOptionsPopup(${menu.id})" style="flex: 1;">옵션 관리</button>
               </div>
             </div>
           `);
@@ -821,6 +858,7 @@
       }
 
       container.innerHTML = menuCards.join('');
+      updateSelectedCount();
     }
 
     // 할인 관리 탭 로드
@@ -864,19 +902,162 @@
         return `
           <div class="menu-card">
             <div class="menu-card-header">
-              <div>
-                <h3 class="menu-name">${menu.name}</h3>
-                <span class="menu-category">${menu.category}</span>
+              <div style="flex: 1;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" class="menu-checkbox" data-menu-id="${menu.id}" onchange="updateSelectedCount()" style="width: 18px; height: 18px; cursor: pointer;">
+                  <div>
+                    <h3 class="menu-name" style="margin: 0;">${menu.name}</h3>
+                    <span class="menu-category">${menu.category}</span>
+                  </div>
+                </label>
               </div>
             </div>
             <div class="menu-price">${menu.price.toLocaleString()}원</div>
             ${discountInfo}
             <div class="menu-actions">
-              <button class="btn-discount" onclick="openDiscountPopup(${menu.id})" style="width: 100%;">할인 설정</button>
+              <button class="btn-discount" onclick="openDiscountPopup(${menu.id})" style="flex: 1;">할인 설정</button>
             </div>
           </div>
         `;
       }).join('');
+      updateSelectedCount();
+    }
+
+    // 선택된 메뉴 개수 업데이트
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.menu-checkbox:checked');
+      const count = checkboxes.length;
+      document.getElementById('selected-count').textContent = `선택된 메뉴: ${count}개`;
+    }
+
+    // 전체 선택
+    function selectAllMenus() {
+      document.querySelectorAll('.menu-checkbox').forEach(cb => cb.checked = true);
+      updateSelectedCount();
+    }
+
+    // 전체 해제
+    function deselectAllMenus() {
+      document.querySelectorAll('.menu-checkbox').forEach(cb => cb.checked = false);
+      updateSelectedCount();
+    }
+
+    // 선택된 메뉴 ID 목록 가져오기
+    function getSelectedMenuIds() {
+      return Array.from(document.querySelectorAll('.menu-checkbox:checked'))
+        .map(cb => parseInt(cb.dataset.menuId));
+    }
+
+    // 여러 메뉴에 옵션 일괄 적용
+    async function applyOptionsToSelected() {
+      const selectedIds = getSelectedMenuIds();
+      if (selectedIds.length === 0) {
+        alert('적용할 메뉴를 선택해주세요.');
+        return;
+      }
+
+      if (currentOptions.length === 0) {
+        alert('적용할 옵션을 먼저 설정해주세요.');
+        openOptionsPopup(selectedIds[0]);
+        return;
+      }
+
+      if (!confirm(`선택한 ${selectedIds.length}개 메뉴에 옵션을 일괄 적용하시겠습니까?`)) {
+        return;
+      }
+
+      try {
+        let successCount = 0;
+        for (const menuId of selectedIds) {
+          try {
+            const res = await fetch(`/api/menu/${menuId}/options`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ options: currentOptions })
+            });
+            const data = await res.json();
+            if (data.success) successCount++;
+          } catch (error) {
+            console.error(`메뉴 ${menuId} 옵션 적용 오류:`, error);
+          }
+        }
+        alert(`${successCount}개 메뉴에 옵션이 적용되었습니다.`);
+        loadOptionsManagement();
+      } catch (error) {
+        alert('일괄 적용 오류: ' + error.message);
+      }
+    }
+
+    // 여러 메뉴에 할인 일괄 적용
+    async function applyDiscountToSelected() {
+      const selectedIds = getSelectedMenuIds();
+      if (selectedIds.length === 0) {
+        alert('적용할 메뉴를 선택해주세요.');
+        return;
+      }
+
+      // 할인 설정 팝업 열기 (일괄 적용 모드)
+      const discountType = prompt('할인 타입을 선택하세요:\n1. percent (퍼센트)\n2. fixed (고정 금액)\n3. 취소 (할인 해제)', 'percent');
+      if (!discountType || (discountType !== 'percent' && discountType !== 'fixed')) {
+        if (discountType !== null) {
+          // 할인 해제
+          if (!confirm(`선택한 ${selectedIds.length}개 메뉴의 할인을 모두 해제하시겠습니까?`)) {
+            return;
+          }
+          try {
+            let successCount = 0;
+            for (const menuId of selectedIds) {
+              try {
+                const res = await fetch(`/api/menu/${menuId}/discount`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: null, value: null })
+                });
+                const data = await res.json();
+                if (data.success) successCount++;
+              } catch (error) {
+                console.error(`메뉴 ${menuId} 할인 해제 오류:`, error);
+              }
+            }
+            alert(`${successCount}개 메뉴의 할인이 해제되었습니다.`);
+            loadDiscountsManagement();
+          } catch (error) {
+            alert('일괄 해제 오류: ' + error.message);
+          }
+        }
+        return;
+      }
+
+      const value = parseFloat(prompt(`할인 값을 입력하세요:\n${discountType === 'percent' ? '(예: 10 = 10%)' : '(예: 1000 = 1000원)'}`));
+      if (isNaN(value) || value <= 0) {
+        alert('올바른 값을 입력해주세요.');
+        return;
+      }
+
+      if (!confirm(`선택한 ${selectedIds.length}개 메뉴에 ${discountType === 'percent' ? value + '%' : value + '원'} 할인을 일괄 적용하시겠습니까?`)) {
+        return;
+      }
+
+      try {
+        let successCount = 0;
+        for (const menuId of selectedIds) {
+          try {
+            const res = await fetch(`/api/menu/${menuId}/discount`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: discountType, value: value })
+            });
+            const data = await res.json();
+            if (data.success) successCount++;
+          } catch (error) {
+            console.error(`메뉴 ${menuId} 할인 적용 오류:`, error);
+          }
+        }
+        alert(`${successCount}개 메뉴에 할인이 적용되었습니다.`);
+        loadDiscountsManagement();
+      } catch (error) {
+        alert('일괄 적용 오류: ' + error.message);
+      }
     }
 
     // URL 파라미터로 탭 초기화
