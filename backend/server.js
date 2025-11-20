@@ -613,6 +613,30 @@ app.post('/api/coupons/validate', (req, res) => {
       return res.json({ success: false, error: '사용할 수 없는 쿠폰입니다.' });
     }
     
+    // 사용자 쿠폰 소유 여부 확인 (userId가 있는 경우)
+    if (userId) {
+      const userCoupons = db.getUserCoupons(userId);
+      const hasCoupon = userCoupons.some(uc => uc.id === coupon.id && !uc.orderId && !uc.usedAt);
+      
+      if (!hasCoupon) {
+        // 쿠폰이 발급되지 않았거나 이미 사용한 경우
+        // 발급되지 않은 쿠폰인지 확인
+        const usageCheck = db.db.prepare(`
+          SELECT * FROM coupon_usage 
+          WHERE couponId = ? AND userId = ? 
+          ORDER BY id DESC LIMIT 1
+        `).get(coupon.id, userId);
+        
+        if (!usageCheck) {
+          return res.json({ success: false, error: '이 쿠폰은 발급되지 않았습니다. 먼저 쿠폰을 발급받아주세요.' });
+        }
+        
+        if (usageCheck.orderId || usageCheck.usedAt) {
+          return res.json({ success: false, error: '이미 사용한 쿠폰입니다.' });
+        }
+      }
+    }
+    
     // 최소 주문 금액 체크
     if (totalAmount && coupon.minAmount && totalAmount < coupon.minAmount) {
       return res.json({ 
@@ -645,6 +669,69 @@ app.post('/api/coupons/validate', (req, res) => {
       }
     });
   } catch (error) {
+    console.error('쿠폰 검증 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 생성
+app.post('/api/coupons', (req, res) => {
+  try {
+    const { code, name, discountType, discountValue, minAmount, maxDiscount, validFrom, validTo, isActive } = req.body;
+    
+    if (!code || !name || !discountType || !discountValue) {
+      return res.status(400).json({ success: false, error: '필수 항목이 누락되었습니다.' });
+    }
+    
+    // 코드 중복 체크
+    const existing = db.getCouponByCode(code.toUpperCase());
+    if (existing) {
+      return res.status(400).json({ success: false, error: '이미 존재하는 쿠폰 코드입니다.' });
+    }
+    
+    const coupon = db.createCoupon({
+      code: code.toUpperCase(),
+      name,
+      discountType,
+      discountValue,
+      minAmount: minAmount || 0,
+      maxDiscount: maxDiscount || null,
+      validFrom: validFrom ? new Date(validFrom) : new Date(),
+      validTo: validTo ? new Date(validTo) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      isActive: isActive !== false
+    });
+    
+    console.log('✅ 쿠폰 생성:', coupon.code);
+    res.json({ success: true, coupon });
+  } catch (error) {
+    console.error('쿠폰 생성 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 발급 (사용자에게 쿠폰 지급)
+app.post('/api/coupons/issue', async (req, res) => {
+  try {
+    const { couponId, userId } = req.body;
+    
+    if (!couponId || !userId) {
+      return res.status(400).json({ success: false, error: '필수 항목이 누락되었습니다.' });
+    }
+    
+    let coupon;
+    if (process.env.DATABASE_URL) {
+      coupon = await db.issueCouponToUser(couponId, userId);
+    } else {
+      coupon = db.issueCouponToUser(couponId, userId);
+    }
+    
+    if (coupon) {
+      res.json({ success: true, coupon });
+    } else {
+      res.status(400).json({ success: false, error: '쿠폰을 발급할 수 없습니다.' });
+    }
+  } catch (error) {
+    console.error('쿠폰 발급 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -686,6 +773,27 @@ app.post('/api/orders', async (req, res) => {
     if (couponCode && userId) {
       const coupon = db.getCouponByCode(couponCode.toUpperCase());
       if (coupon) {
+        // 사용자 쿠폰 소유 여부 확인
+        const userCoupons = db.getUserCoupons(userId);
+        const hasCoupon = userCoupons.some(uc => uc.id === coupon.id && !uc.orderId && !uc.usedAt);
+        
+        if (!hasCoupon) {
+          // 쿠폰이 발급되지 않았거나 이미 사용한 경우
+          const usageCheck = db.db.prepare(`
+            SELECT * FROM coupon_usage 
+            WHERE couponId = ? AND userId = ? 
+            ORDER BY id DESC LIMIT 1
+          `).get(coupon.id, userId);
+          
+          if (!usageCheck) {
+            return res.json({ success: false, error: '이 쿠폰은 발급되지 않았습니다. 먼저 쿠폰을 발급받아주세요.' });
+          }
+          
+          if (usageCheck.orderId || usageCheck.usedAt) {
+            return res.json({ success: false, error: '이미 사용한 쿠폰입니다.' });
+          }
+        }
+        
         // 최소 주문 금액 체크
         if (coupon.minAmount && totalAmount < coupon.minAmount) {
           return res.json({ 
@@ -693,9 +801,11 @@ app.post('/api/orders', async (req, res) => {
             error: `이 쿠폰은 최소 주문 금액 ${coupon.minAmount.toLocaleString()}원 이상일 때 사용 가능합니다.` 
           });
         }
-        // 쿠폰 사용 처리
-        db.useCoupon(coupon.id, userId, null); // orderId는 나중에 업데이트
+        
+        // 쿠폰 사용 처리 (orderId는 주문 생성 후 업데이트)
         couponId = coupon.id;
+      } else {
+        return res.json({ success: false, error: '유효하지 않은 쿠폰 코드입니다.' });
       }
     }
     

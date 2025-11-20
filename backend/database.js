@@ -888,24 +888,38 @@ class DB {
   useCoupon(couponId, userId, orderId) {
     const coupon = this.getCouponById(couponId);
     if (!coupon) {
+      console.error('❌ 쿠폰을 찾을 수 없습니다:', couponId);
+      return false;
+    }
+    
+    // 이미 사용한 쿠폰인지 확인
+    const existingUsage = this.db.prepare(`
+      SELECT * FROM coupon_usage 
+      WHERE couponId = ? AND userId = ? AND (orderId IS NOT NULL OR usedAt IS NOT NULL)
+      ORDER BY id DESC LIMIT 1
+    `).get(couponId, userId);
+    
+    if (existingUsage && (existingUsage.orderId || existingUsage.usedAt)) {
+      console.error('❌ 이미 사용한 쿠폰입니다:', couponId, userId);
       return false;
     }
     
     // 사용 횟수 증가
-    this.db.prepare('UPDATE coupons SET usedCount = usedCount + 1 WHERE id = ?').run(couponId);
+    this.db.prepare('UPDATE coupons SET usedCount = COALESCE(usedCount, 0) + 1 WHERE id = ?').run(couponId);
     
-    // 쿠폰 사용 내역 업데이트 (orderId 추가)
-    if (orderId) {
-      const usage = this.db.prepare('SELECT * FROM coupon_usage WHERE couponId = ? AND userId = ? AND orderId IS NULL ORDER BY id DESC LIMIT 1').get(couponId, userId);
-      if (usage) {
-        this.db.prepare('UPDATE coupon_usage SET orderId = ? WHERE id = ?').run(orderId, usage.id);
-      } else {
-        // 새로 추가
-        this.db.prepare('INSERT INTO coupon_usage (couponId, userId, orderId, usedAt) VALUES (?, ?, ?, ?)')
-          .run(couponId, userId, orderId, new Date().toISOString());
-      }
+    // 쿠폰 사용 내역 업데이트 (orderId와 usedAt 추가)
+    const usage = this.db.prepare('SELECT * FROM coupon_usage WHERE couponId = ? AND userId = ? AND (orderId IS NULL AND usedAt IS NULL) ORDER BY id DESC LIMIT 1').get(couponId, userId);
+    if (usage) {
+      // 기존 발급 내역 업데이트
+      this.db.prepare('UPDATE coupon_usage SET orderId = ?, usedAt = ? WHERE id = ?')
+        .run(orderId, new Date().toISOString(), usage.id);
+    } else {
+      // 새로 추가 (발급되지 않은 경우)
+      this.db.prepare('INSERT INTO coupon_usage (couponId, userId, orderId, usedAt) VALUES (?, ?, ?, ?)')
+        .run(couponId, userId, orderId, new Date().toISOString());
     }
     
+    console.log(`✅ 쿠폰 사용 완료: couponId=${couponId}, userId=${userId}, orderId=${orderId}`);
     return true;
   }
 
