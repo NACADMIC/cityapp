@@ -602,7 +602,15 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
     
-    const user = db.getUserByPhone(phone);
+    let user;
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      user = await db.getUserByPhone(phone);
+    } else {
+      // SQLite
+      user = db.getUserByPhone(phone);
+    }
+    
     if (!user) {
       return res.json({ success: false, error: '가입되지 않은 전화번호입니다.' });
     }
@@ -621,8 +629,8 @@ app.post('/api/auth/login', async (req, res) => {
         userId: user.userId || user.userid || user.id,
         name: user.name,
         phone: user.phone,
-        email: user.email,
-        address: user.address,
+        email: user.email || '',
+        address: user.address || '',
         points: user.points || 0
       }
     });
@@ -792,12 +800,49 @@ app.get('/api/auth/me/:userId', async (req, res) => {
   }
 });
 
-// API: 데이터베이스 상태 확인 (관리자용)
+// API: 데이터베이스 연결 상태 확인
+app.get('/api/admin/db-connection-test', async (req, res) => {
+  try {
+    if (process.env.DATABASE_URL && db && typeof db.testConnection === 'function') {
+      const test = await db.testConnection();
+      res.json({ success: true, connection: test });
+    } else {
+      res.json({ success: true, connection: { connected: true, database: 'SQLite (로컬)' } });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 데이터베이스 상태 확인 (관리자용) - 연결 테스트 포함
 app.get('/api/admin/db-status', async (req, res) => {
   try {
     let stats = {};
+    let connectionInfo = { connected: false, error: null };
     
     if (process.env.DATABASE_URL) {
+      // PostgreSQL 연결 테스트
+      if (db && typeof db.testConnection === 'function') {
+        try {
+          connectionInfo = await db.testConnection();
+          if (!connectionInfo.connected) {
+            return res.status(500).json({ 
+              success: false, 
+              error: `PostgreSQL 연결 실패: ${connectionInfo.error}`,
+              connectionInfo,
+              database: 'PostgreSQL (Railway)'
+            });
+          }
+        } catch (err) {
+          return res.status(500).json({
+            success: false,
+            error: `PostgreSQL 연결 테스트 오류: ${err.message}`,
+            connectionInfo: { connected: false, error: err.message },
+            database: 'PostgreSQL (Railway)'
+          });
+        }
+      }
+      
       // PostgreSQL
       const userCount = await db.query('SELECT COUNT(*) as count FROM users');
       const orderCount = await db.query('SELECT COUNT(*) as count FROM orders');
@@ -820,6 +865,8 @@ app.get('/api/admin/db-status', async (req, res) => {
       
       stats = {
         database: 'PostgreSQL (Railway)',
+        connectionStatus: connectionInfo.connected ? 'connected' : 'disconnected',
+        connectionInfo: connectionInfo,
         users: {
           total: parseInt(userCount.rows[0].count),
           recent: recentUsers.rows
@@ -899,10 +946,15 @@ app.post('/api/auth/find-id', (req, res) => {
 });
 
 // API: 사용자 확인 (비밀번호 찾기)
-app.post('/api/auth/verify-user', (req, res) => {
+app.post('/api/auth/verify-user', async (req, res) => {
   try {
     const { phone, name } = req.body;
-    const user = db.getUserByPhone(phone);
+    let user;
+    if (process.env.DATABASE_URL) {
+      user = await db.getUserByPhone(phone);
+    } else {
+      user = db.getUserByPhone(phone);
+    }
     
     if (user && user.name === name) {
       res.json({ success: true });

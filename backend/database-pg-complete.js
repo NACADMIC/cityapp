@@ -14,18 +14,53 @@ class DB {
   }
 
   async query(text, params) {
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
       const result = await client.query(text, params);
       return result;
+    } catch (error) {
+      console.error('❌ PostgreSQL 쿼리 오류:', error.message);
+      console.error('쿼리:', text);
+      throw error;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
+    }
+  }
+
+  // 연결 테스트
+  async testConnection() {
+    try {
+      const result = await this.query('SELECT NOW() as current_time, version() as pg_version');
+      return {
+        connected: true,
+        currentTime: result.rows[0].current_time,
+        version: result.rows[0].pg_version
+      };
+    } catch (error) {
+      console.error('❌ PostgreSQL 연결 테스트 실패:', error.message);
+      return {
+        connected: false,
+        error: error.message
+      };
     }
   }
 
   async init() {
     try {
       console.log('🔄 PostgreSQL 데이터베이스 초기화 중...');
+      
+      // 연결 테스트
+      const connectionTest = await this.testConnection();
+      if (!connectionTest.connected) {
+        console.error('❌ PostgreSQL 연결 실패!');
+        console.error('오류:', connectionTest.error);
+        throw new Error(`PostgreSQL 연결 실패: ${connectionTest.error}`);
+      }
+      console.log('✅ PostgreSQL 연결 성공!');
+      console.log('   버전:', connectionTest.version);
 
       // 메뉴 테이블
       await this.query(`
