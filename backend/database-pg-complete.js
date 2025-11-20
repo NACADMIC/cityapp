@@ -664,6 +664,7 @@ class DB {
   // 요일별 영업시간 저장/조회
   async saveBusinessHoursByDay(hours) {
     try {
+      // 테이블 생성
       await this.query(`
         CREATE TABLE IF NOT EXISTS business_hours_by_day (
           day INTEGER PRIMARY KEY,
@@ -673,20 +674,37 @@ class DB {
         )
       `);
       
+      // 트랜잭션 사용하여 안전하게 저장
       for (const [day, time] of Object.entries(hours)) {
+        if (!time || typeof time.open !== 'number' || typeof time.close !== 'number') {
+          console.warn(`⚠️ 잘못된 영업시간 데이터 건너뜀: day=${day}, time=`, time);
+          continue;
+        }
+        
         const dayNum = parseInt(day);
-        const existing = await this.query('SELECT * FROM business_hours_by_day WHERE day = $1', [dayNum]);
-        if (existing.rows.length > 0) {
-          await this.query('UPDATE business_hours_by_day SET "openHour" = $1, "closeHour" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE day = $3', 
-            [time.open, time.close, dayNum]);
-        } else {
-          await this.query('INSERT INTO business_hours_by_day (day, "openHour", "closeHour", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)', 
-            [dayNum, time.open, time.close]);
+        if (isNaN(dayNum) || dayNum < 0 || dayNum > 6) {
+          console.warn(`⚠️ 잘못된 요일 번호 건너뜀: ${day}`);
+          continue;
+        }
+        
+        try {
+          const existing = await this.query('SELECT * FROM business_hours_by_day WHERE day = $1', [dayNum]);
+          if (existing.rows.length > 0) {
+            await this.query('UPDATE business_hours_by_day SET "openHour" = $1, "closeHour" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE day = $3', 
+              [time.open, time.close, dayNum]);
+          } else {
+            await this.query('INSERT INTO business_hours_by_day (day, "openHour", "closeHour", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)', 
+              [dayNum, time.open, time.close]);
+          }
+        } catch (err) {
+          console.error(`❌ 요일 ${day} 저장 오류:`, err);
+          throw err; // 에러를 다시 던져서 상위에서 처리할 수 있도록
         }
       }
       console.log('✅ 요일별 영업시간 저장 완료 (PG)');
     } catch (e) {
-      console.error('요일별 영업시간 저장 오류 (PG):', e);
+      console.error('❌ 요일별 영업시간 저장 오류 (PG):', e);
+      throw e; // 에러를 다시 던져서 상위에서 처리할 수 있도록
     }
   }
 

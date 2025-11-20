@@ -121,14 +121,55 @@ setTimeout(async () => {
   await loadBusinessHours();
 }, 100);
 
-function isBusinessHours() {
+async function isBusinessHours() {
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const dayOfWeek = koreaTime.getDay(); // 0=일요일, 6=토요일
   const hour = koreaTime.getHours();
   const minute = koreaTime.getMinutes();
   const currentTime = hour + minute / 60;
   
-  return currentTime >= businessHours.open && currentTime < businessHours.close;
+  try {
+    // 임시휴업 확인
+    let temporaryClosed = false;
+    if (db && typeof db.getTemporaryClosed === 'function') {
+      temporaryClosed = process.env.DATABASE_URL ? await db.getTemporaryClosed() : db.getTemporaryClosed();
+    }
+    if (temporaryClosed) {
+      return false;
+    }
+    
+    // 요일별 영업시간 확인
+    let allBusinessHours = {};
+    if (db && typeof db.getBusinessHoursByDay === 'function') {
+      allBusinessHours = process.env.DATABASE_URL ? await db.getBusinessHoursByDay() : db.getBusinessHoursByDay();
+    }
+    
+    // 요일별 영업시간이 있으면 사용
+    if (allBusinessHours && Object.keys(allBusinessHours).length > 0 && allBusinessHours[dayOfWeek]) {
+      const todayHours = allBusinessHours[dayOfWeek];
+      
+      // 브레이크타임 확인
+      let allBreakTime = {};
+      if (db && typeof db.getBreakTime === 'function') {
+        allBreakTime = process.env.DATABASE_URL ? await db.getBreakTime() : db.getBreakTime();
+      }
+      
+      const todayBreakTime = allBreakTime[dayOfWeek];
+      if (todayBreakTime && currentTime >= todayBreakTime.start && currentTime < todayBreakTime.end) {
+        return false; // 브레이크타임 중
+      }
+      
+      return currentTime >= todayHours.open && currentTime < todayHours.close;
+    }
+    
+    // 요일별 영업시간이 없으면 기본 영업시간 사용
+    return currentTime >= businessHours.open && currentTime < businessHours.close;
+  } catch (e) {
+    console.error('영업시간 체크 오류:', e);
+    // 오류 시 기본 영업시간 사용
+    return currentTime >= businessHours.open && currentTime < businessHours.close;
+  }
 }
 
 // Socket.io 연결
@@ -201,9 +242,10 @@ app.get('/', (req, res) => {
 // API: 영업시간 조회 (요일별 포함)
 app.get('/api/business-hours', async (req, res) => {
   try {
-    const isOpen = isBusinessHours();
+    const isOpen = await isBusinessHours();
     const now = new Date();
     const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const dayOfWeek = koreaTime.getDay(); // 0=일요일, 6=토요일
     const hour = koreaTime.getHours();
     const minute = koreaTime.getMinutes();
     
@@ -237,17 +279,27 @@ app.get('/api/business-hours', async (req, res) => {
       temporaryClosed = db.getTemporaryClosed();
     }
     
+    // 오늘 요일의 영업시간 결정
+    let todayHours = businessHours; // 기본값
+    let businessHoursText = `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`;
+    
+    if (allBusinessHours && Object.keys(allBusinessHours).length > 0 && allBusinessHours[dayOfWeek]) {
+      todayHours = allBusinessHours[dayOfWeek];
+      businessHoursText = `${formatTime(todayHours.open)} - ${formatTime(todayHours.close)}`;
+    }
+    
     res.json({
       isOpen: isOpen && !temporaryClosed,
       currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-      businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
-      open: businessHours.open,
-      close: businessHours.close,
+      businessHours: businessHoursText,
+      open: todayHours.open,
+      close: todayHours.close,
       allBusinessHours,
       allBreakTime,
       temporaryClosed
     });
   } catch (error) {
+    console.error('❌ 영업시간 조회 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -257,15 +309,31 @@ app.post('/api/business-hours', async (req, res) => {
   try {
     const { open, close, hours } = req.body;
     
+    console.log('📝 영업시간 저장 요청:', { open, close, hours });
+    
     // 요일별 영업시간 저장 (새 형식)
-    if (hours && typeof hours === 'object') {
-      if (process.env.DATABASE_URL) {
-        await db.saveBusinessHoursByDay(hours);
-      } else {
-        db.saveBusinessHoursByDay(hours);
+    if (hours && typeof hours === 'object' && Object.keys(hours).length > 0) {
+      try {
+        if (process.env.DATABASE_URL) {
+          await db.saveBusinessHoursByDay(hours);
+        } else {
+          db.saveBusinessHoursByDay(hours);
+        }
+        console.log('✅ 요일별 영업시간 업데이트 완료:', hours);
+        
+        // 저장된 데이터 다시 조회하여 반환
+        let savedHours = {};
+        if (process.env.DATABASE_URL) {
+          savedHours = await db.getBusinessHoursByDay();
+        } else {
+          savedHours = db.getBusinessHoursByDay();
+        }
+        
+        return res.json({ success: true, allBusinessHours: savedHours });
+      } catch (err) {
+        console.error('❌ 요일별 영업시간 저장 오류:', err);
+        return res.status(500).json({ success: false, error: `저장 오류: ${err.message}` });
       }
-      console.log('✅ 요일별 영업시간 업데이트:', hours);
-      return res.json({ success: true, allBusinessHours: hours });
     }
     
     // 단일 영업시간 저장 (기존 형식)
@@ -277,16 +345,22 @@ app.post('/api/business-hours', async (req, res) => {
       return res.status(400).json({ success: false, error: '시간은 0-24 사이여야 합니다.' });
     }
     
-    businessHours = { open, close };
-    if (process.env.DATABASE_URL) {
-      await db.saveBusinessHours(businessHours);
-    } else {
-      db.saveBusinessHours(businessHours);
+    try {
+      businessHours = { open, close };
+      if (process.env.DATABASE_URL) {
+        await db.saveBusinessHours(businessHours);
+      } else {
+        db.saveBusinessHours(businessHours);
+      }
+      
+      console.log('✅ 영업시간 업데이트 완료:', businessHours);
+      res.json({ success: true, businessHours });
+    } catch (err) {
+      console.error('❌ 영업시간 저장 오류:', err);
+      res.status(500).json({ success: false, error: `저장 오류: ${err.message}` });
     }
-    
-    console.log('✅ 영업시간 업데이트:', businessHours);
-    res.json({ success: true, businessHours });
   } catch (error) {
+    console.error('❌ 영업시간 설정 API 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

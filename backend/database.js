@@ -787,6 +787,7 @@ class DB {
   // 요일별 영업시간 저장/조회
   saveBusinessHoursByDay(hours) {
     try {
+      // 테이블 생성
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS business_hours_by_day (
           day INTEGER PRIMARY KEY,
@@ -796,20 +797,38 @@ class DB {
         )
       `);
       
-      for (const [day, time] of Object.entries(hours)) {
-        const dayNum = parseInt(day);
-        const existing = this.db.prepare('SELECT * FROM business_hours_by_day WHERE day = ?').get(dayNum);
-        if (existing) {
-          this.db.prepare('UPDATE business_hours_by_day SET open_hour = ?, close_hour = ?, updated_at = ? WHERE day = ?')
-            .run(time.open, time.close, new Date().toISOString(), dayNum);
-        } else {
-          this.db.prepare('INSERT INTO business_hours_by_day (day, open_hour, close_hour, updated_at) VALUES (?, ?, ?, ?)')
-            .run(dayNum, time.open, time.close, new Date().toISOString());
+      // 트랜잭션 사용하여 안전하게 저장
+      const transaction = this.db.transaction((hours) => {
+        for (const [day, time] of Object.entries(hours)) {
+          if (!time || typeof time.open !== 'number' || typeof time.close !== 'number') {
+            console.warn(`⚠️ 잘못된 영업시간 데이터 건너뜀: day=${day}, time=`, time);
+            continue;
+          }
+          
+          const dayNum = parseInt(day);
+          if (isNaN(dayNum) || dayNum < 0 || dayNum > 6) {
+            console.warn(`⚠️ 잘못된 요일 번호 건너뜀: ${day}`);
+            continue;
+          }
+          
+          const existing = this.db.prepare('SELECT * FROM business_hours_by_day WHERE day = ?').get(dayNum);
+          const updatedAt = new Date().toISOString();
+          
+          if (existing) {
+            this.db.prepare('UPDATE business_hours_by_day SET open_hour = ?, close_hour = ?, updated_at = ? WHERE day = ?')
+              .run(time.open, time.close, updatedAt, dayNum);
+          } else {
+            this.db.prepare('INSERT INTO business_hours_by_day (day, open_hour, close_hour, updated_at) VALUES (?, ?, ?, ?)')
+              .run(dayNum, time.open, time.close, updatedAt);
+          }
         }
-      }
+      });
+      
+      transaction(hours);
       console.log('✅ 요일별 영업시간 저장 완료');
     } catch (e) {
-      console.error('요일별 영업시간 저장 오류:', e);
+      console.error('❌ 요일별 영업시간 저장 오류:', e);
+      throw e; // 에러를 다시 던져서 상위에서 처리할 수 있도록
     }
   }
 

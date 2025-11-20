@@ -925,7 +925,10 @@ async function updateBusinessStatus() {
     if (data.isOpen) {
       statusEl.style.background = '#4caf50';
       statusEl.style.color = 'white';
-      let statusMsg = `🟢 영업중 (${data.businessHours})`;
+      let statusMsg = `🟢 영업중`;
+      if (data.businessHours) {
+        statusMsg += ` (${data.businessHours})`;
+      }
       if (data.statusMessage) {
         statusMsg += ` - ${data.statusMessage}`;
       }
@@ -936,7 +939,7 @@ async function updateBusinessStatus() {
       let statusMsg = `🔴 영업시간 아님`;
       if (data.statusMessage) {
         statusMsg = `🔴 ${data.statusMessage}`;
-      } else {
+      } else if (data.businessHours) {
         statusMsg += ` (${data.businessHours})`;
       }
       statusText.textContent = statusMsg;
