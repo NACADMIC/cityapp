@@ -784,6 +784,282 @@ class DB {
     }
   }
 
+  // 요일별 영업시간 저장/조회
+  saveBusinessHoursByDay(hours) {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS business_hours_by_day (
+          day INTEGER PRIMARY KEY,
+          open_hour REAL NOT NULL,
+          close_hour REAL NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      for (const [day, time] of Object.entries(hours)) {
+        const dayNum = parseInt(day);
+        const existing = this.db.prepare('SELECT * FROM business_hours_by_day WHERE day = ?').get(dayNum);
+        if (existing) {
+          this.db.prepare('UPDATE business_hours_by_day SET open_hour = ?, close_hour = ?, updated_at = ? WHERE day = ?')
+            .run(time.open, time.close, new Date().toISOString(), dayNum);
+        } else {
+          this.db.prepare('INSERT INTO business_hours_by_day (day, open_hour, close_hour, updated_at) VALUES (?, ?, ?, ?)')
+            .run(dayNum, time.open, time.close, new Date().toISOString());
+        }
+      }
+      console.log('✅ 요일별 영업시간 저장 완료');
+    } catch (e) {
+      console.error('요일별 영업시간 저장 오류:', e);
+    }
+  }
+
+  getBusinessHoursByDay() {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS business_hours_by_day (
+          day INTEGER PRIMARY KEY,
+          open_hour REAL NOT NULL,
+          close_hour REAL NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const results = this.db.prepare('SELECT * FROM business_hours_by_day').all();
+      const hours = {};
+      results.forEach(row => {
+        hours[row.day] = {
+          open: row.open_hour,
+          close: row.close_hour
+        };
+      });
+      return hours;
+    } catch (e) {
+      console.error('요일별 영업시간 조회 오류:', e);
+      return {};
+    }
+  }
+
+  // 브레이크타임 저장/조회
+  saveBreakTime(breakTimes) {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS break_time (
+          day INTEGER PRIMARY KEY,
+          start_hour REAL,
+          end_hour REAL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      for (const [day, bt] of Object.entries(breakTimes)) {
+        const dayNum = parseInt(day);
+        const existing = this.db.prepare('SELECT * FROM break_time WHERE day = ?').get(dayNum);
+        if (existing) {
+          this.db.prepare('UPDATE break_time SET start_hour = ?, end_hour = ?, updated_at = ? WHERE day = ?')
+            .run(bt.start || null, bt.end || null, new Date().toISOString(), dayNum);
+        } else {
+          this.db.prepare('INSERT INTO break_time (day, start_hour, end_hour, updated_at) VALUES (?, ?, ?, ?)')
+            .run(dayNum, bt.start || null, bt.end || null, new Date().toISOString());
+        }
+      }
+      console.log('✅ 브레이크타임 저장 완료');
+    } catch (e) {
+      console.error('브레이크타임 저장 오류:', e);
+    }
+  }
+
+  getBreakTime() {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS break_time (
+          day INTEGER PRIMARY KEY,
+          start_hour REAL,
+          end_hour REAL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const results = this.db.prepare('SELECT * FROM break_time').all();
+      const breakTimes = {};
+      results.forEach(row => {
+        if (row.start_hour !== null && row.end_hour !== null) {
+          breakTimes[row.day] = {
+            start: row.start_hour,
+            end: row.end_hour
+          };
+        }
+      });
+      return breakTimes;
+    } catch (e) {
+      console.error('브레이크타임 조회 오류:', e);
+      return {};
+    }
+  }
+
+  // 임시휴업 설정 저장/조회
+  saveTemporaryClosed(closed) {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS store_settings (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          temporary_closed INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const existing = this.db.prepare('SELECT * FROM store_settings WHERE id = 1').get();
+      if (existing) {
+        this.db.prepare('UPDATE store_settings SET temporary_closed = ?, updated_at = ? WHERE id = 1')
+          .run(closed ? 1 : 0, new Date().toISOString());
+      } else {
+        this.db.prepare('INSERT INTO store_settings (id, temporary_closed, updated_at) VALUES (1, ?, ?)')
+          .run(closed ? 1 : 0, new Date().toISOString());
+      }
+      console.log('✅ 임시휴업 설정 저장 완료:', closed);
+    } catch (e) {
+      console.error('임시휴업 설정 저장 오류:', e);
+    }
+  }
+
+  getTemporaryClosed() {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS store_settings (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          temporary_closed INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const result = this.db.prepare('SELECT * FROM store_settings WHERE id = 1').get();
+      return result ? (result.temporary_closed === 1) : false;
+    } catch (e) {
+      console.error('임시휴업 설정 조회 오류:', e);
+      return false;
+    }
+  }
+
+  // 가게 정보 저장/조회
+  saveStoreInfo(storeInfo) {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS store_info (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          name TEXT DEFAULT '시티반점',
+          owner TEXT,
+          phone TEXT,
+          license TEXT,
+          address TEXT,
+          kakao_channel_url TEXT,
+          chat_service_url TEXT,
+          delivery_fee INTEGER DEFAULT 3000,
+          min_order_amount INTEGER DEFAULT 15000,
+          free_delivery_threshold INTEGER DEFAULT 30000,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const existing = this.db.prepare('SELECT * FROM store_info WHERE id = 1').get();
+      if (existing) {
+        this.db.prepare(`
+          UPDATE store_info 
+          SET name = ?, owner = ?, phone = ?, license = ?, address = ?, 
+              kakao_channel_url = ?, chat_service_url = ?, updated_at = ?
+          WHERE id = 1
+        `).run(
+          storeInfo.name || '시티반점',
+          storeInfo.owner || null,
+          storeInfo.phone || null,
+          storeInfo.license || null,
+          storeInfo.address || null,
+          storeInfo.kakaoChannelUrl || null,
+          storeInfo.chatServiceUrl || null,
+          new Date().toISOString()
+        );
+      } else {
+        this.db.prepare(`
+          INSERT INTO store_info (id, name, owner, phone, license, address, kakao_channel_url, chat_service_url, updated_at)
+          VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          storeInfo.name || '시티반점',
+          storeInfo.owner || null,
+          storeInfo.phone || null,
+          storeInfo.license || null,
+          storeInfo.address || null,
+          storeInfo.kakaoChannelUrl || null,
+          storeInfo.chatServiceUrl || null,
+          new Date().toISOString()
+        );
+      }
+      console.log('✅ 가게 정보 저장 완료');
+    } catch (e) {
+      console.error('가게 정보 저장 오류:', e);
+    }
+  }
+
+  getStoreInfo() {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS store_info (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          name TEXT DEFAULT '시티반점',
+          owner TEXT,
+          phone TEXT,
+          license TEXT,
+          address TEXT,
+          kakao_channel_url TEXT,
+          chat_service_url TEXT,
+          delivery_fee INTEGER DEFAULT 3000,
+          min_order_amount INTEGER DEFAULT 15000,
+          free_delivery_threshold INTEGER DEFAULT 30000,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const result = this.db.prepare('SELECT * FROM store_info WHERE id = 1').get();
+      if (result) {
+        return {
+          name: result.name || '시티반점',
+          owner: result.owner || '',
+          phone: result.phone || '',
+          license: result.license || '',
+          address: result.address || '',
+          kakaoChannelUrl: result.kakao_channel_url || '',
+          chatServiceUrl: result.chat_service_url || '',
+          deliveryFee: result.delivery_fee || 3000,
+          minOrderAmount: result.min_order_amount || 15000,
+          freeDeliveryThreshold: result.free_delivery_threshold || 30000
+        };
+      }
+      return {
+        name: '시티반점',
+        owner: '',
+        phone: '',
+        license: '',
+        address: '',
+        kakaoChannelUrl: '',
+        chatServiceUrl: '',
+        deliveryFee: 3000,
+        minOrderAmount: 15000,
+        freeDeliveryThreshold: 30000
+      };
+    } catch (e) {
+      console.error('가게 정보 조회 오류:', e);
+      return {
+        name: '시티반점',
+        owner: '',
+        phone: '',
+        license: '',
+        address: '',
+        kakaoChannelUrl: '',
+        chatServiceUrl: '',
+        deliveryFee: 3000,
+        minOrderAmount: 15000,
+        freeDeliveryThreshold: 30000
+      };
+    }
+  }
+
   // ========== 쿠폰 시스템 ==========
   
   // 쿠폰 생성

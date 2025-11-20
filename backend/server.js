@@ -85,28 +85,40 @@ let businessHours = {
   close: 21   // 오후 9시
 };
 
-// 영업시간을 DB에서 불러오기
-function loadBusinessHours() {
+// 영업시간을 DB에서 불러오기 (요일별 포함)
+async function loadBusinessHours() {
   try {
     // DB가 초기화되었는지 확인
     if (db && typeof db.getBusinessHours === 'function') {
-      const saved = db.getBusinessHours();
+      const saved = process.env.DATABASE_URL ? await db.getBusinessHours() : db.getBusinessHours();
       if (saved && saved.open !== undefined && saved.close !== undefined) {
         businessHours = saved;
         console.log('✅ 영업시간 로드:', businessHours);
-        return;
       }
     }
-    console.log('⚠️ 영업시간 로드 실패, 기본값 사용:', businessHours);
+    
+    // 요일별 영업시간도 로드
+    if (db && typeof db.getBusinessHoursByDay === 'function') {
+      const allHours = process.env.DATABASE_URL ? await db.getBusinessHoursByDay() : db.getBusinessHoursByDay();
+      if (Object.keys(allHours).length > 0) {
+        console.log('✅ 요일별 영업시간 로드:', allHours);
+      }
+    }
+    
+    // 임시휴업 상태 로드
+    if (db && typeof db.getTemporaryClosed === 'function') {
+      const closed = process.env.DATABASE_URL ? await db.getTemporaryClosed() : db.getTemporaryClosed();
+      console.log('✅ 임시휴업 상태 로드:', closed);
+    }
   } catch (e) {
+    console.log('⚠️ 영업시간 로드 실패, 기본값 사용:', businessHours);
     console.log('⚠️ 영업시간 로드 오류:', e.message);
-    console.log('기본값 사용:', businessHours);
   }
 }
 
 // DB 초기화 후 영업시간 로드 (약간의 딜레이)
-setTimeout(() => {
-  loadBusinessHours();
+setTimeout(async () => {
+  await loadBusinessHours();
 }, 100);
 
 function isBusinessHours() {
@@ -186,35 +198,77 @@ app.get('/', (req, res) => {
   res.redirect('/order-new');
 });
 
-// API: 영업시간 체크
-app.get('/api/business-hours', (req, res) => {
-  const isOpen = isBusinessHours();
-  const now = new Date();
-  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-  const hour = koreaTime.getHours();
-  const minute = koreaTime.getMinutes();
-  
-  // 시간 포맷팅
-  const formatTime = (time) => {
-    const h = Math.floor(time);
-    const m = Math.round((time - h) * 60);
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  };
-  
-  res.json({
-    isOpen,
-    currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-    businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
-    open: businessHours.open,
-    close: businessHours.close
-  });
+// API: 영업시간 조회 (요일별 포함)
+app.get('/api/business-hours', async (req, res) => {
+  try {
+    const isOpen = isBusinessHours();
+    const now = new Date();
+    const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const hour = koreaTime.getHours();
+    const minute = koreaTime.getMinutes();
+    
+    const formatTime = (time) => {
+      const h = Math.floor(time);
+      const m = Math.round((time - h) * 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    };
+    
+    // 요일별 영업시간 조회
+    let allBusinessHours = {};
+    if (process.env.DATABASE_URL) {
+      allBusinessHours = await db.getBusinessHoursByDay();
+    } else {
+      allBusinessHours = db.getBusinessHoursByDay();
+    }
+    
+    // 브레이크타임 조회
+    let allBreakTime = {};
+    if (process.env.DATABASE_URL) {
+      allBreakTime = await db.getBreakTime();
+    } else {
+      allBreakTime = db.getBreakTime();
+    }
+    
+    // 임시휴업 조회
+    let temporaryClosed = false;
+    if (process.env.DATABASE_URL) {
+      temporaryClosed = await db.getTemporaryClosed();
+    } else {
+      temporaryClosed = db.getTemporaryClosed();
+    }
+    
+    res.json({
+      isOpen: isOpen && !temporaryClosed,
+      currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      businessHours: `${formatTime(businessHours.open)} - ${formatTime(businessHours.close)}`,
+      open: businessHours.open,
+      close: businessHours.close,
+      allBusinessHours,
+      allBreakTime,
+      temporaryClosed
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// API: 영업시간 설정
-app.post('/api/business-hours', (req, res) => {
+// API: 영업시간 설정 (단일 값 - 하위 호환성)
+app.post('/api/business-hours', async (req, res) => {
   try {
-    const { open, close } = req.body;
+    const { open, close, hours } = req.body;
     
+    // 요일별 영업시간 저장 (새 형식)
+    if (hours && typeof hours === 'object') {
+      if (process.env.DATABASE_URL) {
+        await db.saveBusinessHoursByDay(hours);
+      } else {
+        db.saveBusinessHoursByDay(hours);
+      }
+      console.log('✅ 요일별 영업시간 업데이트:', hours);
+      return res.json({ success: true, allBusinessHours: hours });
+    }
+    
+    // 단일 영업시간 저장 (기존 형식)
     if (typeof open !== 'number' || typeof close !== 'number') {
       return res.status(400).json({ success: false, error: '잘못된 시간 형식입니다.' });
     }
@@ -224,10 +278,91 @@ app.post('/api/business-hours', (req, res) => {
     }
     
     businessHours = { open, close };
-    db.saveBusinessHours(businessHours);
+    if (process.env.DATABASE_URL) {
+      await db.saveBusinessHours(businessHours);
+    } else {
+      db.saveBusinessHours(businessHours);
+    }
     
     console.log('✅ 영업시간 업데이트:', businessHours);
     res.json({ success: true, businessHours });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 브레이크타임 설정
+app.post('/api/break-time', async (req, res) => {
+  try {
+    const { breakTimes } = req.body;
+    
+    if (!breakTimes || typeof breakTimes !== 'object') {
+      return res.status(400).json({ success: false, error: '잘못된 브레이크타임 형식입니다.' });
+    }
+    
+    if (process.env.DATABASE_URL) {
+      await db.saveBreakTime(breakTimes);
+    } else {
+      db.saveBreakTime(breakTimes);
+    }
+    
+    console.log('✅ 브레이크타임 업데이트:', breakTimes);
+    res.json({ success: true, breakTimes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 임시휴업 설정
+app.post('/api/temporary-closed', async (req, res) => {
+  try {
+    const { closed } = req.body;
+    
+    if (typeof closed !== 'boolean') {
+      return res.status(400).json({ success: false, error: '잘못된 형식입니다.' });
+    }
+    
+    if (process.env.DATABASE_URL) {
+      await db.saveTemporaryClosed(closed);
+    } else {
+      db.saveTemporaryClosed(closed);
+    }
+    
+    console.log('✅ 임시휴업 설정 업데이트:', closed);
+    res.json({ success: true, temporaryClosed: closed });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 가게 정보 조회
+app.get('/api/store/info', async (req, res) => {
+  try {
+    let storeInfo;
+    if (process.env.DATABASE_URL) {
+      storeInfo = await db.getStoreInfo();
+    } else {
+      storeInfo = db.getStoreInfo();
+    }
+    res.json({ success: true, storeInfo });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 가게 정보 저장
+app.post('/api/store/info', async (req, res) => {
+  try {
+    const storeInfo = req.body;
+    
+    if (process.env.DATABASE_URL) {
+      await db.saveStoreInfo(storeInfo);
+    } else {
+      db.saveStoreInfo(storeInfo);
+    }
+    
+    console.log('✅ 가게 정보 업데이트:', storeInfo);
+    res.json({ success: true, storeInfo });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

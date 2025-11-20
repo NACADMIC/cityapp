@@ -661,6 +661,279 @@ class DB {
     return null;
   }
 
+  // 요일별 영업시간 저장/조회
+  async saveBusinessHoursByDay(hours) {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS business_hours_by_day (
+          day INTEGER PRIMARY KEY,
+          "openHour" REAL NOT NULL,
+          "closeHour" REAL NOT NULL,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      for (const [day, time] of Object.entries(hours)) {
+        const dayNum = parseInt(day);
+        const existing = await this.query('SELECT * FROM business_hours_by_day WHERE day = $1', [dayNum]);
+        if (existing.rows.length > 0) {
+          await this.query('UPDATE business_hours_by_day SET "openHour" = $1, "closeHour" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE day = $3', 
+            [time.open, time.close, dayNum]);
+        } else {
+          await this.query('INSERT INTO business_hours_by_day (day, "openHour", "closeHour", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)', 
+            [dayNum, time.open, time.close]);
+        }
+      }
+      console.log('✅ 요일별 영업시간 저장 완료 (PG)');
+    } catch (e) {
+      console.error('요일별 영업시간 저장 오류 (PG):', e);
+    }
+  }
+
+  async getBusinessHoursByDay() {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS business_hours_by_day (
+          day INTEGER PRIMARY KEY,
+          "openHour" REAL NOT NULL,
+          "closeHour" REAL NOT NULL,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const result = await this.query('SELECT * FROM business_hours_by_day');
+      const hours = {};
+      result.rows.forEach(row => {
+        hours[row.day] = {
+          open: row.openHour,
+          close: row.closeHour
+        };
+      });
+      return hours;
+    } catch (e) {
+      console.error('요일별 영업시간 조회 오류 (PG):', e);
+      return {};
+    }
+  }
+
+  // 브레이크타임 저장/조회
+  async saveBreakTime(breakTimes) {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS break_time (
+          day INTEGER PRIMARY KEY,
+          "startHour" REAL,
+          "endHour" REAL,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      for (const [day, bt] of Object.entries(breakTimes)) {
+        const dayNum = parseInt(day);
+        const existing = await this.query('SELECT * FROM break_time WHERE day = $1', [dayNum]);
+        if (existing.rows.length > 0) {
+          await this.query('UPDATE break_time SET "startHour" = $1, "endHour" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE day = $3', 
+            [bt.start || null, bt.end || null, dayNum]);
+        } else {
+          await this.query('INSERT INTO break_time (day, "startHour", "endHour", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)', 
+            [dayNum, bt.start || null, bt.end || null]);
+        }
+      }
+      console.log('✅ 브레이크타임 저장 완료 (PG)');
+    } catch (e) {
+      console.error('브레이크타임 저장 오류 (PG):', e);
+    }
+  }
+
+  async getBreakTime() {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS break_time (
+          day INTEGER PRIMARY KEY,
+          "startHour" REAL,
+          "endHour" REAL,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const result = await this.query('SELECT * FROM break_time');
+      const breakTimes = {};
+      result.rows.forEach(row => {
+        if (row.startHour !== null && row.endHour !== null) {
+          breakTimes[row.day] = {
+            start: row.startHour,
+            end: row.endHour
+          };
+        }
+      });
+      return breakTimes;
+    } catch (e) {
+      console.error('브레이크타임 조회 오류 (PG):', e);
+      return {};
+    }
+  }
+
+  // 임시휴업 설정 저장/조회
+  async saveTemporaryClosed(closed) {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS store_settings (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          "temporaryClosed" INTEGER DEFAULT 0,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const existing = await this.query('SELECT * FROM store_settings WHERE id = 1');
+      if (existing.rows.length > 0) {
+        await this.query('UPDATE store_settings SET "temporaryClosed" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = 1', [closed ? 1 : 0]);
+      } else {
+        await this.query('INSERT INTO store_settings (id, "temporaryClosed", "updatedAt") VALUES (1, $1, CURRENT_TIMESTAMP)', [closed ? 1 : 0]);
+      }
+      console.log('✅ 임시휴업 설정 저장 완료 (PG):', closed);
+    } catch (e) {
+      console.error('임시휴업 설정 저장 오류 (PG):', e);
+    }
+  }
+
+  async getTemporaryClosed() {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS store_settings (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          "temporaryClosed" INTEGER DEFAULT 0,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const result = await this.query('SELECT * FROM store_settings WHERE id = 1');
+      return result.rows.length > 0 ? (result.rows[0].temporaryClosed === 1) : false;
+    } catch (e) {
+      console.error('임시휴업 설정 조회 오류 (PG):', e);
+      return false;
+    }
+  }
+
+  // 가게 정보 저장/조회
+  async saveStoreInfo(storeInfo) {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS store_info (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          name TEXT DEFAULT '시티반점',
+          owner TEXT,
+          phone TEXT,
+          license TEXT,
+          address TEXT,
+          "kakaoChannelUrl" TEXT,
+          "chatServiceUrl" TEXT,
+          "deliveryFee" INTEGER DEFAULT 3000,
+          "minOrderAmount" INTEGER DEFAULT 15000,
+          "freeDeliveryThreshold" INTEGER DEFAULT 30000,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const existing = await this.query('SELECT * FROM store_info WHERE id = 1');
+      if (existing.rows.length > 0) {
+        await this.query(`
+          UPDATE store_info 
+          SET name = $1, owner = $2, phone = $3, license = $4, address = $5, 
+              "kakaoChannelUrl" = $6, "chatServiceUrl" = $7, "updatedAt" = CURRENT_TIMESTAMP
+          WHERE id = 1
+        `, [
+          storeInfo.name || '시티반점',
+          storeInfo.owner || null,
+          storeInfo.phone || null,
+          storeInfo.license || null,
+          storeInfo.address || null,
+          storeInfo.kakaoChannelUrl || null,
+          storeInfo.chatServiceUrl || null
+        ]);
+      } else {
+        await this.query(`
+          INSERT INTO store_info (id, name, owner, phone, license, address, "kakaoChannelUrl", "chatServiceUrl", "updatedAt")
+          VALUES (1, $1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+        `, [
+          storeInfo.name || '시티반점',
+          storeInfo.owner || null,
+          storeInfo.phone || null,
+          storeInfo.license || null,
+          storeInfo.address || null,
+          storeInfo.kakaoChannelUrl || null,
+          storeInfo.chatServiceUrl || null
+        ]);
+      }
+      console.log('✅ 가게 정보 저장 완료 (PG)');
+    } catch (e) {
+      console.error('가게 정보 저장 오류 (PG):', e);
+    }
+  }
+
+  async getStoreInfo() {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS store_info (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          name TEXT DEFAULT '시티반점',
+          owner TEXT,
+          phone TEXT,
+          license TEXT,
+          address TEXT,
+          "kakaoChannelUrl" TEXT,
+          "chatServiceUrl" TEXT,
+          "deliveryFee" INTEGER DEFAULT 3000,
+          "minOrderAmount" INTEGER DEFAULT 15000,
+          "freeDeliveryThreshold" INTEGER DEFAULT 30000,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const result = await this.query('SELECT * FROM store_info WHERE id = 1');
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        return {
+          name: row.name || '시티반점',
+          owner: row.owner || '',
+          phone: row.phone || '',
+          license: row.license || '',
+          address: row.address || '',
+          kakaoChannelUrl: row.kakaoChannelUrl || '',
+          chatServiceUrl: row.chatServiceUrl || '',
+          deliveryFee: row.deliveryFee || 3000,
+          minOrderAmount: row.minOrderAmount || 15000,
+          freeDeliveryThreshold: row.freeDeliveryThreshold || 30000
+        };
+      }
+      return {
+        name: '시티반점',
+        owner: '',
+        phone: '',
+        license: '',
+        address: '',
+        kakaoChannelUrl: '',
+        chatServiceUrl: '',
+        deliveryFee: 3000,
+        minOrderAmount: 15000,
+        freeDeliveryThreshold: 30000
+      };
+    } catch (e) {
+      console.error('가게 정보 조회 오류 (PG):', e);
+      return {
+        name: '시티반점',
+        owner: '',
+        phone: '',
+        license: '',
+        address: '',
+        kakaoChannelUrl: '',
+        chatServiceUrl: '',
+        deliveryFee: 3000,
+        minOrderAmount: 15000,
+        freeDeliveryThreshold: 30000
+      };
+    }
+  }
+
   // ========== 통계 ==========
   async getCouponStats() {
     const total = await this.query('SELECT COUNT(*) as count FROM coupons');
