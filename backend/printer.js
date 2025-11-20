@@ -1,6 +1,16 @@
 // 프린터 모듈
-const escpos = require('escpos');
-const escposUSB = require('escpos-usb');
+// 프린터 라이브러리는 선택적 로드 (설치되지 않아도 서버는 동작)
+let escpos, escposUSB;
+try {
+  escpos = require('escpos');
+  escposUSB = require('escpos-usb');
+} catch (error) {
+  console.log('⚠️ 프린터 라이브러리가 설치되지 않았습니다. 프린터 기능을 사용할 수 없습니다.');
+  console.log('설치: npm install escpos escpos-usb');
+  // 프린터 기능 비활성화
+  escpos = null;
+  escposUSB = null;
+}
 
 // 프린터 설정 (환경 변수 또는 기본값)
 const PRINTER_VENDOR_ID = process.env.PRINTER_VENDOR_ID || null;
@@ -10,6 +20,12 @@ let printer = null;
 
 // 프린터 초기화
 function initPrinter() {
+  // 프린터 라이브러리가 없으면 초기화하지 않음
+  if (!escpos || !escposUSB) {
+    console.log('⚠️ 프린터 라이브러리가 없어 프린터 기능을 사용할 수 없습니다.');
+    return false;
+  }
+  
   try {
     // USB 프린터 연결 시도
     if (PRINTER_VENDOR_ID && PRINTER_PRODUCT_ID) {
@@ -136,7 +152,8 @@ function printOrder(order) {
 
 // 간단한 텍스트 출력 (테스트용)
 function printTest() {
-  if (!printer) {
+  // 프린터 라이브러리가 없으면 테스트 불가
+  if (!escpos || !printer) {
     console.log('⚠️ 프린터가 연결되지 않았습니다.');
     return false;
   }
