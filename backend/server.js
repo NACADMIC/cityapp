@@ -139,6 +139,15 @@ async function isBusinessHours() {
       return false;
     }
     
+    // 요일별 휴무일 확인
+    let closedDays = [];
+    if (db && typeof db.getClosedDays === 'function') {
+      closedDays = process.env.DATABASE_URL ? await db.getClosedDays() : db.getClosedDays();
+    }
+    if (closedDays.includes(dayOfWeek)) {
+      return false; // 오늘은 휴무일
+    }
+    
     // 요일별 영업시간 확인
     let allBusinessHours = {};
     if (db && typeof db.getBusinessHoursByDay === 'function') {
@@ -271,6 +280,14 @@ app.get('/api/business-hours', async (req, res) => {
       allBreakTime = db.getBreakTime();
     }
     
+    // 요일별 휴무일 조회
+    let closedDays = [];
+    if (process.env.DATABASE_URL) {
+      closedDays = await db.getClosedDays();
+    } else {
+      closedDays = db.getClosedDays();
+    }
+    
     // 임시휴업 조회
     let temporaryClosed = false;
     if (process.env.DATABASE_URL) {
@@ -296,6 +313,7 @@ app.get('/api/business-hours', async (req, res) => {
       close: todayHours.close,
       allBusinessHours,
       allBreakTime,
+      closedDays,
       temporaryClosed
     });
   } catch (error) {
@@ -382,6 +400,49 @@ app.post('/api/break-time', async (req, res) => {
     
     console.log('✅ 브레이크타임 업데이트:', breakTimes);
     res.json({ success: true, breakTimes });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 요일별 휴무일 설정
+app.post('/api/closed-days', async (req, res) => {
+  try {
+    const { closedDays } = req.body;
+    
+    if (!Array.isArray(closedDays)) {
+      return res.status(400).json({ success: false, error: '잘못된 형식입니다. 배열이 필요합니다.' });
+    }
+    
+    // 모든 값이 0-6 사이의 숫자인지 확인
+    if (!closedDays.every(day => Number.isInteger(day) && day >= 0 && day <= 6)) {
+      return res.status(400).json({ success: false, error: '요일 번호는 0-6 사이여야 합니다.' });
+    }
+    
+    if (process.env.DATABASE_URL) {
+      await db.saveClosedDays(closedDays);
+    } else {
+      db.saveClosedDays(closedDays);
+    }
+    
+    console.log('✅ 요일별 휴무일 설정 업데이트:', closedDays);
+    res.json({ success: true, closedDays });
+  } catch (error) {
+    console.error('❌ 요일별 휴무일 설정 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 요일별 휴무일 조회
+app.get('/api/closed-days', async (req, res) => {
+  try {
+    let closedDays = [];
+    if (process.env.DATABASE_URL) {
+      closedDays = await db.getClosedDays();
+    } else {
+      closedDays = db.getClosedDays();
+    }
+    res.json({ success: true, closedDays });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -704,12 +765,17 @@ app.get('/api/coupons/usage/all', async (req, res) => {
 });
 
 // API: 사용자 정보 조회
-app.get('/api/auth/me/:userId', (req, res) => {
+app.get('/api/auth/me/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
     console.log('🔍 사용자 정보 조회 요청:', userId);
     
-    const user = db.getUserById(userId);
+    let user;
+    if (process.env.DATABASE_URL) {
+      user = await db.getUserById(userId);
+    } else {
+      user = db.getUserById(userId);
+    }
     if (!user) {
       console.error('❌ 사용자를 찾을 수 없음. 요청한 userId:', userId);
       return res.json({ 
@@ -907,7 +973,7 @@ app.post('/api/phone/verify-code', (req, res) => {
 });
 
 // API: 쿠폰 조회 (코드로)
-app.post('/api/coupons/validate', (req, res) => {
+app.post('/api/coupons/validate', async (req, res) => {
   try {
     const { code, userId, totalAmount } = req.body;
     
@@ -915,7 +981,12 @@ app.post('/api/coupons/validate', (req, res) => {
       return res.json({ success: false, error: '쿠폰 코드를 입력해주세요.' });
     }
     
-    const coupon = db.getCouponByCode(code.toUpperCase());
+    let coupon;
+    if (process.env.DATABASE_URL) {
+      coupon = await db.getCouponByCode(code.toUpperCase());
+    } else {
+      coupon = db.getCouponByCode(code.toUpperCase());
+    }
     
     if (!coupon) {
       return res.json({ success: false, error: '유효하지 않은 쿠폰 코드입니다.' });
@@ -934,17 +1005,31 @@ app.post('/api/coupons/validate', (req, res) => {
     
     // 사용자 쿠폰 소유 여부 확인 (userId가 있는 경우)
     if (userId) {
-      const userCoupons = db.getUserCoupons(userId);
+      let userCoupons;
+      if (process.env.DATABASE_URL) {
+        userCoupons = await db.getUserCoupons(userId);
+      } else {
+        userCoupons = db.getUserCoupons(userId);
+      }
+      
       const hasCoupon = userCoupons.some(uc => uc.id === coupon.id && !uc.orderId && !uc.usedAt);
       
       if (!hasCoupon) {
         // 쿠폰이 발급되지 않았거나 이미 사용한 경우
-        // 발급되지 않은 쿠폰인지 확인
-        const usageCheck = db.db.prepare(`
-          SELECT * FROM coupon_usage 
-          WHERE couponId = ? AND userId = ? 
-          ORDER BY id DESC LIMIT 1
-        `).get(coupon.id, userId);
+        let usageCheck;
+        if (process.env.DATABASE_URL) {
+          const result = await db.query(
+            'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 ORDER BY id DESC LIMIT 1',
+            [coupon.id, userId]
+          );
+          usageCheck = result.rows[0] || null;
+        } else {
+          usageCheck = db.db.prepare(`
+            SELECT * FROM coupon_usage 
+            WHERE couponId = ? AND userId = ? 
+            ORDER BY id DESC LIMIT 1
+          `).get(coupon.id, userId);
+        }
         
         if (!usageCheck) {
           return res.json({ success: false, error: '이 쿠폰은 발급되지 않았습니다. 먼저 쿠폰을 발급받아주세요.' });
@@ -994,7 +1079,7 @@ app.post('/api/coupons/validate', (req, res) => {
 });
 
 // API: 쿠폰 생성
-app.post('/api/coupons', (req, res) => {
+app.post('/api/coupons', async (req, res) => {
   try {
     const { code, name, discountType, discountValue, minAmount, maxDiscount, validFrom, validTo, isActive } = req.body;
     
@@ -1003,22 +1088,43 @@ app.post('/api/coupons', (req, res) => {
     }
     
     // 코드 중복 체크
-    const existing = db.getCouponByCode(code.toUpperCase());
+    let existing;
+    if (process.env.DATABASE_URL) {
+      existing = await db.getCouponByCode(code.toUpperCase());
+    } else {
+      existing = db.getCouponByCode(code.toUpperCase());
+    }
+    
     if (existing) {
       return res.status(400).json({ success: false, error: '이미 존재하는 쿠폰 코드입니다.' });
     }
     
-    const coupon = db.createCoupon({
-      code: code.toUpperCase(),
-      name,
-      discountType,
-      discountValue,
-      minAmount: minAmount || 0,
-      maxDiscount: maxDiscount || null,
-      validFrom: validFrom ? new Date(validFrom) : new Date(),
-      validTo: validTo ? new Date(validTo) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-      isActive: isActive !== false
-    });
+    let coupon;
+    if (process.env.DATABASE_URL) {
+      coupon = await db.createCoupon({
+        code: code.toUpperCase(),
+        name,
+        discountType,
+        discountValue,
+        minAmount: minAmount || 0,
+        maxDiscount: maxDiscount || null,
+        validFrom: validFrom ? new Date(validFrom) : new Date(),
+        validTo: validTo ? new Date(validTo) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        isActive: isActive !== false
+      });
+    } else {
+      coupon = db.createCoupon({
+        code: code.toUpperCase(),
+        name,
+        discountType,
+        discountValue,
+        minAmount: minAmount || 0,
+        maxDiscount: maxDiscount || null,
+        validFrom: validFrom ? new Date(validFrom) : new Date(),
+        validTo: validTo ? new Date(validTo) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        isActive: isActive !== false
+      });
+    }
     
     console.log('✅ 쿠폰 생성:', coupon.code);
     res.json({ success: true, coupon });
@@ -1081,8 +1187,13 @@ app.post('/api/orders', async (req, res) => {
     
     // 포인트 사용 검증
     if (userId && usedPoints > 0) {
-      const user = db.getUserById(userId);
-      if (!user || user.points < usedPoints) {
+      let user;
+      if (process.env.DATABASE_URL) {
+        user = await db.getUserById(userId);
+      } else {
+        user = db.getUserById(userId);
+      }
+      if (!user || (user.points || 0) < usedPoints) {
         return res.json({ success: false, error: '포인트가 부족합니다.' });
       }
     }
@@ -1090,19 +1201,40 @@ app.post('/api/orders', async (req, res) => {
     // 쿠폰 검증 및 사용 처리
     let couponId = null;
     if (couponCode && userId) {
-      const coupon = db.getCouponByCode(couponCode.toUpperCase());
+      let coupon;
+      if (process.env.DATABASE_URL) {
+        coupon = await db.getCouponByCode(couponCode.toUpperCase());
+      } else {
+        coupon = db.getCouponByCode(couponCode.toUpperCase());
+      }
+      
       if (coupon) {
         // 사용자 쿠폰 소유 여부 확인
-        const userCoupons = db.getUserCoupons(userId);
+        let userCoupons;
+        if (process.env.DATABASE_URL) {
+          userCoupons = await db.getUserCoupons(userId);
+        } else {
+          userCoupons = db.getUserCoupons(userId);
+        }
+        
         const hasCoupon = userCoupons.some(uc => uc.id === coupon.id && !uc.orderId && !uc.usedAt);
         
         if (!hasCoupon) {
           // 쿠폰이 발급되지 않았거나 이미 사용한 경우
-          const usageCheck = db.db.prepare(`
-            SELECT * FROM coupon_usage 
-            WHERE couponId = ? AND userId = ? 
-            ORDER BY id DESC LIMIT 1
-          `).get(coupon.id, userId);
+          let usageCheck;
+          if (process.env.DATABASE_URL) {
+            const result = await db.query(
+              'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 ORDER BY id DESC LIMIT 1',
+              [coupon.id, userId]
+            );
+            usageCheck = result.rows[0] || null;
+          } else {
+            usageCheck = db.db.prepare(`
+              SELECT * FROM coupon_usage 
+              WHERE couponId = ? AND userId = ? 
+              ORDER BY id DESC LIMIT 1
+            `).get(coupon.id, userId);
+          }
           
           if (!usageCheck) {
             return res.json({ success: false, error: '이 쿠폰은 발급되지 않았습니다. 먼저 쿠폰을 발급받아주세요.' });
@@ -1134,7 +1266,12 @@ app.post('/api/orders', async (req, res) => {
     const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - (usedPoints || 0) - (couponDiscount || 0)) * 0.10) : 0;
     
     // 주문번호를 1번부터 순차적으로 생성
-    const orderNumber = db.getNextOrderNumber();
+    let orderNumber;
+    if (process.env.DATABASE_URL) {
+      orderNumber = await db.getNextOrderNumber();
+    } else {
+      orderNumber = db.getNextOrderNumber();
+    }
     const orderId = orderNumber.toString();
     const orderData = {
       orderId,
@@ -1153,17 +1290,30 @@ app.post('/api/orders', async (req, res) => {
       createdAt: new Date().toISOString()
     };
     
-    db.createOrder(orderData);
+    if (process.env.DATABASE_URL) {
+      await db.createOrder(orderData);
+    } else {
+      db.createOrder(orderData);
+    }
     
     // 포인트 차감
     if (userId && usedPoints > 0) {
-      db.addPoints(userId, -usedPoints);
-      db.addPointHistory(userId, orderId, -usedPoints, 'use');
+      if (process.env.DATABASE_URL) {
+        await db.addPoints(userId, -usedPoints);
+        await db.addPointHistory(userId, orderId, -usedPoints, 'use');
+      } else {
+        db.addPoints(userId, -usedPoints);
+        db.addPointHistory(userId, orderId, -usedPoints, 'use');
+      }
     }
     
     // 쿠폰 사용 내역 업데이트 (orderId 추가)
     if (couponId && userId) {
-      db.useCoupon(couponId, userId, orderId);
+      if (process.env.DATABASE_URL) {
+        await db.useCoupon(couponId, userId, orderId);
+      } else {
+        db.useCoupon(couponId, userId, orderId);
+      }
     }
     
     // 주문서 프린터 출력
@@ -1222,12 +1372,18 @@ app.post('/api/orders', async (req, res) => {
 
 // API: 주문 상태 업데이트
 // 주문 상태 변경 (수락, 조리중, 배달중 등)
-app.post('/api/orders/:orderId/status', (req, res) => {
+app.post('/api/orders/:orderId/status', async (req, res) => {
   try {
     const { orderId } = req.params;
     let { status, estimatedTime } = req.body;
     
-    const order = db.getOrderById(orderId);
+    let order;
+    if (process.env.DATABASE_URL) {
+      order = await db.getOrderById(orderId);
+    } else {
+      order = db.getOrderById(orderId);
+    }
+    
     if (!order) {
       return res.status(404).json({ success: false, error: '주문을 찾을 수 없습니다.' });
     }
@@ -1242,7 +1398,11 @@ app.post('/api/orders/:orderId/status', (req, res) => {
       console.log('💰 현금 주문 - 배달 완료 시 자동 완료 처리:', orderId);
     }
     
-    db.updateOrderStatus(orderId, status);
+    if (process.env.DATABASE_URL) {
+      await db.updateOrderStatus(orderId, status);
+    } else {
+      db.updateOrderStatus(orderId, status);
+    }
     
     // 주문 수락 시 프린터에서 자동 인쇄
     if (status === 'accepted') {
@@ -1330,7 +1490,13 @@ app.put('/api/orders/:orderId', async (req, res) => {
     const { orderId } = req.params;
     const { items, address, totalAmount, finalAmount, usedPoints, couponCode, couponDiscount } = req.body;
 
-    const order = db.getOrderById(orderId);
+    let order;
+    if (process.env.DATABASE_URL) {
+      order = await db.getOrderById(orderId);
+    } else {
+      order = db.getOrderById(orderId);
+    }
+    
     if (!order) {
       return res.json({ success: false, error: '주문을 찾을 수 없습니다.' });
     }
@@ -1350,7 +1516,12 @@ app.put('/api/orders/:orderId', async (req, res) => {
     if (couponCode !== undefined) updates.couponCode = couponCode;
     if (couponDiscount !== undefined) updates.couponDiscount = couponDiscount;
 
-    const result = db.updateOrder(orderId, updates);
+    let result;
+    if (process.env.DATABASE_URL) {
+      result = await db.updateOrder(orderId, updates);
+    } else {
+      result = db.updateOrder(orderId, updates);
+    }
     
     if (!result.success) {
       return res.json({ success: false, error: result.error });
@@ -1393,12 +1564,21 @@ app.post('/api/orders/:orderId/cancel', async (req, res) => {
     }
     
     // 주문 취소 처리
-    db.updateOrderStatus(orderId, 'cancelled');
+    if (process.env.DATABASE_URL) {
+      await db.updateOrderStatus(orderId, 'cancelled');
+    } else {
+      db.updateOrderStatus(orderId, 'cancelled');
+    }
     
     // 포인트 복구
     if (order.userId && order.usedPoints > 0) {
-      db.addPoints(order.userId, order.usedPoints);
-      db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+      if (process.env.DATABASE_URL) {
+        await db.addPoints(order.userId, order.usedPoints);
+        await db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+      } else {
+        db.addPoints(order.userId, order.usedPoints);
+        db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+      }
       console.log(`✅ 포인트 복구: ${order.usedPoints}P (userId: ${order.userId})`);
     }
     
@@ -1406,18 +1586,34 @@ app.post('/api/orders/:orderId/cancel', async (req, res) => {
     if (order.userId) {
       try {
         // 쿠폰 사용 내역 조회
-        const couponUsage = db.db.prepare(`
-          SELECT cu.*, c.code, c.name 
-          FROM coupon_usage cu
-          INNER JOIN coupons c ON cu.couponId = c.id
-          WHERE cu.userId = ? AND cu.orderId = ?
-        `).get(order.userId, orderId);
+        let couponUsage;
+        if (process.env.DATABASE_URL) {
+          const result = await db.query(`
+            SELECT cu.*, c.code, c.name 
+            FROM coupon_usage cu
+            INNER JOIN coupons c ON cu."couponId" = c.id
+            WHERE cu."userId" = $1 AND cu."orderId" = $2
+          `, [order.userId, orderId]);
+          couponUsage = result.rows[0] || null;
+        } else {
+          couponUsage = db.db.prepare(`
+            SELECT cu.*, c.code, c.name 
+            FROM coupon_usage cu
+            INNER JOIN coupons c ON cu.couponId = c.id
+            WHERE cu.userId = ? AND cu.orderId = ?
+          `).get(order.userId, orderId);
+        }
         
         if (couponUsage) {
           // 쿠폰 사용 내역 삭제 (복구)
-          db.db.prepare('DELETE FROM coupon_usage WHERE id = ?').run(couponUsage.id);
-          // 쿠폰 사용 횟수 감소
-          db.db.prepare('UPDATE coupons SET usedCount = usedCount - 1 WHERE id = ?').run(couponUsage.couponId);
+          if (process.env.DATABASE_URL) {
+            await db.query('DELETE FROM coupon_usage WHERE id = $1', [couponUsage.id]);
+            await db.query('UPDATE coupons SET "usedCount" = "usedCount" - 1 WHERE id = $1', [couponUsage.couponId]);
+          } else {
+            db.db.prepare('DELETE FROM coupon_usage WHERE id = ?').run(couponUsage.id);
+            // 쿠폰 사용 횟수 감소
+            db.db.prepare('UPDATE coupons SET usedCount = usedCount - 1 WHERE id = ?').run(couponUsage.couponId);
+          }
           console.log(`✅ 쿠폰 복구: ${couponUsage.code} (${couponUsage.name})`);
         }
       } catch (err) {
@@ -1443,7 +1639,12 @@ app.post('/api/payment/verify', async (req, res) => {
     
     if (result.success) {
       // 주문 정보 업데이트 (impUid 저장)
-      const order = db.getOrderById(merchantUid);
+      let order;
+      if (process.env.DATABASE_URL) {
+        order = await db.getOrderById(merchantUid);
+      } else {
+        order = db.getOrderById(merchantUid);
+      }
       if (order) {
         // impUid를 주문에 저장 (필요시 orders 테이블에 impUid 컬럼 추가)
         console.log('✅ 결제 검증 완료:', impUid, merchantUid);

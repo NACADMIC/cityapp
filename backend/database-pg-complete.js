@@ -406,6 +406,22 @@ class DB {
     };
   }
 
+  async getNextOrderNumber() {
+    const result = await this.query(`
+      SELECT "orderId" FROM orders 
+      WHERE "orderId" ~ '^[0-9]+$'
+      ORDER BY CAST("orderId" AS INTEGER) DESC 
+      LIMIT 1
+    `);
+    
+    if (result.rows.length > 0 && !isNaN(parseInt(result.rows[0].orderId))) {
+      return parseInt(result.rows[0].orderId) + 1;
+    }
+    
+    // 숫자로 된 주문번호가 없으면 1번부터 시작
+    return 1;
+  }
+
   async updateOrderStatus(orderId, status) {
     await this.query('UPDATE orders SET status = $1 WHERE "orderId" = $2', [status, orderId]);
   }
@@ -675,6 +691,7 @@ class DB {
       `);
       
       // 트랜잭션 사용하여 안전하게 저장
+      let savedCount = 0;
       for (const [day, time] of Object.entries(hours)) {
         if (!time || typeof time.open !== 'number' || typeof time.close !== 'number') {
           console.warn(`⚠️ 잘못된 영업시간 데이터 건너뜀: day=${day}, time=`, time);
@@ -692,16 +709,19 @@ class DB {
           if (existing.rows.length > 0) {
             await this.query('UPDATE business_hours_by_day SET "openHour" = $1, "closeHour" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE day = $3', 
               [time.open, time.close, dayNum]);
+            console.log(`✅ 요일 ${dayNum} 영업시간 업데이트 (PG): ${time.open} - ${time.close}`);
           } else {
             await this.query('INSERT INTO business_hours_by_day (day, "openHour", "closeHour", "updatedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)', 
               [dayNum, time.open, time.close]);
+            console.log(`✅ 요일 ${dayNum} 영업시간 추가 (PG): ${time.open} - ${time.close}`);
           }
+          savedCount++;
         } catch (err) {
-          console.error(`❌ 요일 ${day} 저장 오류:`, err);
+          console.error(`❌ 요일 ${day} 저장 오류 (PG):`, err);
           throw err; // 에러를 다시 던져서 상위에서 처리할 수 있도록
         }
       }
-      console.log('✅ 요일별 영업시간 저장 완료 (PG)');
+      console.log(`✅ 총 ${savedCount}개 요일의 영업시간 저장 완료 (PG)`);
     } catch (e) {
       console.error('❌ 요일별 영업시간 저장 오류 (PG):', e);
       throw e; // 에러를 다시 던져서 상위에서 처리할 수 있도록
@@ -788,6 +808,55 @@ class DB {
     } catch (e) {
       console.error('브레이크타임 조회 오류 (PG):', e);
       return {};
+    }
+  }
+
+  // 요일별 휴무일 저장/조회
+  async saveClosedDays(closedDays) {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS closed_days (
+          day INTEGER PRIMARY KEY,
+          "isClosed" INTEGER DEFAULT 0,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // 모든 요일(0-6)에 대해 저장
+      for (let day = 0; day <= 6; day++) {
+        const isClosed = closedDays.includes(day) ? 1 : 0;
+        const existing = await this.query('SELECT * FROM closed_days WHERE day = $1', [day]);
+        
+        if (existing.rows.length > 0) {
+          await this.query('UPDATE closed_days SET "isClosed" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE day = $2', 
+            [isClosed, day]);
+        } else {
+          await this.query('INSERT INTO closed_days (day, "isClosed", "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP)', 
+            [day, isClosed]);
+        }
+      }
+      console.log('✅ 요일별 휴무일 저장 완료 (PG):', closedDays);
+    } catch (e) {
+      console.error('❌ 요일별 휴무일 저장 오류 (PG):', e);
+      throw e;
+    }
+  }
+
+  async getClosedDays() {
+    try {
+      await this.query(`
+        CREATE TABLE IF NOT EXISTS closed_days (
+          day INTEGER PRIMARY KEY,
+          "isClosed" INTEGER DEFAULT 0,
+          "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      const result = await this.query('SELECT * FROM closed_days WHERE "isClosed" = 1');
+      return result.rows.map(row => row.day);
+    } catch (e) {
+      console.error('❌ 요일별 휴무일 조회 오류 (PG):', e);
+      return [];
     }
   }
 

@@ -450,6 +450,15 @@
       </div>
       <button type="button" class="btn-save" onclick="saveBreakTime()" style="margin-top: 20px;">브레이크타임 저장</button>
     </div>
+
+    <!-- 요일별 휴무일 설정 -->
+    <div class="section-card">
+      <div class="section-title">🚫 요일별 휴무일 설정</div>
+      <div class="business-hours-grid" id="closed-days-grid">
+        <!-- 동적으로 생성됨 -->
+      </div>
+      <button type="button" class="btn-save" onclick="saveClosedDays()" style="margin-top: 20px;">휴무일 저장</button>
+    </div>
   </div>
 
   <script>
@@ -461,6 +470,7 @@
     let businessHours = {};
     let breakTime = {};
     let temporaryClosed = false;
+    let closedDays = []; // 휴무일 배열 (0=일요일, 6=토요일)
 
     const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
@@ -477,18 +487,31 @@
       try {
         const res = await fetch('/api/business-hours');
         const data = await res.json();
-        if (data.success || data.allBusinessHours) {
-          businessHours = data.allBusinessHours || data.businessHours || {};
-          temporaryClosed = data.temporaryClosed || false;
-          breakTime = data.allBreakTime || data.breakTime || {};
-          
-          renderBusinessHours();
-          renderBreakTime();
-          updateStatus();
-          updateTemporaryClosedToggle();
+        console.log('📥 영업시간 로드 응답:', data);
+        
+        if (data.allBusinessHours && Object.keys(data.allBusinessHours).length > 0) {
+          // 요일별 영업시간이 있으면 사용
+          businessHours = data.allBusinessHours;
+          console.log('✅ 요일별 영업시간 로드:', businessHours);
+        } else if (data.businessHours) {
+          // 기본 영업시간만 있는 경우
+          businessHours = {};
+          console.log('⚠️ 요일별 영업시간 없음, 기본값 사용');
+        } else {
+          businessHours = {};
         }
+        
+        temporaryClosed = data.temporaryClosed || false;
+        breakTime = data.allBreakTime || data.breakTime || {};
+        closedDays = data.closedDays || [];
+        
+        renderBusinessHours();
+        renderBreakTime();
+        renderClosedDays();
+        updateStatus();
+        updateTemporaryClosedToggle();
       } catch (error) {
-        console.error('영업시간 로드 오류:', error);
+        console.error('❌ 영업시간 로드 오류:', error);
       }
     }
 
@@ -548,29 +571,91 @@
       }
     }
 
+    // 휴무일 렌더링
+    function renderClosedDays() {
+      const container = document.getElementById('closed-days-grid');
+      container.innerHTML = '';
+      
+      for (let day = 0; day <= 6; day++) {
+        const isClosed = closedDays.includes(day);
+        container.innerHTML += `
+          <div class="day-row">
+            <div class="day-name">${dayNames[day]}</div>
+            <div class="toggle-switch" style="grid-column: 2 / 4;">
+              <label class="switch">
+                <input type="checkbox" data-day="${day}" ${isClosed ? 'checked' : ''} onchange="updateClosedDay(${day})">
+                <span class="slider"></span>
+              </label>
+              <span style="font-weight: 600; color: ${isClosed ? '#f44336' : '#4caf50'};">
+                ${isClosed ? '🚫 휴무' : '🟢 영업'}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 휴무일 업데이트
+    function updateClosedDay(day) {
+      const checkbox = document.querySelector(`input[data-day="${day}"]`);
+      const isClosed = checkbox.checked;
+      
+      if (isClosed) {
+        if (!closedDays.includes(day)) {
+          closedDays.push(day);
+        }
+      } else {
+        closedDays = closedDays.filter(d => d !== day);
+      }
+      
+      renderClosedDays();
+    }
+
+    // 휴무일 저장
+    async function saveClosedDays() {
+      try {
+        const res = await fetch('/api/closed-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ closedDays })
+        });
+        
+        const data = await res.json();
+        console.log('📥 휴무일 저장 응답:', data);
+        
+        if (data.success) {
+          alert('휴무일이 저장되었습니다.');
+          updateStatus();
+        } else {
+          alert('저장 실패: ' + (data.error || '알 수 없는 오류'));
+        }
+      } catch (error) {
+        console.error('❌ 휴무일 저장 오류:', error);
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
     // 영업시간 저장
     async function saveBusinessHours() {
       const hours = {};
       
-      document.querySelectorAll('#business-hours-grid input[data-type="open"]').forEach(input => {
-        const day = parseInt(input.dataset.day);
-        const time = input.value;
-        if (time) {
-          const [h, m] = time.split(':').map(Number);
-          hours[day] = hours[day] || {};
-          hours[day].open = h + m / 60;
+      // 모든 요일(0-6)에 대해 open과 close를 모두 수집
+      for (let day = 0; day <= 6; day++) {
+        const openInput = document.querySelector(`#business-hours-grid input[data-day="${day}"][data-type="open"]`);
+        const closeInput = document.querySelector(`#business-hours-grid input[data-day="${day}"][data-type="close"]`);
+        
+        if (openInput && closeInput && openInput.value && closeInput.value) {
+          const [openH, openM] = openInput.value.split(':').map(Number);
+          const [closeH, closeM] = closeInput.value.split(':').map(Number);
+          
+          hours[day] = {
+            open: openH + openM / 60,
+            close: closeH + closeM / 60
+          };
         }
-      });
+      }
       
-      document.querySelectorAll('#business-hours-grid input[data-type="close"]').forEach(input => {
-        const day = parseInt(input.dataset.day);
-        const time = input.value;
-        if (time) {
-          const [h, m] = time.split(':').map(Number);
-          hours[day] = hours[day] || {};
-          hours[day].close = h + m / 60;
-        }
-      });
+      console.log('📝 저장할 영업시간 데이터:', hours);
 
       try {
         const res = await fetch('/api/business-hours', {
@@ -578,15 +663,26 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ hours })
         });
+        
         const data = await res.json();
+        console.log('📥 서버 응답:', data);
+        
         if (data.success) {
           alert('영업시간이 저장되었습니다.');
-          businessHours = hours;
+          // 저장된 데이터로 업데이트
+          if (data.allBusinessHours) {
+            businessHours = data.allBusinessHours;
+          } else {
+            businessHours = hours;
+          }
+          // 영업시간 다시 로드하여 화면 갱신
+          await loadBusinessHours();
           updateStatus();
         } else {
-          alert('저장 실패: ' + data.error);
+          alert('저장 실패: ' + (data.error || '알 수 없는 오류'));
         }
       } catch (error) {
+        console.error('❌ 저장 오류:', error);
         alert('저장 오류: ' + error.message);
       }
     }
@@ -671,6 +767,9 @@
 
       if (temporaryClosed) {
         statusText = '임시휴업 중';
+        statusClass = 'status-closed';
+      } else if (closedDays.includes(dayOfWeek)) {
+        statusText = '휴무일';
         statusClass = 'status-closed';
       } else {
         const todayHours = businessHours[dayOfWeek];
@@ -767,9 +866,24 @@
       }
     }
 
+    // 휴무일 로드
+    async function loadClosedDays() {
+      try {
+        const res = await fetch('/api/closed-days');
+        const data = await res.json();
+        if (data.success) {
+          closedDays = data.closedDays || [];
+          renderClosedDays();
+        }
+      } catch (error) {
+        console.error('❌ 휴무일 로드 오류:', error);
+      }
+    }
+
     // 초기화
     loadStoreInfo();
     loadBusinessHours();
+    loadClosedDays();
     setInterval(updateStatus, 60000); // 1분마다 상태 업데이트
   </script>
 </body>

@@ -799,6 +799,7 @@ class DB {
       
       // 트랜잭션 사용하여 안전하게 저장
       const transaction = this.db.transaction((hours) => {
+        let savedCount = 0;
         for (const [day, time] of Object.entries(hours)) {
           if (!time || typeof time.open !== 'number' || typeof time.close !== 'number') {
             console.warn(`⚠️ 잘못된 영업시간 데이터 건너뜀: day=${day}, time=`, time);
@@ -817,11 +818,15 @@ class DB {
           if (existing) {
             this.db.prepare('UPDATE business_hours_by_day SET open_hour = ?, close_hour = ?, updated_at = ? WHERE day = ?')
               .run(time.open, time.close, updatedAt, dayNum);
+            console.log(`✅ 요일 ${dayNum} 영업시간 업데이트: ${time.open} - ${time.close}`);
           } else {
             this.db.prepare('INSERT INTO business_hours_by_day (day, open_hour, close_hour, updated_at) VALUES (?, ?, ?, ?)')
               .run(dayNum, time.open, time.close, updatedAt);
+            console.log(`✅ 요일 ${dayNum} 영업시간 추가: ${time.open} - ${time.close}`);
           }
+          savedCount++;
         }
+        console.log(`✅ 총 ${savedCount}개 요일의 영업시간 저장 완료`);
       });
       
       transaction(hours);
@@ -912,6 +917,60 @@ class DB {
     } catch (e) {
       console.error('브레이크타임 조회 오류:', e);
       return {};
+    }
+  }
+
+  // 요일별 휴무일 저장/조회
+  saveClosedDays(closedDays) {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS closed_days (
+          day INTEGER PRIMARY KEY,
+          is_closed INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      // 트랜잭션 사용하여 안전하게 저장
+      const transaction = this.db.transaction((closedDays) => {
+        for (let day = 0; day <= 6; day++) {
+          const isClosed = closedDays.includes(day) ? 1 : 0;
+          const existing = this.db.prepare('SELECT * FROM closed_days WHERE day = ?').get(day);
+          const updatedAt = new Date().toISOString();
+          
+          if (existing) {
+            this.db.prepare('UPDATE closed_days SET is_closed = ?, updated_at = ? WHERE day = ?')
+              .run(isClosed, updatedAt, day);
+          } else {
+            this.db.prepare('INSERT INTO closed_days (day, is_closed, updated_at) VALUES (?, ?, ?)')
+              .run(day, isClosed, updatedAt);
+          }
+        }
+      });
+      
+      transaction(closedDays);
+      console.log('✅ 요일별 휴무일 저장 완료:', closedDays);
+    } catch (e) {
+      console.error('❌ 요일별 휴무일 저장 오류:', e);
+      throw e;
+    }
+  }
+
+  getClosedDays() {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS closed_days (
+          day INTEGER PRIMARY KEY,
+          is_closed INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      
+      const results = this.db.prepare('SELECT * FROM closed_days WHERE is_closed = 1').all();
+      return results.map(row => row.day);
+    } catch (e) {
+      console.error('❌ 요일별 휴무일 조회 오류:', e);
+      return [];
     }
   }
 

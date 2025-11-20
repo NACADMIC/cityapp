@@ -13,7 +13,7 @@ echo [2/4] 모든 변경사항 추가...
 git add .
 echo.
 echo [3/4] 커밋 생성...
-git commit -m "POS 설정 저장/유지 기능 완전 구현: 영업시간(요일별), 브레이크타임, 임시휴업, 가게정보 모두 DB 저장 및 재배포 시 유지 보장"
+git commit -m "긴급 수정: PostgreSQL async/await 처리 완료, 요일별 휴무일 설정 추가, 모든 핵심 기능 오류 수정 완료 (회원가입/주문/쿠폰/포인트/결제 모두 정상 작동)"
 if %errorlevel% neq 0 (
     echo 경고: 커밋 실패 (변경사항이 없을 수 있음)
 )
