@@ -344,13 +344,26 @@
     const urlParams = new URLSearchParams(window.location.search);
     const orderIdParam = urlParams.get('orderId');
     
-    if (orderIdParam) {
-      // orderId가 있으면 자동으로 입력하고 조회
-      window.addEventListener('DOMContentLoaded', () => {
+    // sessionStorage에서 최근 주문번호 확인 (비회원 주문조회용)
+    const lastOrderId = sessionStorage.getItem('lastOrderId');
+    const lastOrderPhone = sessionStorage.getItem('lastOrderPhone');
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      // URL 파라미터가 있으면 우선 사용
+      if (orderIdParam) {
         document.getElementById('order-id-input').value = orderIdParam;
         document.getElementById('search-form-orderid').dispatchEvent(new Event('submit'));
-      });
-    }
+      } 
+      // sessionStorage에 주문번호가 있으면 자동 조회
+      else if (lastOrderId) {
+        document.getElementById('order-id-input').value = lastOrderId;
+        if (lastOrderPhone) {
+          document.getElementById('phone-input').value = lastOrderPhone;
+        }
+        // 자동으로 주문번호로 조회
+        document.getElementById('search-form-orderid').dispatchEvent(new Event('submit'));
+      }
+    });
   </script>
   <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
   <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_APP_KEY&autoload=false"></script>

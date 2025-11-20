@@ -1046,13 +1046,24 @@ app.post('/api/orders', async (req, res) => {
     const orderData = {
       orderId, customerName, phone, address, items,
       totalAmount: finalAmount,
+      paymentMethod,
       createdAt: new Date().toISOString()
     };
 
-    console.log('📢 POS 전송:', posClients.length, '개');
-    posClients.forEach(clientId => {
-      io.to(clientId).emit('new-order', orderData);
-    });
+    console.log('📢 POS 전송:', posClients.length, '개 POS 클라이언트');
+    console.log('📦 주문 데이터:', JSON.stringify(orderData, null, 2));
+    
+    // POS 클라이언트에게 전송
+    if (posClients.length > 0) {
+      posClients.forEach(clientId => {
+        console.log(`  → POS 클라이언트 ${clientId}에게 전송`);
+        io.to(clientId).emit('new-order', orderData);
+      });
+    } else {
+      console.log('⚠️ 연결된 POS 클라이언트가 없습니다. 브로드캐스트로 전송합니다.');
+    }
+    
+    // 모든 클라이언트에게 브로드캐스트 (백업)
     io.emit('new-order', orderData);
 
     res.json({ success: true, orderId, earnedPoints });

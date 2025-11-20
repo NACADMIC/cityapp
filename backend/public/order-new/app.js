@@ -1072,6 +1072,12 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     if (data.success) {
       document.getElementById('complete-order-id').textContent = data.orderId;
       
+      // 주문번호를 sessionStorage에 저장 (비회원 주문조회용)
+      sessionStorage.setItem('lastOrderId', data.orderId);
+      if (phone) {
+        sessionStorage.setItem('lastOrderPhone', phone);
+      }
+      
       if (data.earnedPoints && data.earnedPoints > 0) {
         document.getElementById('complete-points-info').style.display = 'block';
         document.getElementById('complete-earned-points').textContent = data.earnedPoints.toLocaleString();
