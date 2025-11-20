@@ -204,7 +204,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: '🎉 회원가입 완료! 환영 포인트 10,000P가 지급되었습니다!' 
+      message: '🎉 회원가입 완료! 환영 포인트 10,000P와 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)' 
     });
   } catch (error) {
     console.error('회원가입 오류:', error);
@@ -360,10 +360,83 @@ app.post('/api/phone/verify-code', (req, res) => {
   }
 });
 
+// API: 쿠폰 조회 (코드로)
+app.post('/api/coupons/validate', (req, res) => {
+  try {
+    const { code, userId, totalAmount } = req.body;
+    
+    if (!code) {
+      return res.json({ success: false, error: '쿠폰 코드를 입력해주세요.' });
+    }
+    
+    const coupon = db.getCouponByCode(code.toUpperCase());
+    
+    if (!coupon) {
+      return res.json({ success: false, error: '유효하지 않은 쿠폰 코드입니다.' });
+    }
+    
+    // 유효기간 체크
+    const now = new Date();
+    if (new Date(coupon.validFrom) > now || new Date(coupon.validTo) < now) {
+      return res.json({ success: false, error: '쿠폰 유효기간이 만료되었습니다.' });
+    }
+    
+    // 활성화 상태 체크
+    if (!coupon.isActive) {
+      return res.json({ success: false, error: '사용할 수 없는 쿠폰입니다.' });
+    }
+    
+    // 최소 주문 금액 체크
+    if (totalAmount && coupon.minAmount && totalAmount < coupon.minAmount) {
+      return res.json({ 
+        success: false, 
+        error: `이 쿠폰은 최소 주문 금액 ${coupon.minAmount.toLocaleString()}원 이상일 때 사용 가능합니다.` 
+      });
+    }
+    
+    // 할인 금액 계산
+    let discountAmount = 0;
+    if (coupon.discountType === 'fixed') {
+      discountAmount = coupon.discountValue;
+    } else if (coupon.discountType === 'percent') {
+      discountAmount = Math.floor(totalAmount * (coupon.discountValue / 100));
+      if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+        discountAmount = coupon.maxDiscount;
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      coupon: {
+        id: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        minAmount: coupon.minAmount,
+        discountAmount: discountAmount
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 사용자 쿠폰 조회
+app.get('/api/coupons/user/:userId', (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const coupons = db.getUserCoupons(userId);
+    res.json({ success: true, coupons });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 주문 생성
 app.post('/api/orders', async (req, res) => {
   try {
-    const { userId, customerName, phone, address, items, totalAmount, usedPoints, paymentMethod, isGuest, phoneVerified } = req.body;
+    const { userId, customerName, phone, address, items, totalAmount, usedPoints, paymentMethod, isGuest, phoneVerified, couponCode, couponDiscount } = req.body;
     
     // 포인트 사용 검증
     if (userId && usedPoints > 0) {
@@ -373,8 +446,26 @@ app.post('/api/orders', async (req, res) => {
       }
     }
     
-    const finalAmount = totalAmount - (usedPoints || 0);
-    const earnedPoints = userId && !isGuest ? Math.floor(finalAmount * 0.10) : 0;
+    // 쿠폰 검증 및 사용 처리
+    let couponId = null;
+    if (couponCode && userId) {
+      const coupon = db.getCouponByCode(couponCode.toUpperCase());
+      if (coupon) {
+        // 최소 주문 금액 체크
+        if (coupon.minAmount && totalAmount < coupon.minAmount) {
+          return res.json({ 
+            success: false, 
+            error: `이 쿠폰은 최소 주문 금액 ${coupon.minAmount.toLocaleString()}원 이상일 때 사용 가능합니다.` 
+          });
+        }
+        // 쿠폰 사용 처리
+        db.useCoupon(coupon.id, userId, null); // orderId는 나중에 업데이트
+        couponId = coupon.id;
+      }
+    }
+    
+    const finalAmount = totalAmount - (usedPoints || 0) - (couponDiscount || 0);
+    const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - (usedPoints || 0) - (couponDiscount || 0)) * 0.10) : 0;
     
     const orderId = 'ORD-' + Date.now();
     const orderData = {
@@ -400,6 +491,11 @@ app.post('/api/orders', async (req, res) => {
     if (userId && usedPoints > 0) {
       db.addPoints(userId, -usedPoints);
       db.addPointHistory(userId, orderId, -usedPoints, 'use');
+    }
+    
+    // 쿠폰 사용 내역 업데이트 (orderId 추가)
+    if (couponId && userId) {
+      db.useCoupon(couponId, userId, orderId);
     }
     
     // POS에 주문 전송

@@ -305,20 +305,10 @@ class DB {
       email: email || null,
       address: address || null,
       password,
-      points: 10000, // 🎁 회원가입 시 10,000P 지급!
+      points: 0, // 포인트는 주문 시 적립
       createdat: new Date()
     };
     this.users.push(user);
-    
-    // 포인트 내역 추가
-    this.pointHistory.push({
-      id: this.pointHistory.length + 1,
-      userid: user.userid,
-      points: 10000,
-      type: 'earn',
-      description: '회원가입 축하 포인트',
-      createdat: new Date()
-    });
     
     // 🎁 신규 회원 가입 쿠폰 자동 발급 (10000원 쿠폰)
     const welcomeCoupon = this.createCoupon({
@@ -336,7 +326,7 @@ class DB {
     // 쿠폰 발급 기록
     this.issueCouponToUser(welcomeCoupon.id, user.userid);
     
-    console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code}`);
+    console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code} (10,000원)`);
     
     return user;
   }

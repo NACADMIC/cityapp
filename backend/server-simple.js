@@ -883,7 +883,7 @@ app.post('/api/auth/register', async (req, res) => {
     const user = await db.createUser(phone, name, email, address, password);
     res.json({ 
       success: true, 
-      message: '🎉 회원가입 완료! 환영 포인트 10,000P가 지급되었습니다!' 
+      message: '🎉 회원가입 완료! 신규 회원 가입 쿠폰 10,000원이 발급되었습니다!' 
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

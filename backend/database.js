@@ -124,6 +124,36 @@ class DB {
       )
     `);
 
+    // 쿠폰 테이블
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS coupons (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        discountType TEXT NOT NULL,
+        discountValue INTEGER NOT NULL,
+        minAmount INTEGER DEFAULT 0,
+        maxDiscount INTEGER,
+        validFrom TEXT NOT NULL,
+        validTo TEXT NOT NULL,
+        isActive INTEGER DEFAULT 1,
+        issuedCount INTEGER DEFAULT 0,
+        usedCount INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    `);
+
+    // 쿠폰 사용 내역 테이블
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS coupon_usage (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        couponId INTEGER NOT NULL,
+        userId INTEGER NOT NULL,
+        orderId TEXT,
+        usedAt TEXT NOT NULL
+      )
+    `);
+
     // 기본 메뉴 데이터
     const count = this.db.prepare('SELECT COUNT(*) as count FROM menu').get();
     if (count.count === 0) {
@@ -190,10 +220,30 @@ class DB {
     const stmt = this.db.prepare('INSERT INTO users (phone, name, email, address, password, points, createdAt) VALUES (?, ?, ?, ?, ?, 10000, ?)');
     const result = stmt.run(phone, name, email, address, hashedPassword, createdAt);
     
-    // 포인트 내역 추가
-    this.addPointHistory(result.lastInsertRowid, null, 10000, 'earn');
+    const userId = result.lastInsertRowid;
     
-    return this.getUserById(result.lastInsertRowid);
+    // 포인트 내역 추가
+    this.addPointHistory(userId, null, 10000, 'earn');
+    
+    // 🎁 신규 회원 가입 쿠폰 자동 발급 (10,000원 쿠폰, 25,000원 이상 주문 시 사용 가능)
+    const welcomeCoupon = this.createCoupon({
+      code: `WELCOME${userId}`,
+      name: '신규 회원 가입 쿠폰',
+      discountType: 'fixed',
+      discountValue: 10000,
+      minAmount: 25000, // 최소 주문 금액 25,000원
+      maxDiscount: null,
+      validFrom: new Date(),
+      validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90일 유효
+      isActive: true
+    });
+    
+    // 쿠폰 발급 기록
+    this.issueCouponToUser(welcomeCoupon.id, userId);
+    
+    console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code} (10,000원, 25,000원 이상 주문 시 사용 가능)`);
+    
+    return this.getUserById(userId);
   }
 
   getUserByPhone(phone) {
@@ -623,6 +673,146 @@ class DB {
     } catch (e) {
       return null;
     }
+  }
+
+  // ========== 쿠폰 시스템 ==========
+  
+  // 쿠폰 생성
+  createCoupon(couponData) {
+    const stmt = this.db.prepare(`
+      INSERT INTO coupons (code, name, discountType, discountValue, minAmount, maxDiscount, validFrom, validTo, isActive, createdAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(
+      couponData.code,
+      couponData.name,
+      couponData.discountType,
+      couponData.discountValue,
+      couponData.minAmount || 0,
+      couponData.maxDiscount || null,
+      couponData.validFrom instanceof Date ? couponData.validFrom.toISOString() : couponData.validFrom,
+      couponData.validTo instanceof Date ? couponData.validTo.toISOString() : couponData.validTo,
+      couponData.isActive !== false ? 1 : 0,
+      new Date().toISOString()
+    );
+    
+    const coupon = this.getCouponById(result.lastInsertRowid);
+    console.log('✅ 쿠폰 생성:', coupon);
+    return coupon;
+  }
+
+  // 쿠폰 조회 (ID)
+  getCouponById(id) {
+    const coupon = this.db.prepare('SELECT * FROM coupons WHERE id = ?').get(id);
+    if (coupon) {
+      return {
+        ...coupon,
+        isActive: coupon.isActive === 1,
+        validFrom: new Date(coupon.validFrom),
+        validTo: new Date(coupon.validTo)
+      };
+    }
+    return null;
+  }
+
+  // 쿠폰 조회 (코드)
+  getCouponByCode(code) {
+    const coupon = this.db.prepare('SELECT * FROM coupons WHERE code = ? AND isActive = 1').get(code);
+    if (coupon) {
+      return {
+        ...coupon,
+        isActive: coupon.isActive === 1,
+        validFrom: new Date(coupon.validFrom),
+        validTo: new Date(coupon.validTo)
+      };
+    }
+    return null;
+  }
+
+  // 모든 쿠폰 조회
+  getAllCoupons() {
+    const coupons = this.db.prepare('SELECT * FROM coupons ORDER BY id DESC').all();
+    return coupons.map(c => ({
+      ...c,
+      isActive: c.isActive === 1,
+      validFrom: new Date(c.validFrom),
+      validTo: new Date(c.validTo)
+    }));
+  }
+
+  // 쿠폰 발급 (사용자에게 쿠폰 지급)
+  issueCouponToUser(couponId, userId) {
+    const coupon = this.getCouponById(couponId);
+    if (!coupon || !coupon.isActive) {
+      return null;
+    }
+    
+    // 발급 횟수 증가
+    this.db.prepare('UPDATE coupons SET issuedCount = issuedCount + 1 WHERE id = ?').run(couponId);
+    
+    // 쿠폰 사용 내역에 발급 기록
+    const stmt = this.db.prepare('INSERT INTO coupon_usage (couponId, userId, usedAt) VALUES (?, ?, ?)');
+    stmt.run(couponId, userId, new Date().toISOString());
+    
+    return coupon;
+  }
+
+  // 쿠폰 사용
+  useCoupon(couponId, userId, orderId) {
+    const coupon = this.getCouponById(couponId);
+    if (!coupon) {
+      return false;
+    }
+    
+    // 사용 횟수 증가
+    this.db.prepare('UPDATE coupons SET usedCount = usedCount + 1 WHERE id = ?').run(couponId);
+    
+    // 쿠폰 사용 내역 업데이트 (orderId 추가)
+    if (orderId) {
+      const usage = this.db.prepare('SELECT * FROM coupon_usage WHERE couponId = ? AND userId = ? AND orderId IS NULL ORDER BY id DESC LIMIT 1').get(couponId, userId);
+      if (usage) {
+        this.db.prepare('UPDATE coupon_usage SET orderId = ? WHERE id = ?').run(orderId, usage.id);
+      } else {
+        // 새로 추가
+        this.db.prepare('INSERT INTO coupon_usage (couponId, userId, orderId, usedAt) VALUES (?, ?, ?, ?)')
+          .run(couponId, userId, orderId, new Date().toISOString());
+      }
+    }
+    
+    return true;
+  }
+
+  // 사용자 쿠폰 조회
+  getUserCoupons(userId) {
+    const coupons = this.db.prepare(`
+      SELECT c.*, cu.id as usageId, cu.orderId, cu.usedAt
+      FROM coupons c
+      INNER JOIN coupon_usage cu ON c.id = cu.couponId
+      WHERE cu.userId = ? AND cu.orderId IS NULL
+      ORDER BY cu.usedAt DESC
+    `).all(userId);
+    
+    return coupons.map(c => ({
+      ...c,
+      isActive: c.isActive === 1,
+      validFrom: new Date(c.validFrom),
+      validTo: new Date(c.validTo)
+    }));
+  }
+
+  // 쿠폰 통계
+  getCouponStats() {
+    const totalCoupons = this.db.prepare('SELECT COUNT(*) as count FROM coupons').get();
+    const activeCoupons = this.db.prepare('SELECT COUNT(*) as count FROM coupons WHERE isActive = 1').get();
+    const totalIssued = this.db.prepare('SELECT SUM(issuedCount) as total FROM coupons').get();
+    const totalUsed = this.db.prepare('SELECT SUM(usedCount) as total FROM coupons').get();
+    
+    return {
+      totalCoupons: totalCoupons.count,
+      activeCoupons: activeCoupons.count,
+      totalIssued: totalIssued.total || 0,
+      totalUsed: totalUsed.total || 0
+    };
   }
 }
 

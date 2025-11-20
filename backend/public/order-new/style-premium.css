@@ -1096,31 +1096,33 @@ h2 {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 24px;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 12px;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 .auth-links a {
-  color: #666;
-  font-size: 14px;
-  font-weight: 600;
+  color: #999;
+  font-size: 11px;
+  font-weight: 400;
   text-decoration: none;
-  transition: all 0.3s;
-  padding: 4px 8px;
-  border-radius: 6px;
+  transition: all 0.2s;
+  padding: 2px 4px;
+  border-radius: 0;
 }
 
 .auth-links a:hover {
-  color: #1a1a1a;
-  background: rgba(255, 215, 0, 0.2);
+  color: #666;
+  background: transparent;
 }
 
 .auth-links .divider {
   color: #ccc;
-  font-size: 12px;
+  font-size: 10px;
+  font-weight: 300;
+  margin: 0 2px;
 }
 
 /* Auth Small Links (첫 화면용) */
@@ -1128,35 +1130,36 @@ h2 {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin-top: 8px;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 8px;
-  border: 2px solid #000000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 .auth-small-links a {
-  color: #000000;
-  font-size: 13px;
-  font-weight: 700;
+  color: #999;
+  font-size: 11px;
+  font-weight: 400;
   text-decoration: none;
-  transition: all 0.3s;
-  padding: 3px 6px;
-  border-radius: 4px;
+  transition: all 0.2s;
+  padding: 2px 4px;
+  border-radius: 0;
 }
 
 .auth-small-links a:hover {
-  color: #FF6B00;
-  background: rgba(255, 107, 0, 0.1);
-  transform: translateY(-1px);
+  color: #666;
+  background: transparent;
+  transform: none;
 }
 
 .auth-small-links .divider {
-  color: #666666;
-  font-size: 13px;
-  font-weight: 400;
+  color: #ccc;
+  font-size: 10px;
+  font-weight: 300;
+  margin: 0 2px;
 }
 
 /* Signup Benefit */
