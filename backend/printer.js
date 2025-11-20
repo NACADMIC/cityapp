@@ -148,15 +148,40 @@ function printOrder(order) {
     printText += '━━━━━━━━━━━━━━\n';
     
     console.log('📄 생성된 주문서 텍스트 길이:', printText.length);
+    console.log('🖥️ 운영체제:', os.platform());
     
     // Windows 기본 프린터로 출력 (비동기, fire and forget)
     if (os.platform() === 'win32') {
       console.log('🪟 Windows 환경 감지, 기본 프린터로 출력 시도');
-      printToWindowsPrinter(printText, order.orderId).catch(err => {
-        console.error('❌ Windows 프린터 출력 실패:', err.message);
-        console.error('❌ 에러 스택:', err.stack);
-      });
+      console.log('📋 주문서 미리보기 (처음 200자):');
+      console.log(printText.substring(0, 200) + '...');
+      
+      // 프린터 출력 실행
+      printToWindowsPrinter(printText, order.orderId)
+        .then(result => {
+          if (result) {
+            console.log('✅ 프린터 출력 성공:', order.orderId);
+          } else {
+            console.log('⚠️ 프린터 출력 실패 (false 반환):', order.orderId);
+          }
+        })
+        .catch(err => {
+          console.error('❌ Windows 프린터 출력 실패:', err.message);
+          console.error('❌ 에러 스택:', err.stack);
+        });
+      
       return true; // 비동기로 처리되므로 즉시 true 반환
+    }
+    
+    // Linux/Unix 환경 (Railway 등) - 프린터 출력 불가, 로그만 출력
+    if (os.platform() === 'linux' || os.platform() === 'darwin') {
+      console.log('⚠️ Linux/Unix 환경: 프린터 출력 불가 (로컬 Windows PC에서만 출력 가능)');
+      console.log('📄 주문서 내용:');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log(printText);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('💡 팁: 로컬 Windows PC에서 서버를 실행하면 자동으로 프린터 출력됩니다.');
+      return true; // 로그 출력은 성공으로 처리
     }
     
     // ESC/POS 프린터 사용 (기존 방식)
@@ -192,38 +217,51 @@ function printToWindowsPrinter(text, orderId) {
       const BOM = '\ufeff';
       fs.writeFileSync(tempFile, BOM + text, 'utf8');
       
-      // 방법 1: print 명령어 사용 (가장 간단하고 안정적)
-      const printCommand = `print /D:"%PRINTER%" "${tempFile.replace(/\//g, '\\')}"`;
+      console.log('✅ 파일 저장 완료, 크기:', fs.statSync(tempFile).size, 'bytes');
       
-      console.log('🖨️ 프린터 명령어 실행:', printCommand);
+      // 방법 1: PowerShell 사용 (가장 안정적)
+      // 파일 경로를 이스케이프 처리 (Windows 경로 형식 유지)
+      // 작은따옴표를 이스케이프하고, 백슬래시는 그대로 유지
+      const escapedPath = tempFile.replace(/'/g, "''");
+      const powershellCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "$content = Get-Content -Path '${escapedPath}' -Raw -Encoding UTF8; $content | Out-Printer"`;
       
-      exec(printCommand, { shell: true }, (error, stdout, stderr) => {
+      console.log('🖨️ PowerShell 명령어 실행 중...');
+      console.log('📝 원본 파일 경로:', tempFile);
+      console.log('📝 이스케이프된 경로:', escapedPath);
+      
+      exec(powershellCommand, { 
+        shell: true,
+        timeout: 10000 // 10초 타임아웃
+      }, (error, stdout, stderr) => {
         if (error) {
-          console.log('⚠️ print 명령어 실패, PowerShell 시도:', error.message);
+          console.log('⚠️ PowerShell 실패, print 명령어 시도:', error.message);
+          if (stderr) console.log('⚠️ stderr:', stderr);
           
-          // 방법 2: PowerShell 사용 (fallback)
-          const powershellCommand = `powershell -NoProfile -Command "$content = Get-Content -Path '${tempFile.replace(/'/g, "''")}' -Raw -Encoding UTF8; $content | Out-Printer"`;
+          // 방법 2: print 명령어 사용 (fallback)
+          const printCommand = `print /D:"%PRINTER%" "${tempFile}"`;
           
-          exec(powershellCommand, { shell: true }, (error2, stdout2, stderr2) => {
+          exec(printCommand, { shell: true, timeout: 10000 }, (error2, stdout2, stderr2) => {
             // 파일 삭제 (비동기)
             setTimeout(() => {
               try {
                 if (fs.existsSync(tempFile)) {
                   fs.unlinkSync(tempFile);
+                  console.log('🗑️ 임시 파일 삭제 완료');
                 }
               } catch (e) {
-                // 파일 삭제 실패는 무시
+                console.log('⚠️ 파일 삭제 실패 (무시):', e.message);
               }
-            }, 5000);
+            }, 3000);
             
             if (error2) {
-              console.error('❌ PowerShell 프린터 출력 실패:', error2.message);
+              console.error('❌ print 명령어도 실패:', error2.message);
+              if (stderr2) console.error('❌ stderr2:', stderr2);
               // printer 패키지 시도
               tryPrintWithPrinterPackage(text, orderId, resolve);
               return;
             }
             
-            console.log('✅ 주문서 출력 완료 (PowerShell):', orderId);
+            console.log('✅ 주문서 출력 완료 (print 명령어):', orderId);
             resolve(true);
           });
           return;
@@ -234,13 +272,17 @@ function printToWindowsPrinter(text, orderId) {
           try {
             if (fs.existsSync(tempFile)) {
               fs.unlinkSync(tempFile);
+              console.log('🗑️ 임시 파일 삭제 완료');
             }
           } catch (e) {
-            // 파일 삭제 실패는 무시
+            console.log('⚠️ 파일 삭제 실패 (무시):', e.message);
           }
-        }, 5000);
+        }, 3000);
         
-        console.log('✅ 주문서 출력 완료 (print 명령어):', orderId);
+        if (stdout) console.log('📤 stdout:', stdout);
+        if (stderr) console.log('⚠️ stderr:', stderr);
+        
+        console.log('✅ 주문서 출력 완료 (PowerShell):', orderId);
         resolve(true);
       });
     } catch (error) {
@@ -254,13 +296,36 @@ function printToWindowsPrinter(text, orderId) {
 // printer 패키지로 출력 시도 (fallback)
 function tryPrintWithPrinterPackage(text, orderId, resolve) {
   if (!nodePrinter) {
-    console.log('⚠️ Windows 기본 프린터 출력 실패. printer 패키지를 설치하세요: npm install printer');
+    console.log('⚠️ Windows 기본 프린터 출력 실패.');
+    console.log('💡 해결 방법:');
+    console.log('   1. Windows 기본 프린터가 설정되어 있는지 확인');
+    console.log('   2. 프린터가 켜져 있고 연결되어 있는지 확인');
+    console.log('   3. 또는 printer 패키지 설치: npm install printer');
+    
+    // 최종 방법: notepad로 열어서 수동 인쇄 가능하도록
+    try {
+      const tempDir = os.tmpdir();
+      const safeOrderId = orderId.toString().replace(/[^a-zA-Z0-9]/g, '_');
+      const tempFile = path.join(tempDir, `order_${safeOrderId}_${Date.now()}.txt`);
+      fs.writeFileSync(tempFile, text, 'utf8');
+      
+      // notepad로 열기 (사용자가 수동으로 인쇄 가능)
+      exec(`notepad "${tempFile}"`, { shell: true }, () => {
+        console.log('📝 Notepad로 주문서를 열었습니다. Ctrl+P로 수동 인쇄하세요.');
+      });
+    } catch (e) {
+      console.error('❌ Notepad 열기 실패:', e.message);
+    }
+    
     resolve(false);
     return;
   }
   
   try {
+    console.log('🖨️ printer 패키지로 출력 시도...');
     const printers = nodePrinter.getPrinters();
+    console.log('📋 사용 가능한 프린터:', printers.length, '개');
+    
     if (printers.length === 0) {
       console.log('⚠️ 사용 가능한 프린터가 없습니다.');
       resolve(false);
@@ -275,6 +340,8 @@ function tryPrintWithPrinterPackage(text, orderId, resolve) {
       resolve(false);
       return;
     }
+    
+    console.log('🖨️ 기본 프린터:', defaultPrinter.name);
     
     // 프린터로 출력
     nodePrinter.printDirect({
@@ -292,6 +359,7 @@ function tryPrintWithPrinterPackage(text, orderId, resolve) {
     });
   } catch (error) {
     console.error('❌ printer 패키지 오류:', error.message);
+    console.error('❌ 스택:', error.stack);
     resolve(false);
   }
 }

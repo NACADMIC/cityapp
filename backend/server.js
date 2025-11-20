@@ -774,7 +774,14 @@ app.post('/api/orders/:orderId/status', (req, res) => {
     
     // 주문 수락 시 프린터에서 자동 인쇄
     if (status === 'accepted') {
+      console.log('✅ 주문 수락 상태 변경:', orderId);
       if (order) {
+        console.log('📋 주문 데이터 확인:', {
+          orderId: order.orderId || order.orderid,
+          customerName: order.customerName || order.customername,
+          items: typeof order.items === 'string' ? 'string' : 'array'
+        });
+        
         // 프린터 출력용 주문 데이터 준비
         const orderForPrint = {
           orderId: order.orderId || order.orderid,
@@ -792,9 +799,12 @@ app.post('/api/orders/:orderId/status', (req, res) => {
           createdAt: order.createdAt || order.createdat
         };
         
+        console.log('🖨️ 프린터 출력 함수 호출 시작');
         // 프린터 출력
-        printer.printOrder(orderForPrint);
-        console.log('🖨️ 주문 수락 - 프린터 출력:', orderId);
+        const printResult = printer.printOrder(orderForPrint);
+        console.log('🖨️ 주문 수락 - 프린터 출력 결과:', printResult, '주문번호:', orderId);
+      } else {
+        console.error('❌ 주문 데이터가 없습니다:', orderId);
       }
     }
     
