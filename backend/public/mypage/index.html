@@ -487,6 +487,55 @@
     <button class="btn-logout" onclick="logout()">🚪 로그아웃</button>
   </div>
   
+  <!-- 리뷰 작성 모달 -->
+  <div id="review-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <h3 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 800; color: #1a1a1a;">리뷰 작성</h3>
+      
+      <input type="hidden" id="review-order-id">
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">별점</label>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="5" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="4" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="3" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="2" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="1" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">리뷰 내용 (선택)</label>
+        <textarea id="review-comment" placeholder="음식이 맛있었나요? 배달은 빠르게 왔나요? 리뷰를 작성해주세요!" rows="5" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button onclick="document.getElementById('review-modal').style.display='none';" style="flex: 1; padding: 12px; background: #f5f5f5; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+          취소
+        </button>
+        <button onclick="submitReview()" style="flex: 1; padding: 12px; background: #FFD700; color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
+          작성하기
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <!-- Bottom Navigation -->
   <nav class="bottom-nav">
     <button type="button" class="nav-btn" onclick="window.location.href='/order-new'">
@@ -509,6 +558,7 @@
 
   <script>
     const statusText = {
+      cancelled: '취소됨',
       'pending': '주문 대기',
       'accepted': '주문 수락',
       'preparing': '조리 중',
@@ -696,6 +746,24 @@
             </div>
             
             <div class="order-actions">
+              ${order.status === 'pending' ? `
+                <button class="btn-cancel" onclick="cancelOrder('${order.orderId}')" style="background: #e74c3c; color: white;">
+                  주문 취소
+                </button>
+                <button class="btn-edit" onclick="editOrder('${order.orderId}')" style="background: #3498db; color: white;">
+                  주문 수정
+                </button>
+              ` : ''}
+              ${order.status === 'accepted' ? `
+                <button class="btn-cancel" onclick="cancelOrder('${order.orderId}')" style="background: #e74c3c; color: white;">
+                  주문 취소
+                </button>
+              ` : ''}
+              ${order.status === 'completed' ? `
+                <button class="btn-review" onclick="showReviewModal('${order.orderId}')" style="background: #27ae60; color: white;">
+                  리뷰 작성
+                </button>
+              ` : ''}
               <button class="btn-same-menu" onclick="reorderSameMenu('${order.orderId}')">
                 같은 메뉴 담기
               </button>
@@ -804,6 +872,129 @@
       }
     }
 
+    // 주문 취소
+    async function cancelOrder(orderId) {
+      if (!confirm('정말 주문을 취소하시겠습니까?\n취소된 주문은 복구할 수 없습니다.')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: '고객 요청' })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('주문이 취소되었습니다.\n사용한 포인트는 복구되었습니다.');
+          location.reload();
+        } else {
+          alert(data.error || '주문 취소에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('주문 취소 오류:', error);
+        alert('주문 취소 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 재주문 (같은 메뉴 담기)
+    function reorderSameMenu(orderId) {
+      const order = ordersData.orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert('주문 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 주문 정보를 sessionStorage에 저장하고 주문 페이지로 이동
+      sessionStorage.setItem('reorderItems', JSON.stringify(order.items));
+      window.location.href = '/order-new';
+    }
+    
+    // 바로 주문 (재주문)
+    async function quickReorder(orderId) {
+      const order = ordersData.orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert('주문 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 주문 정보를 sessionStorage에 저장하고 주문 페이지로 이동
+      sessionStorage.setItem('reorderItems', JSON.stringify(order.items));
+      sessionStorage.setItem('quickReorder', 'true');
+      window.location.href = '/order-new';
+    }
+    
+    // 주문 수정
+    function editOrder(orderId) {
+      const order = ordersData.orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert('주문 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      if (order.status !== 'pending') {
+        alert('주문 수정은 주문 접수 전에만 가능합니다.');
+        return;
+      }
+      
+      // 주문 정보를 저장하고 주문 페이지로 이동
+      sessionStorage.setItem('editOrderId', orderId);
+      sessionStorage.setItem('reorderItems', JSON.stringify(order.items));
+      window.location.href = '/order-new';
+    }
+    
+    // 리뷰 작성 모달 표시
+    function showReviewModal(orderId) {
+      const modal = document.getElementById('review-modal');
+      if (modal) {
+        document.getElementById('review-order-id').value = orderId;
+        modal.style.display = 'flex';
+      } else {
+        alert('리뷰 작성 기능을 준비 중입니다.');
+      }
+    }
+    
+    // 리뷰 작성
+    async function submitReview() {
+      const orderId = document.getElementById('review-order-id').value;
+      const rating = document.querySelector('input[name="rating"]:checked')?.value;
+      const comment = document.getElementById('review-comment').value.trim();
+      
+      if (!rating) {
+        alert('별점을 선택해주세요.');
+        return;
+      }
+      
+      try {
+        const user = JSON.parse(sessionStorage.getItem('currentUser'));
+        const userId = user.userId || user.userid;
+        const res = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId,
+            userId,
+            rating: parseInt(rating),
+            comment
+          })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('리뷰가 작성되었습니다. 감사합니다!');
+          document.getElementById('review-modal').style.display = 'none';
+          document.getElementById('review-comment').value = '';
+          document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+        } else {
+          alert(data.error || '리뷰 작성에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('리뷰 작성 오류:', error);
+        alert('리뷰 작성 중 오류가 발생했습니다.');
+      }
+    }
+    
     // URL 파라미터 확인 및 초기 탭 설정
     function initTab() {
       const urlParams = new URLSearchParams(window.location.search);

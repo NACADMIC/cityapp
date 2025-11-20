@@ -237,6 +237,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       console.log('✅ 로그인 성공!', currentUser);
       alert(`환영합니다, ${currentUser.name}님!`);
       updateUserInfo();
+      loadFavoriteMenus(); // 즐겨찾기 로드
       showMenu();
     } else {
       alert(data.error || '로그인 실패');
@@ -329,19 +330,32 @@ function logout() {
 // Update user info
 function updateUserInfo() {
   const userInfoDiv = document.getElementById('user-info');
+  const favoriteTab = document.getElementById('favorite-tab');
   
   if (currentUser && !isGuest) {
     userInfoDiv.style.display = 'block';
     document.getElementById('user-name').textContent = currentUser.name;
     document.getElementById('user-points').textContent = currentUser.points;
     
+    // 즐겨찾기 탭 표시
+    if (favoriteTab) {
+      favoriteTab.style.display = 'flex';
+    }
+    
     // sessionStorage에 저장 (마이페이지와 네비게이션에서 사용)
     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+    // 즐겨찾기 메뉴 로드
+    loadFavoriteMenus();
     
     console.log('📦 세션 저장 완료:', currentUser);
   } else {
     userInfoDiv.style.display = 'none';
+    if (favoriteTab) {
+      favoriteTab.style.display = 'none';
+    }
     sessionStorage.removeItem('currentUser');
+    favoriteMenuIds = [];
   }
 }
 
@@ -373,26 +387,180 @@ function renderMenu(category = 'all') {
     filtered = menuItems.filter(item => item.bestseller === 1);
   } else if (category === '주류') {
     filtered = menuItems.filter(item => item.category === '맥주' || item.category === '소주');
+  } else if (category === '즐겨찾기') {
+    // 즐겨찾기 메뉴 로드
+    loadFavoriteMenus().then(favorites => {
+      const favoriteIds = favorites.map(f => f.id);
+      filtered = menuItems.filter(item => favoriteIds.includes(item.id));
+      renderMenuItems(filtered);
+    });
+    return;
   } else {
     filtered = menuItems.filter(item => item.category === category);
   }
+  
+  renderMenuItems(filtered);
+}
 
+// 메뉴 아이템 렌더링
+function renderMenuItems(filtered) {
+  const menuList = document.getElementById('menu-list');
+  
   if (filtered.length === 0) {
     menuList.innerHTML = '<p class="loading">메뉴가 없습니다.</p>';
     return;
   }
 
-  menuList.innerHTML = filtered.map(item => `
+  menuList.innerHTML = filtered.map(item => {
+    const isFavorite = favoriteMenuIds.includes(item.id);
+    return `
     <div class="menu-item" onclick="showMenuDetail(${item.id})">
       ${item.image 
         ? `<img src="${item.image}" alt="${item.name}" class="menu-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
            <div class="emoji" style="display:none;">${item.emoji || '🍜'}</div>`
         : `<div class="emoji">${item.emoji || '🍜'}</div>`
       }
+      <div style="position: absolute; top: 8px; right: 8px; z-index: 10;">
+        <button onclick="event.stopPropagation(); toggleFavorite(${item.id})" style="background: ${isFavorite ? '#e74c3c' : 'rgba(255,255,255,0.8)'}; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+          ${isFavorite ? '❤️' : '🤍'}
+        </button>
+      </div>
       <h3>${item.name}</h3>
       <p class="price">${item.price.toLocaleString()}원</p>
     </div>
-  `).join('');
+  `;
+  }).join('');
+}
+
+let favoriteMenuIds = [];
+
+// 즐겨찾기 메뉴 로드
+async function loadFavoriteMenus() {
+  if (!currentUser) return [];
+  
+  try {
+    const res = await fetch(`/api/favorites/${currentUser.userid}`);
+    const data = await res.json();
+    if (data.success) {
+      favoriteMenuIds = data.favorites.map(f => f.id);
+      return data.favorites;
+    }
+  } catch (err) {
+    console.error('즐겨찾기 로드 오류:', err);
+  }
+  return [];
+}
+
+// 즐겨찾기 토글
+async function toggleFavorite(menuId) {
+  if (!currentUser) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  const isFavorite = favoriteMenuIds.includes(menuId);
+  
+  try {
+    if (isFavorite) {
+      await fetch(`/api/favorites/${currentUser.userid}/${menuId}`, { method: 'DELETE' });
+      favoriteMenuIds = favoriteMenuIds.filter(id => id !== menuId);
+    } else {
+      await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.userid, menuId })
+      });
+      favoriteMenuIds.push(menuId);
+    }
+    
+    // 현재 카테고리가 즐겨찾기면 다시 렌더링
+    const activeTab = document.querySelector('.special-tab.active, .category-tab.active');
+    if (activeTab && activeTab.dataset.category === '즐겨찾기') {
+      renderMenu('즐겨찾기');
+    } else {
+      // 메뉴 목록 다시 렌더링
+      const category = activeTab ? activeTab.dataset.category : 'all';
+      renderMenu(category);
+    }
+  } catch (err) {
+    console.error('즐겨찾기 토글 오류:', err);
+    alert('오류가 발생했습니다.');
+  }
+}
+
+// 주소록 모달
+function showAddressModal() {
+  if (!currentUser) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  // 간단한 주소록 표시
+  loadSavedAddresses().then(addresses => {
+    if (addresses.length === 0) {
+      const addressName = prompt('주소 이름을 입력하세요 (예: 집, 회사):');
+      if (addressName) {
+        const address = document.getElementById('checkout-address').value.trim();
+        if (address) {
+          saveAddress(address, addressName);
+        }
+      }
+    } else {
+      const addressList = addresses.map((addr, idx) => 
+        `${idx + 1}. ${addr.addressName}: ${addr.address}`
+      ).join('\n');
+      const selected = prompt(`저장된 주소:\n${addressList}\n\n번호를 선택하세요 (또는 새 주소 입력):`);
+      
+      if (selected) {
+        const num = parseInt(selected);
+        if (!isNaN(num) && num > 0 && num <= addresses.length) {
+          document.getElementById('checkout-address').value = addresses[num - 1].address;
+        }
+      }
+    }
+  });
+}
+
+// 저장된 주소 로드
+async function loadSavedAddresses() {
+  if (!currentUser) return [];
+  
+  try {
+    const res = await fetch(`/api/addresses/${currentUser.userid}`);
+    const data = await res.json();
+    if (data.success) {
+      return data.addresses;
+    }
+  } catch (err) {
+    console.error('주소록 로드 오류:', err);
+  }
+  return [];
+}
+
+// 주소 저장
+async function saveAddress(address, addressName) {
+  if (!currentUser) return;
+  
+  try {
+    await fetch('/api/addresses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.userid,
+        address,
+        addressName,
+        isDefault: false
+      })
+    });
+    alert('주소가 저장되었습니다!');
+  } catch (err) {
+    console.error('주소 저장 오류:', err);
+  }
+}
+
+// 주소 선택
+function selectAddress(address) {
+  document.getElementById('checkout-address').value = address;
 }
 
 // Category tabs
@@ -1055,25 +1223,54 @@ function removeFromCart(idx) {
   updateCartCount();
 }
 
+// 주문 타입에 따라 주소 필드 표시/숨김
+function toggleAddressField() {
+  const orderType = document.querySelector('input[name="orderType"]:checked').value;
+  const addressGroup = document.getElementById('address-group');
+  const addressInput = document.getElementById('checkout-address');
+  
+  if (orderType === 'takeout') {
+    // 포장 주문: 주소 필드 숨기기
+    addressGroup.style.display = 'none';
+    addressInput.removeAttribute('required');
+    addressInput.value = '포장 주문';
+  } else {
+    // 배달 주문: 주소 필드 표시
+    addressGroup.style.display = 'block';
+    addressInput.setAttribute('required', 'required');
+    if (addressInput.value === '포장 주문') {
+      addressInput.value = '';
+    }
+  }
+  
+  // 배달료 재계산
+  renderCart();
+}
+
 // Render checkout
 async function renderCheckout() {
   const checkoutItemsDiv = document.getElementById('checkout-items');
   const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   
-  // 배달료 계산
+  // 주문 타입 확인
+  const orderType = document.querySelector('input[name="orderType"]:checked')?.value || 'delivery';
+  
+  // 배달료 계산 (포장 주문은 배달료 0원)
   let deliveryFee = 0;
-  try {
-    const storeRes = await fetch('/api/store/info');
-    const storeData = await storeRes.json();
-    if (storeData.storeInfo) {
-      const freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
-      const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
-      if (itemsTotal < freeDeliveryThreshold) {
-        deliveryFee = baseDeliveryFee;
+  if (orderType === 'delivery') {
+    try {
+      const storeRes = await fetch('/api/store/info');
+      const storeData = await storeRes.json();
+      if (storeData.storeInfo) {
+        const freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
+        const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
+        if (itemsTotal < freeDeliveryThreshold) {
+          deliveryFee = baseDeliveryFee;
+        }
       }
+    } catch (err) {
+      console.error('배달료 계산 오류:', err);
     }
-  } catch (err) {
-    console.error('배달료 계산 오류:', err);
   }
   
   const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
@@ -1127,6 +1324,19 @@ async function renderCheckout() {
     document.getElementById('checkout-name').value = currentUser.name;
     document.getElementById('checkout-phone').value = currentUser.phone;
     document.getElementById('checkout-address').value = currentUser.address || '';
+    
+    // 주소록 로드
+    loadSavedAddresses().then(addresses => {
+      const savedAddressesDiv = document.getElementById('saved-addresses');
+      if (savedAddressesDiv && addresses.length > 0) {
+        savedAddressesDiv.style.display = 'block';
+        savedAddressesDiv.innerHTML = addresses.map(addr => `
+          <button type="button" onclick="selectAddress('${addr.address.replace(/'/g, "\\'")}')" style="margin: 5px; padding: 8px 12px; background: ${addr.isDefault ? '#FFD700' : '#f5f5f5'}; border: 1px solid #ddd; border-radius: 8px; font-size: 12px; cursor: pointer;">
+            ${addr.addressName}${addr.isDefault ? ' (기본)' : ''}
+          </button>
+        `).join('');
+      }
+    });
   } else {
     checkoutPointsSection.style.display = 'none';
     checkoutEarnInfo.style.display = 'none';
@@ -1171,44 +1381,54 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
 
   const customerName = document.getElementById('checkout-name').value.trim();
   const phone = document.getElementById('checkout-phone').value.trim();
-  const address = document.getElementById('checkout-address').value.trim();
+  const orderType = document.querySelector('input[name="orderType"]:checked').value;
+  const address = orderType === 'takeout' ? '포장 주문' : document.getElementById('checkout-address').value.trim();
   const specialRequest = document.getElementById('checkout-request').value.trim();
   const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
 
-  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
-  // 배달료 계산 (서버에서 최종 확인)
-  let deliveryFee = 0;
-  try {
-    const storeRes = await fetch('/api/store/info');
-    const storeData = await storeRes.json();
-    if (storeData.storeInfo) {
-      const minOrder = storeData.storeInfo.minOrderAmount || 15000;
-      const freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
-      const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
-      
-      // 최소 주문 금액 체크
-      if (itemsTotal < minOrder) {
-        alert(`최소 주문 금액은 ${minOrder.toLocaleString()}원입니다.\n현재 주문 금액: ${itemsTotal.toLocaleString()}원`);
-        return;
-      }
-      
-      // 배달료 계산 (무료 배달 기준 미만이면 배달료 추가)
-      if (itemsTotal < freeDeliveryThreshold) {
-        deliveryFee = baseDeliveryFee;
-      }
-    }
-  } catch (err) {
-    console.error('배달료 계산 오류:', err);
+  // 포장 주문 시 주소 필수 체크 제외
+  if (orderType === 'delivery' && !address) {
+    alert('배달 주소를 입력해주세요.');
+    return;
   }
 
-  const finalAmount = itemsTotal - usedPoints + deliveryFee;
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  // 배달료 계산 (포장 주문은 배달료 0원)
+  let deliveryFee = 0;
+  if (orderType === 'delivery') {
+    try {
+      const storeRes = await fetch('/api/store/info');
+      const storeData = await storeRes.json();
+      if (storeData.storeInfo) {
+        const minOrder = storeData.storeInfo.minOrderAmount || 15000;
+        const freeDeliveryThreshold = storeData.storeInfo.freeDeliveryThreshold || 20000;
+        const baseDeliveryFee = storeData.storeInfo.deliveryFee || 3000;
+        
+        // 최소 주문 금액 체크
+        if (itemsTotal < minOrder) {
+          alert(`최소 주문 금액은 ${minOrder.toLocaleString()}원입니다.\n현재 주문 금액: ${itemsTotal.toLocaleString()}원`);
+          return;
+        }
+        
+        // 배달료 계산 (무료 배달 기준 미만이면 배달료 추가)
+        if (itemsTotal < freeDeliveryThreshold) {
+          deliveryFee = baseDeliveryFee;
+        }
+      }
+    } catch (err) {
+      console.error('배달료 계산 오류:', err);
+    }
+  }
+
+  const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
 
   const orderData = {
     userId: currentUser ? currentUser.userid : null,
     customerName,
     phone,
     address,
+    orderType, // 'delivery' or 'takeout'
     items: cart,
     totalAmount: itemsTotal,
     deliveryFee,
@@ -1256,6 +1476,12 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
       couponCode = null;
       couponDiscount = 0;
       couponName = null;
+      
+      // 주문 타입 및 주소 필드 초기화
+      document.querySelector('input[name="orderType"][value="delivery"]').checked = true;
+      toggleAddressField();
+      document.getElementById('checkout-address').value = '';
+      
       updateCartCount();
 
       showScreen('complete-screen');
@@ -1486,6 +1712,163 @@ function goToPointHistory() {
   }
 }
 
+// 쿠폰 목록 화면 표시
+async function showCouponList() {
+  if (!currentUser || isGuest) {
+    alert('로그인이 필요합니다.');
+    showLogin();
+    return;
+  }
+
+  showScreen('coupon-list-screen');
+  
+  try {
+    const res = await fetch(`/api/coupons/user/${currentUser.userid}`);
+    const data = await res.json();
+    
+    const container = document.getElementById('coupon-list-container');
+    
+    if (!data.success || !data.coupons || data.coupons.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 60px 20px; color: #999;">
+          <div style="font-size: 64px; margin-bottom: 20px;">🎫</div>
+          <p style="font-size: 18px; margin-bottom: 10px; color: #666;">보유한 쿠폰이 없습니다</p>
+          <p style="font-size: 14px; color: #999;">회원가입 시 자동으로 쿠폰이 발급됩니다!</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const now = new Date();
+    const validCoupons = [];
+    const expiredCoupons = [];
+    
+    data.coupons.forEach(coupon => {
+      const validTo = new Date(coupon.validTo);
+      if (validTo >= now && coupon.isActive) {
+        validCoupons.push(coupon);
+      } else {
+        expiredCoupons.push(coupon);
+      }
+    });
+    
+    let html = '';
+    
+    // 사용 가능한 쿠폰
+    if (validCoupons.length > 0) {
+      html += '<h3 style="margin: 20px 0 15px 0; font-size: 18px; color: #333;">✅ 보유 쿠폰</h3>';
+      validCoupons.forEach(coupon => {
+        const validTo = new Date(coupon.validTo);
+        const daysLeft = Math.ceil((validTo - now) / (1000 * 60 * 60 * 24));
+        const couponAmount = coupon.discountType === 'fixed' 
+          ? coupon.discountValue 
+          : 0; // 퍼센트 쿠폰은 금액권이 아님
+        const minAmountText = coupon.minAmount ? `최소 주문 ${coupon.minAmount.toLocaleString()}원 이상` : '';
+        
+        html += `
+          <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); border-radius: 20px; padding: 0; margin-bottom: 20px; overflow: hidden; box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4); position: relative; border: 3px solid #FFD700;">
+            <!-- 쿠폰 패턴 배경 -->
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.1; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px);"></div>
+            
+            <div style="position: relative; padding: 25px 20px;">
+              <!-- 왼쪽: 금액 -->
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <div style="flex: 1;">
+                  <div style="font-size: 14px; color: #8B4513; font-weight: 600; margin-bottom: 8px; opacity: 0.9;">${coupon.name}</div>
+                  <div style="font-size: 48px; font-weight: 900; color: #8B4513; line-height: 1; margin-bottom: 5px;">
+                    ${couponAmount.toLocaleString()}
+                    <span style="font-size: 28px; font-weight: 700;">원</span>
+                  </div>
+                  ${minAmountText ? `<div style="font-size: 12px; color: #8B4513; opacity: 0.8; margin-top: 8px;">${minAmountText}</div>` : ''}
+                </div>
+                
+                <!-- 오른쪽: 쿠폰 정보 -->
+                <div style="text-align: right; border-left: 2px dashed rgba(139, 69, 19, 0.3); padding-left: 20px;">
+                  <div style="font-size: 18px; font-weight: 700; color: #8B4513; margin-bottom: 8px; letter-spacing: 2px;">${coupon.code}</div>
+                  <div style="font-size: 12px; color: #8B4513; opacity: 0.8; margin-bottom: 15px;">
+                    유효기간: ${daysLeft}일 남음
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button onclick="copyCouponCode('${coupon.code}')" style="background: rgba(139, 69, 19, 0.1); border: 2px solid #8B4513; color: #8B4513; padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.3s;" onmouseover="this.style.background='#8B4513'; this.style.color='white';" onmouseout="this.style.background='rgba(139, 69, 19, 0.1)'; this.style.color='#8B4513';">
+                      📋 코드 복사
+                    </button>
+                    <button onclick="useCouponCode('${coupon.code}')" style="background: #8B4513; color: white; padding: 8px 16px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.3s;" onmouseover="this.style.background='#654321';" onmouseout="this.style.background='#8B4513';">
+                      💳 사용하기
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 하단: 쿠폰 번호 -->
+            <div style="background: rgba(139, 69, 19, 0.1); padding: 12px 20px; border-top: 2px dashed rgba(139, 69, 19, 0.3); text-align: center;">
+              <div style="font-size: 11px; color: #8B4513; opacity: 0.7; letter-spacing: 1px;">쿠폰 번호: ${coupon.code}</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    
+    // 만료된 쿠폰
+    if (expiredCoupons.length > 0) {
+      html += '<h3 style="margin: 30px 0 15px 0; font-size: 18px; color: #999;">❌ 만료된 쿠폰</h3>';
+      expiredCoupons.forEach(coupon => {
+        html += `
+          <div style="background: #f5f5f5; border-radius: 16px; padding: 20px; margin-bottom: 15px; color: #999; opacity: 0.6;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div>
+                <h4 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #999;">${coupon.name}</h4>
+                <p style="margin: 0; font-size: 14px;">${coupon.code}</p>
+              </div>
+              <div style="font-size: 12px; color: #999;">만료됨</div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('쿠폰 목록 로드 오류:', err);
+    document.getElementById('coupon-list-container').innerHTML = `
+      <div style="text-align: center; padding: 40px 20px; color: #e74c3c;">
+        <p>쿠폰 목록을 불러올 수 없습니다.</p>
+        <button onclick="showCouponList()" style="margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+          다시 시도
+        </button>
+      </div>
+    `;
+  }
+}
+
+// 쿠폰 코드 복사
+function copyCouponCode(code) {
+  navigator.clipboard.writeText(code).then(() => {
+    alert(`쿠폰 코드 "${code}"가 복사되었습니다!\n장바구니에서 사용하세요.`);
+  }).catch(() => {
+    // 클립보드 복사 실패 시
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert(`쿠폰 코드 "${code}"가 복사되었습니다!\n장바구니에서 사용하세요.`);
+  });
+}
+
+// 쿠폰 코드 사용하기
+function useCouponCode(code) {
+  showCart();
+  setTimeout(() => {
+    const couponInput = document.getElementById('coupon-code');
+    if (couponInput) {
+      couponInput.value = code;
+      applyCoupon();
+    }
+  }, 300);
+}
+
 function updateNavActive(active) {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -1624,6 +2007,46 @@ function updateSideCartCount() {
         }
       } catch (e) {
         console.error('세션 복원 오류:', e);
+      }
+    }
+    
+    // 주문 수정 체크
+    const editOrderId = sessionStorage.getItem('editOrderId');
+    if (editOrderId) {
+      const currentUserData = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+      if (currentUserData) {
+        currentUser = currentUserData;
+        isGuest = false;
+        updateUserInfo();
+        
+        // 주문 정보 로드
+        try {
+          const res = await fetch(`/api/orders/${editOrderId}`);
+          const data = await res.json();
+          if (data.success && data.order) {
+            const order = data.order;
+            cart.length = 0;
+            order.items.forEach(item => {
+              cart.push({
+                id: item.menuId,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+              });
+            });
+            
+            sessionStorage.removeItem('editOrderId');
+            showMenu();
+            setTimeout(() => {
+              showCheckout();
+              alert('주문을 수정할 수 있습니다. 변경 후 다시 주문해주세요.');
+            }, 100);
+            return;
+          }
+        } catch (err) {
+          console.error('주문 수정 로드 오류:', err);
+          sessionStorage.removeItem('editOrderId');
+        }
       }
     }
     

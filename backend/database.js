@@ -154,6 +154,29 @@ class DB {
       )
     `);
 
+    // 즐겨찾기 메뉴 테이블
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS favorite_menus (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        menuId INTEGER NOT NULL,
+        createdAt TEXT NOT NULL,
+        UNIQUE(userId, menuId)
+      )
+    `);
+
+    // 주소록 테이블
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS saved_addresses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        address TEXT NOT NULL,
+        addressName TEXT NOT NULL,
+        isDefault INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    `);
+
     // 기본 메뉴 데이터
     const count = this.db.prepare('SELECT COUNT(*) as count FROM menu').get();
     if (count.count === 0) {
@@ -810,6 +833,78 @@ class DB {
       totalIssued: totalIssued.total || 0,
       totalUsed: totalUsed.total || 0
     };
+  }
+
+  // ========== 즐겨찾기 메뉴 ==========
+  
+  // 즐겨찾기 추가
+  addFavoriteMenu(userId, menuId) {
+    try {
+      const stmt = this.db.prepare('INSERT OR IGNORE INTO favorite_menus (userId, menuId, createdAt) VALUES (?, ?, ?)');
+      stmt.run(userId, menuId, new Date().toISOString());
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 즐겨찾기 제거
+  removeFavoriteMenu(userId, menuId) {
+    const stmt = this.db.prepare('DELETE FROM favorite_menus WHERE userId = ? AND menuId = ?');
+    return stmt.run(userId, menuId).changes > 0;
+  }
+
+  // 사용자 즐겨찾기 목록
+  getFavoriteMenus(userId) {
+    return this.db.prepare(`
+      SELECT m.*, fm.createdAt as favoritedAt
+      FROM favorite_menus fm
+      INNER JOIN menu m ON fm.menuId = m.id
+      WHERE fm.userId = ?
+      ORDER BY fm.createdAt DESC
+    `).all(userId);
+  }
+
+  // 즐겨찾기 여부 확인
+  isFavoriteMenu(userId, menuId) {
+    const result = this.db.prepare('SELECT COUNT(*) as count FROM favorite_menus WHERE userId = ? AND menuId = ?')
+      .get(userId, menuId);
+    return result.count > 0;
+  }
+
+  // ========== 주소록 ==========
+  
+  // 주소 저장
+  saveAddress(userId, address, addressName, isDefault = false) {
+    // 기본 주소로 설정 시 기존 기본 주소 해제
+    if (isDefault) {
+      this.db.prepare('UPDATE saved_addresses SET isDefault = 0 WHERE userId = ?').run(userId);
+    }
+    
+    const stmt = this.db.prepare('INSERT INTO saved_addresses (userId, address, addressName, isDefault, createdAt) VALUES (?, ?, ?, ?, ?)');
+    return stmt.run(userId, address, addressName, isDefault ? 1 : 0, new Date().toISOString());
+  }
+
+  // 주소 목록 조회
+  getSavedAddresses(userId) {
+    return this.db.prepare(`
+      SELECT * FROM saved_addresses 
+      WHERE userId = ? 
+      ORDER BY isDefault DESC, createdAt DESC
+    `).all(userId);
+  }
+
+  // 주소 삭제
+  deleteAddress(userId, addressId) {
+    const stmt = this.db.prepare('DELETE FROM saved_addresses WHERE id = ? AND userId = ?');
+    return stmt.run(addressId, userId).changes > 0;
+  }
+
+  // 기본 주소 설정
+  setDefaultAddress(userId, addressId) {
+    this.db.prepare('UPDATE saved_addresses SET isDefault = 0 WHERE userId = ?').run(userId);
+    const stmt = this.db.prepare('UPDATE saved_addresses SET isDefault = 1 WHERE id = ? AND userId = ?');
+    return stmt.run(addressId, userId).changes > 0;
   }
 }
 

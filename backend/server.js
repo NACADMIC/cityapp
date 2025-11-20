@@ -436,7 +436,7 @@ app.get('/api/coupons/user/:userId', (req, res) => {
 // API: 주문 생성
 app.post('/api/orders', async (req, res) => {
   try {
-    const { userId, customerName, phone, address, items, totalAmount, usedPoints, paymentMethod, isGuest, phoneVerified, couponCode, couponDiscount } = req.body;
+    const { userId, customerName, phone, address, items, totalAmount, usedPoints, paymentMethod, isGuest, phoneVerified, couponCode, couponDiscount, orderType, deliveryFee } = req.body;
     
     // 포인트 사용 검증
     if (userId && usedPoints > 0) {
@@ -464,7 +464,9 @@ app.post('/api/orders', async (req, res) => {
       }
     }
     
-    const finalAmount = totalAmount - (usedPoints || 0) - (couponDiscount || 0);
+    // 포장 주문은 배달료 0원
+    const finalDeliveryFee = (orderType === 'takeout') ? 0 : (deliveryFee || 0);
+    const finalAmount = totalAmount - (usedPoints || 0) - (couponDiscount || 0) + finalDeliveryFee;
     const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - (usedPoints || 0) - (couponDiscount || 0)) * 0.10) : 0;
     
     const orderId = 'ORD-' + Date.now();
@@ -473,7 +475,7 @@ app.post('/api/orders', async (req, res) => {
       userId: userId || null,
       customerName,
       phone,
-      address,
+      address: orderType === 'takeout' ? '포장 주문' : address,
       items: JSON.stringify(items),
       totalAmount: finalAmount,
       usedPoints: usedPoints || 0,
@@ -503,10 +505,11 @@ app.post('/api/orders', async (req, res) => {
       orderId,
       customerName,
       phone,
-      address,
+      address: orderType === 'takeout' ? '포장 주문' : address,
       items,
       totalAmount: finalAmount,
-      paymentMethod
+      paymentMethod,
+      orderType: orderType || 'delivery'
     });
     
     console.log('📦 새 주문:', orderId);
@@ -539,10 +542,57 @@ app.post('/api/orders/:orderId/status', (req, res) => {
       }
     }
     
+    // 주문 취소 시 포인트/쿠폰 복구
+    if (status === 'cancelled') {
+      const order = db.getOrderById(orderId);
+      if (order && order.userId) {
+        // 사용한 포인트 복구
+        if (order.usedPoints > 0) {
+          db.addPoints(order.userId, order.usedPoints);
+          db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+        }
+        // 쿠폰 복구는 별도 처리 필요
+      }
+    }
+    
     io.emit('order-status-changed', { orderId, status });
     
     console.log('📝 주문 상태 변경:', orderId, '→', status);
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 주문 취소 요청
+app.post('/api/orders/:orderId/cancel', (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+    
+    const order = db.getOrderById(orderId);
+    if (!order) {
+      return res.json({ success: false, error: '주문을 찾을 수 없습니다.' });
+    }
+    
+    // 이미 완료되거나 취소된 주문은 취소 불가
+    if (order.status === 'completed' || order.status === 'cancelled') {
+      return res.json({ success: false, error: '이미 완료되거나 취소된 주문입니다.' });
+    }
+    
+    // 주문 취소 처리
+    db.updateOrderStatus(orderId, 'cancelled');
+    
+    // 포인트 복구
+    if (order.userId && order.usedPoints > 0) {
+      db.addPoints(order.userId, order.usedPoints);
+      db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+    }
+    
+    io.emit('order-status-changed', { orderId, status: 'cancelled' });
+    
+    console.log('❌ 주문 취소:', orderId, reason || '');
+    res.json({ success: true, message: '주문이 취소되었습니다.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -830,6 +880,83 @@ app.get('/api/reviews/order/:orderId', (req, res) => {
   try {
     const reviews = db.getReviewsByOrderId(req.params.orderId);
     res.json({ success: true, reviews });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 즐겨찾기 메뉴 추가
+app.post('/api/favorites', (req, res) => {
+  try {
+    const { userId, menuId } = req.body;
+    db.addFavoriteMenu(userId, menuId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 즐겨찾기 메뉴 제거
+app.delete('/api/favorites/:userId/:menuId', (req, res) => {
+  try {
+    const { userId, menuId } = req.params;
+    db.removeFavoriteMenu(userId, menuId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 즐겨찾기 메뉴 목록
+app.get('/api/favorites/:userId', (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const favorites = db.getFavoriteMenus(userId);
+    res.json({ success: true, favorites });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 주소록 저장
+app.post('/api/addresses', (req, res) => {
+  try {
+    const { userId, address, addressName, isDefault } = req.body;
+    db.saveAddress(userId, address, addressName, isDefault);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 주소록 조회
+app.get('/api/addresses/:userId', (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const addresses = db.getSavedAddresses(userId);
+    res.json({ success: true, addresses });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 주소 삭제
+app.delete('/api/addresses/:userId/:addressId', (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+    db.deleteAddress(userId, addressId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 기본 주소 설정
+app.post('/api/addresses/:userId/:addressId/set-default', (req, res) => {
+  try {
+    const { userId, addressId } = req.params;
+    db.setDefaultAddress(userId, addressId);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
