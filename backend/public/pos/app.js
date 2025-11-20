@@ -488,6 +488,8 @@ async function updateStatus(orderId, newStatus) {
 // 팝업 표시
 function showOrderPopup(orderData) {
   console.log('🎯 showOrderPopup 호출됨:', orderData);
+  console.log('  - orderData.items 타입:', typeof orderData.items);
+  console.log('  - orderData.items 값:', orderData.items);
   
   const popup = document.getElementById('order-popup');
   const popupInfo = document.getElementById('popup-order-info');
@@ -497,27 +499,57 @@ function showOrderPopup(orderData) {
     return;
   }
   
+  if (!popupInfo) {
+    console.error('❌ popup-order-info 요소를 찾을 수 없습니다!');
+    return;
+  }
+  
   console.log('✅ 팝업 요소 찾음:', popup);
   
-  const itemsHTML = orderData.items.map(item => 
+  // items가 문자열이면 파싱
+  let items = orderData.items;
+  if (typeof items === 'string') {
+    try {
+      items = JSON.parse(items);
+      console.log('  - items 문자열 파싱 완료');
+    } catch (e) {
+      console.error('  - items 파싱 오류:', e);
+      items = [];
+    }
+  }
+  
+  if (!Array.isArray(items)) {
+    console.error('  - items가 배열이 아닙니다:', items);
+    items = [];
+  }
+  
+  const itemsHTML = items.map(item => 
     `<div class="popup-item">${item.name} x ${item.quantity} - ${(item.price * item.quantity).toLocaleString()}원</div>`
   ).join('');
   
   popupInfo.innerHTML = `
     <h3>👤 고객 정보</h3>
-    <p><strong>고객명:</strong> ${orderData.customerName}</p>
-    <p><strong>전화번호:</strong> ${orderData.phone}</p>
-    <p><strong>주소:</strong> ${orderData.address}</p>
+    <p><strong>고객명:</strong> ${orderData.customerName || '없음'}</p>
+    <p><strong>전화번호:</strong> ${orderData.phone || '없음'}</p>
+    <p><strong>주소:</strong> ${orderData.address || '없음'}</p>
     
     <h3 style="margin-top: 25px;">🍜 주문 메뉴</h3>
-    ${itemsHTML}
-    <div class="popup-total">합계: ${orderData.totalAmount.toLocaleString()}원</div>
+    ${itemsHTML || '<p>메뉴 정보 없음</p>'}
+    <div class="popup-total">합계: ${(orderData.totalAmount || 0).toLocaleString()}원</div>
   `;
   
   console.log('📝 팝업 내용 설정 완료');
   
+  // 팝업 표시
+  popup.style.display = 'flex';
   popup.classList.add('show');
-  console.log('✅ 팝업 표시됨! classList:', popup.classList);
+  console.log('✅ 팝업 표시됨! display:', popup.style.display, 'classList:', popup.classList);
+  
+  // 버튼 확인
+  const acceptBtn = popup.querySelector('.btn-accept');
+  const rejectBtn = popup.querySelector('.btn-reject');
+  console.log('  - 수락 버튼:', acceptBtn);
+  console.log('  - 거절 버튼:', rejectBtn);
   
   // 5초마다 음성 반복
   startNotificationLoop();
@@ -555,8 +587,13 @@ function stopNotificationLoop() {
 
 // 팝업 닫기
 function hideOrderPopup() {
+  console.log('🔒 hideOrderPopup 호출됨');
   const popup = document.getElementById('order-popup');
-  popup.classList.remove('show');
+  if (popup) {
+    popup.style.display = 'none';
+    popup.classList.remove('show');
+    console.log('✅ 팝업 숨김 완료');
+  }
   
   // 알림 반복 정지
   stopNotificationLoop();
@@ -564,74 +601,118 @@ function hideOrderPopup() {
 
 // 주문 수락
 function acceptOrder() {
-  if (!currentPendingOrder) return;
+  console.log('🔘 acceptOrder() 호출됨');
+  console.log('  - currentPendingOrder:', currentPendingOrder);
   
-  const prepTime = document.getElementById('prep-time').value;
+  if (!currentPendingOrder) {
+    console.error('❌ currentPendingOrder가 없습니다!');
+    alert('주문 정보를 찾을 수 없습니다. 페이지를 새로고침해주세요.');
+    return;
+  }
+  
+  const prepTimeElement = document.getElementById('prep-time');
+  if (!prepTimeElement) {
+    console.error('❌ prep-time 요소를 찾을 수 없습니다!');
+    alert('예상 소요시간 선택 요소를 찾을 수 없습니다.');
+    return;
+  }
+  
+  const prepTime = prepTimeElement.value;
   console.log(`✅ 주문 수락: ${currentPendingOrder.orderId}, 소요시간: ${prepTime}분`);
   
-  // 주문 상태 업데이트
-  currentPendingOrder.prepTime = prepTime;
-  currentPendingOrder.status = 'accepted';
-  
-  // 목록에 이미 있으면 업데이트, 없으면 추가
-  const existingIndex = orders.findIndex(o => o.orderId === currentPendingOrder.orderId);
-  if (existingIndex >= 0) {
-    orders[existingIndex] = currentPendingOrder;
-  } else {
-    orders.unshift(currentPendingOrder);
-  }
-  
-  // 화면 업데이트
-  renderOrders();
-  updateStats();
-  
-  // 서버에 수락 상태 업데이트
-  updateStatus(currentPendingOrder.orderId, 'accepted');
-  
-  hideOrderPopup();
-  
-  // 큐에서 제거
-  if (orderQueue.length > 0 && orderQueue[0].orderId === currentPendingOrder.orderId) {
-    orderQueue.shift();
-  }
-  
-  currentPendingOrder = null;
-  
-  // 다음 주문 처리
-  processNextOrder();
-}
-
-// 주문 거절
-function rejectOrder() {
-  if (!currentPendingOrder) return;
-  
-  if (confirm(`주문을 거절하시겠습니까?\n고객: ${currentPendingOrder.customerName}`)) {
-    console.log(`❌ 주문 거절: ${currentPendingOrder.orderId}`);
+  try {
+    // 주문 상태 업데이트
+    currentPendingOrder.prepTime = prepTime;
+    currentPendingOrder.status = 'accepted';
     
-    // 목록에서 제거
-    const index = orders.findIndex(o => o.orderId === currentPendingOrder.orderId);
-    if (index >= 0) {
-      orders.splice(index, 1);
+    // 목록에 이미 있으면 업데이트, 없으면 추가
+    const existingIndex = orders.findIndex(o => o.orderId === currentPendingOrder.orderId);
+    if (existingIndex >= 0) {
+      orders[existingIndex] = currentPendingOrder;
+      console.log('  - 기존 주문 업데이트됨');
+    } else {
+      orders.unshift(currentPendingOrder);
+      console.log('  - 새 주문 추가됨');
     }
     
     // 화면 업데이트
     renderOrders();
     updateStats();
     
-    // 서버에 거절 상태 업데이트
-    updateStatus(currentPendingOrder.orderId, 'rejected');
+    // 서버에 수락 상태 업데이트
+    updateStatus(currentPendingOrder.orderId, 'accepted');
     
     hideOrderPopup();
     
     // 큐에서 제거
     if (orderQueue.length > 0 && orderQueue[0].orderId === currentPendingOrder.orderId) {
       orderQueue.shift();
+      console.log('  - 큐에서 주문 제거됨');
     }
     
+    const acceptedOrderId = currentPendingOrder.orderId;
     currentPendingOrder = null;
+    
+    console.log(`✅ 주문 ${acceptedOrderId} 수락 완료!`);
     
     // 다음 주문 처리
     processNextOrder();
+  } catch (error) {
+    console.error('❌ 주문 수락 중 오류:', error);
+    alert('주문 수락 중 오류가 발생했습니다: ' + error.message);
+  }
+}
+
+// 주문 거절
+function rejectOrder() {
+  console.log('🔘 rejectOrder() 호출됨');
+  console.log('  - currentPendingOrder:', currentPendingOrder);
+  
+  if (!currentPendingOrder) {
+    console.error('❌ currentPendingOrder가 없습니다!');
+    alert('주문 정보를 찾을 수 없습니다.');
+    return;
+  }
+  
+  if (confirm(`주문을 거절하시겠습니까?\n고객: ${currentPendingOrder.customerName || '알 수 없음'}\n주문번호: ${currentPendingOrder.orderId}`)) {
+    console.log(`❌ 주문 거절: ${currentPendingOrder.orderId}`);
+    
+    try {
+      // 목록에서 제거
+      const index = orders.findIndex(o => o.orderId === currentPendingOrder.orderId);
+      if (index >= 0) {
+        orders.splice(index, 1);
+        console.log('  - 주문 목록에서 제거됨');
+      }
+      
+      // 화면 업데이트
+      renderOrders();
+      updateStats();
+      
+      // 서버에 거절 상태 업데이트
+      updateStatus(currentPendingOrder.orderId, 'rejected');
+      
+      hideOrderPopup();
+      
+      // 큐에서 제거
+      if (orderQueue.length > 0 && orderQueue[0].orderId === currentPendingOrder.orderId) {
+        orderQueue.shift();
+        console.log('  - 큐에서 주문 제거됨');
+      }
+      
+      const rejectedOrderId = currentPendingOrder.orderId;
+      currentPendingOrder = null;
+      
+      console.log(`✅ 주문 ${rejectedOrderId} 거절 완료!`);
+      
+      // 다음 주문 처리
+      processNextOrder();
+    } catch (error) {
+      console.error('❌ 주문 거절 중 오류:', error);
+      alert('주문 거절 중 오류가 발생했습니다: ' + error.message);
+    }
+  } else {
+    console.log('  - 거절 취소됨');
   }
 }
 

@@ -5,6 +5,9 @@ let guestPhone = null;
 let cart = [];
 let menuItems = [];
 let usedPoints = 0;
+let couponCode = null;
+let couponDiscount = 0;
+let couponName = null;
 let storeName = '시티반점'; // 가게명 (동적으로 로드됨)
 
 // Privacy Accordion Toggle
@@ -764,6 +767,11 @@ async function renderCart() {
     }
   }
   
+  // 쿠폰 사용 시 최소 주문 금액 23000원으로 변경
+  if (couponCode && couponDiscount > 0) {
+    minOrderAmount = 23000;
+  }
+  
   // 최소 주문 금액 경고 표시
   const minOrderWarning = document.getElementById('min-order-warning');
   const minOrderAmountDisplay = document.getElementById('min-order-amount');
@@ -773,6 +781,48 @@ async function renderCart() {
       minOrderAmountDisplay.textContent = minOrderAmount.toLocaleString();
     } else {
       minOrderWarning.style.display = 'none';
+    }
+  }
+  
+  // 쿠폰 할인 표시
+  const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
+  const totalPriceEl = document.getElementById('total-price');
+  if (totalPriceEl) {
+    totalPriceEl.textContent = finalAmount.toLocaleString() + '원';
+  }
+  
+  // 쿠폰 할인 행 추가/제거
+  const existingCouponRow = document.getElementById('coupon-discount-row');
+  if (couponDiscount > 0) {
+    // 기존 쿠폰 할인 행 제거
+    if (existingCouponRow) {
+      existingCouponRow.remove();
+    }
+    
+    // 쿠폰 할인 행 추가
+    const cartSummaryDiv = document.querySelector('.cart-summary');
+    if (cartSummaryDiv) {
+      const couponRow = document.createElement('div');
+      couponRow.id = 'coupon-discount-row';
+      couponRow.className = 'summary-row';
+      couponRow.style.color = '#27ae60';
+      couponRow.style.fontWeight = '600';
+      couponRow.innerHTML = `
+        <span>🎫 쿠폰 할인 (${couponName})</span>
+        <span>-${couponDiscount.toLocaleString()}원</span>
+      `;
+      // 배달료 행 앞에 삽입
+      const deliveryFeeRow = document.getElementById('delivery-fee-row');
+      if (deliveryFeeRow) {
+        cartSummaryDiv.insertBefore(couponRow, deliveryFeeRow);
+      } else {
+        cartSummaryDiv.appendChild(couponRow);
+      }
+    }
+  } else {
+    // 쿠폰 미사용 시 행 제거
+    if (existingCouponRow) {
+      existingCouponRow.remove();
     }
   }
 
@@ -890,6 +940,76 @@ function applyPoints() {
   renderCart();
 }
 
+// 쿠폰 적용
+async function applyCoupon() {
+  if (!currentUser || isGuest) {
+    alert('회원만 쿠폰을 사용할 수 있습니다.');
+    return;
+  }
+
+  const couponCodeInput = document.getElementById('coupon-code');
+  if (!couponCodeInput) {
+    console.error('❌ 쿠폰 입력 필드를 찾을 수 없습니다.');
+    return;
+  }
+
+  const code = couponCodeInput.value.trim().toUpperCase();
+  if (!code) {
+    alert('쿠폰 코드를 입력해주세요.');
+    return;
+  }
+
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  try {
+    const res = await fetch('/api/coupons/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: code,
+        userId: currentUser.userid,
+        totalAmount: itemsTotal
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      couponCode = code;
+      couponDiscount = data.coupon.discountAmount;
+      couponName = data.coupon.name;
+      
+      // 쿠폰 정보 표시
+      document.getElementById('coupon-name-display').textContent = couponName;
+      document.getElementById('coupon-discount-display').textContent = couponDiscount.toLocaleString();
+      document.getElementById('coupon-error').style.display = 'none';
+      
+      // 최소 주문 금액 안내 업데이트
+      if (data.coupon.minAmount) {
+        document.getElementById('coupon-info').textContent = `💡 최소 주문 금액: ${data.coupon.minAmount.toLocaleString()}원 이상`;
+      }
+      
+      renderCart();
+      alert(`쿠폰이 적용되었습니다! ${couponDiscount.toLocaleString()}원 할인`);
+    } else {
+      couponCode = null;
+      couponDiscount = 0;
+      couponName = null;
+      
+      document.getElementById('coupon-name-display').textContent = '쿠폰 미사용';
+      document.getElementById('coupon-discount-display').textContent = '0';
+      document.getElementById('coupon-error').textContent = data.error;
+      document.getElementById('coupon-error').style.display = 'block';
+      
+      renderCart();
+      alert(data.error);
+    }
+  } catch (err) {
+    console.error('쿠폰 적용 오류:', err);
+    alert('쿠폰 적용 중 오류가 발생했습니다: ' + err.message);
+  }
+}
+
 // Quantity controls
 function increaseQuantity(idx) {
   cart[idx].quantity++;
@@ -934,8 +1054,8 @@ async function renderCheckout() {
     console.error('배달료 계산 오류:', err);
   }
   
-  const finalAmount = itemsTotal - usedPoints + deliveryFee;
-  const earnPoints = Math.floor((itemsTotal - usedPoints) * 0.10);
+  const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
+  const earnPoints = Math.floor((itemsTotal - usedPoints - couponDiscount) * 0.10);
 
   checkoutItemsDiv.innerHTML = cart.map(item => `
     <div class="checkout-item">
@@ -951,17 +1071,32 @@ async function renderCheckout() {
     deliveryRow.innerHTML = `<span>배달료</span><span>${deliveryFee.toLocaleString()}원</span>`;
     checkoutItemsDiv.appendChild(deliveryRow);
   }
+  // 쿠폰 할인 표시
+  if (couponDiscount > 0) {
+    const couponRow = document.createElement('div');
+    couponRow.className = 'checkout-item';
+    couponRow.innerHTML = `<span>쿠폰 할인 (${couponName})</span><span style="color: #27ae60;">-${couponDiscount.toLocaleString()}원</span>`;
+    checkoutItemsDiv.appendChild(couponRow);
+  }
+  
   document.getElementById('checkout-total').textContent = finalAmount.toLocaleString() + '원';
 
   const checkoutPointsSection = document.getElementById('checkout-points-section');
   const checkoutEarnInfo = document.getElementById('checkout-earn-info');
+  const couponSection = document.getElementById('coupon-section');
   
   if (currentUser && !isGuest) {
+    // 포인트 섹션
     if (usedPoints > 0) {
       checkoutPointsSection.style.display = 'block';
       document.getElementById('checkout-used-points').textContent = '-' + usedPoints.toLocaleString() + 'P';
     } else {
       checkoutPointsSection.style.display = 'none';
+    }
+    
+    // 쿠폰 섹션 표시
+    if (couponSection) {
+      couponSection.style.display = 'block';
     }
     
     checkoutEarnInfo.style.display = 'block';
@@ -973,6 +1108,9 @@ async function renderCheckout() {
   } else {
     checkoutPointsSection.style.display = 'none';
     checkoutEarnInfo.style.display = 'none';
+    if (couponSection) {
+      couponSection.style.display = 'none';
+    }
     
     if (isGuest && guestPhone) {
       document.getElementById('checkout-phone').value = guestPhone;
@@ -1045,7 +1183,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
   const finalAmount = itemsTotal - usedPoints + deliveryFee;
 
   const orderData = {
-    userId: currentUser ? currentUser.userId : null,
+    userId: currentUser ? currentUser.userid : null,
     customerName,
     phone,
     address,
@@ -1057,7 +1195,9 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     paymentMethod,
     specialRequest,
     isGuest,
-    phoneVerified: isGuest
+    phoneVerified: isGuest,
+    couponCode: couponCode,
+    couponDiscount: couponDiscount
   };
 
   try {
@@ -1091,6 +1231,9 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
 
       cart = [];
       usedPoints = 0;
+      couponCode = null;
+      couponDiscount = 0;
+      couponName = null;
       updateCartCount();
 
       showScreen('complete-screen');

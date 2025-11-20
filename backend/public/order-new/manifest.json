@@ -1,0 +1,36 @@
+{
+  "name": "시티반점",
+  "short_name": "시티반점",
+  "description": "시티반점 주문 앱 - 직접 주문하고 10% 포인트 적립!",
+  "start_url": "/order-new",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#FFD700",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=192&h=192&fit=crop",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=512&h=512&fit=crop",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "shopping"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "주문하기",
+      "short_name": "주문",
+      "description": "메뉴 주문하기",
+      "url": "/order-new",
+      "icons": []
+    }
+  ]
+}
+

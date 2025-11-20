@@ -718,6 +718,68 @@ app.post('/api/coupons/issue', (req, res) => {
   }
 });
 
+// API: 쿠폰 조회 (코드로)
+app.post('/api/coupons/validate', (req, res) => {
+  try {
+    const { code, userId, totalAmount } = req.body;
+    
+    if (!code) {
+      return res.json({ success: false, error: '쿠폰 코드를 입력해주세요.' });
+    }
+    
+    const coupon = db.getCouponByCode(code.toUpperCase());
+    
+    if (!coupon) {
+      return res.json({ success: false, error: '유효하지 않은 쿠폰 코드입니다.' });
+    }
+    
+    // 유효기간 체크
+    const now = new Date();
+    if (new Date(coupon.validFrom) > now || new Date(coupon.validTo) < now) {
+      return res.json({ success: false, error: '쿠폰 유효기간이 만료되었습니다.' });
+    }
+    
+    // 활성화 상태 체크
+    if (!coupon.isActive) {
+      return res.json({ success: false, error: '사용할 수 없는 쿠폰입니다.' });
+    }
+    
+    // 최소 주문 금액 체크
+    if (totalAmount && coupon.minAmount && totalAmount < coupon.minAmount) {
+      return res.json({ 
+        success: false, 
+        error: `이 쿠폰은 최소 주문 금액 ${coupon.minAmount.toLocaleString()}원 이상일 때 사용 가능합니다.` 
+      });
+    }
+    
+    // 할인 금액 계산
+    let discountAmount = 0;
+    if (coupon.discountType === 'fixed') {
+      discountAmount = coupon.discountValue;
+    } else if (coupon.discountType === 'percent') {
+      discountAmount = Math.floor(totalAmount * (coupon.discountValue / 100));
+      if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
+        discountAmount = coupon.maxDiscount;
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      coupon: {
+        id: coupon.id,
+        code: coupon.code,
+        name: coupon.name,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        minAmount: coupon.minAmount,
+        discountAmount: discountAmount
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 통합 매출 통계
 app.get('/api/sales/total', (req, res) => {
   try {
@@ -992,14 +1054,32 @@ app.post('/api/orders', async (req, res) => {
       userId, customerName, phone, address, items,
       totalAmount, deliveryFee = 0, finalAmount: clientFinalAmount, usedPoints = 0, 
       specialRequest = '', paymentMethod = 'cash',
-      isGuest = false, phoneVerified = false
+      isGuest = false, phoneVerified = false,
+      couponCode = null, couponDiscount = 0
     } = req.body;
 
-    // 최소 주문 금액 체크
+    // 쿠폰 사용 시 최소 주문 금액 체크 (23000원)
     const storeInfo = db.getStoreInfo();
-    const minOrderAmount = storeInfo.minOrderAmount || 15000;
+    let minOrderAmount = storeInfo.minOrderAmount || 15000;
+    
+    if (couponCode && couponDiscount > 0) {
+      // 쿠폰 사용 시 최소 주문 금액 23000원
+      minOrderAmount = 23000;
+    }
+    
     if (totalAmount < minOrderAmount) {
       return res.json({ success: false, error: `최소 주문 금액은 ${minOrderAmount.toLocaleString()}원입니다.` });
+    }
+    
+    // 쿠폰 검증 및 사용 처리
+    let couponId = null;
+    if (couponCode && userId) {
+      const coupon = db.getCouponByCode(couponCode.toUpperCase());
+      if (coupon) {
+        // 쿠폰 사용 처리
+        db.useCoupon(coupon.id, userId, null); // orderId는 나중에 업데이트
+        couponId = coupon.id;
+      }
     }
 
     const orderId = 'ORD-' + Date.now();
@@ -1011,10 +1091,18 @@ app.post('/api/orders', async (req, res) => {
       }
     }
 
-    // 최종 금액 계산 (배달료 포함)
-    const calculatedFinalAmount = totalAmount - usedPoints + deliveryFee;
-    const finalAmount = clientFinalAmount || calculatedFinalAmount;
-    const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - usedPoints) * 0.10) : 0;
+    // 최종 금액 계산 (배달료 포함, 쿠폰 할인 적용)
+    const calculatedFinalAmount = totalAmount - usedPoints - couponDiscount + deliveryFee;
+    const finalAmount = Math.max(0, clientFinalAmount || calculatedFinalAmount);
+    const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - usedPoints - couponDiscount) * 0.10) : 0;
+    
+    // 쿠폰 사용 내역 업데이트 (orderId 추가)
+    if (couponId && userId) {
+      const usage = db.couponUsage.find(u => u.couponId === couponId && u.userId == userId && !u.orderId);
+      if (usage) {
+        usage.orderId = orderId;
+      }
+    }
 
     await db.createOrder({
       orderid: orderId,

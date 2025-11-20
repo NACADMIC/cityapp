@@ -320,6 +320,24 @@ class DB {
       createdat: new Date()
     });
     
+    // 🎁 신규 회원 가입 쿠폰 자동 발급 (10000원 쿠폰)
+    const welcomeCoupon = this.createCoupon({
+      code: `WELCOME${user.userid}`,
+      name: '신규 회원 가입 쿠폰',
+      discountType: 'fixed',
+      discountValue: 10000,
+      minAmount: 23000, // 최소 주문 금액 23000원
+      maxDiscount: null,
+      validFrom: new Date(),
+      validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90일 유효
+      isActive: true
+    });
+    
+    // 쿠폰 발급 기록
+    this.issueCouponToUser(welcomeCoupon.id, user.userid);
+    
+    console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code}`);
+    
     return user;
   }
 

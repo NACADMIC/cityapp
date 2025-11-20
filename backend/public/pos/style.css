@@ -962,10 +962,18 @@ input:checked + .slider:before {
   justify-content: center;
   align-items: center;
   animation: fadeIn 0.3s;
+  pointer-events: auto;
 }
 
 .popup-overlay.show {
-  display: flex;
+  display: flex !important;
+  pointer-events: auto;
+}
+
+.popup-content {
+  pointer-events: auto;
+  position: relative;
+  z-index: 10001;
 }
 
 .popup-content {
@@ -1080,6 +1088,10 @@ input:checked + .slider:before {
 .popup-actions .btn-accept {
   background: linear-gradient(135deg, #27ae60, #229954);
   color: white;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 10001;
+  position: relative;
 }
 
 .popup-actions .btn-accept:hover {
@@ -1088,9 +1100,27 @@ input:checked + .slider:before {
   box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
 }
 
+.popup-actions .btn-accept:active {
+  transform: translateY(0);
+}
+
 .popup-actions .btn-reject {
   background: linear-gradient(135deg, #e74c3c, #c0392b);
   color: white;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 10001;
+  position: relative;
+}
+
+.popup-actions .btn-reject:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(231, 76, 60, 0.4);
+}
+
+.popup-actions .btn-reject:active {
+  transform: translateY(0);
 }
 
 .popup-actions .btn-reject:hover {
