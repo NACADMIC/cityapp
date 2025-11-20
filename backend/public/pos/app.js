@@ -151,15 +151,7 @@ function openSiteEditor() {
   }
 }
 
-// 페이지 로드 시 가게 정보, 볼륨, 바쁨 상태 로드
-loadStoreInfo();
-loadVolume();
-loadBusyStatus();
-
-// Initialize Socket.io
-const socket = io();
-
-// Global variables
+// Global variables (함수 호출 전에 선언해야 함)
 let orders = [];
 let voiceEnabled = true;
 let isPlayingVoice = false;
@@ -167,6 +159,14 @@ let processedOrders = new Set();
 let currentPendingOrder = null;
 let notificationInterval = null;
 let orderVolume = 50; // 주문 소리 크기 (0-100)
+
+// 페이지 로드 시 가게 정보, 볼륨, 바쁨 상태 로드
+loadStoreInfo();
+loadVolume();
+loadBusyStatus();
+
+// Initialize Socket.io
+const socket = io();
 
 // Register as POS client
 socket.on('connect', () => {
