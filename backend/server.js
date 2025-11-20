@@ -1671,10 +1671,28 @@ app.post('/api/orders/:orderId/status', async (req, res) => {
         // 프린터 서버 URL이 있으면 원격 호출, 없으면 로컬 프린터 사용
         const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
         if (PRINTER_SERVER_URL) {
-          axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint)
-            .then(() => console.log('✅ 원격 프린터 출력 완료:', orderId))
-            .catch(err => console.error('❌ 원격 프린터 출력 실패:', err.message));
+          console.log('🖨️ 원격 프린터 서버 호출:', PRINTER_SERVER_URL);
+          axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint, {
+            timeout: 5000,
+            headers: { 'Content-Type': 'application/json' }
+          })
+            .then((response) => {
+              console.log('✅ 원격 프린터 출력 완료:', orderId);
+              console.log('프린터 서버 응답:', response.data);
+            })
+            .catch(err => {
+              console.error('❌ 원격 프린터 출력 실패:', orderId);
+              console.error('에러 상세:', err.message);
+              if (err.response) {
+                console.error('응답 상태:', err.response.status);
+                console.error('응답 데이터:', err.response.data);
+              }
+              if (err.code === 'ECONNREFUSED') {
+                console.error('⚠️ 프린터 서버에 연결할 수 없습니다. 프린터 서버가 실행 중인지 확인하세요.');
+              }
+            });
         } else {
+          console.log('🖨️ 로컬 프린터 사용');
           const printResult = printer.printOrder(orderForPrint);
           console.log('🖨️ 주문 수락 - 프린터 출력 결과:', printResult, '주문번호:', orderId);
         }
