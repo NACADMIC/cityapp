@@ -1,13 +1,26 @@
 // 프린터 모듈
-// 프린터 라이브러리는 선택적 로드 (설치되지 않아도 서버는 동작)
+// Windows 기본 프린터로 직접 출력
+const fs = require('fs');
+const path = require('path');
+const { exec } = require('child_process');
+const os = require('os');
+
+// Windows 프린터 라이브러리 (선택적)
+let nodePrinter = null;
+try {
+  nodePrinter = require('printer');
+  console.log('✅ printer 패키지 로드 성공');
+} catch (error) {
+  console.log('⚠️ printer 패키지가 설치되지 않았습니다. Windows 기본 명령어를 사용합니다.');
+  console.log('설치: npm install printer');
+}
+
+// ESC/POS 프린터 (선택적, 기존 호환성 유지)
 let escpos, escposUSB;
 try {
   escpos = require('escpos');
   escposUSB = require('escpos-usb');
 } catch (error) {
-  console.log('⚠️ 프린터 라이브러리가 설치되지 않았습니다. 프린터 기능을 사용할 수 없습니다.');
-  console.log('설치: npm install escpos escpos-usb');
-  // 프린터 기능 비활성화
   escpos = null;
   escposUSB = null;
 }
@@ -16,33 +29,47 @@ try {
 const PRINTER_VENDOR_ID = process.env.PRINTER_VENDOR_ID || null;
 const PRINTER_PRODUCT_ID = process.env.PRINTER_PRODUCT_ID || null;
 
-let printer = null;
+let escposPrinter = null;
 
 // 프린터 초기화
 function initPrinter() {
-  // 프린터 라이브러리가 없으면 초기화하지 않음
+  // Windows 기본 프린터는 초기화 불필요 (항상 사용 가능)
+  if (os.platform() === 'win32') {
+    console.log('✅ Windows 기본 프린터 사용 준비 완료');
+    
+    // ESC/POS 프린터도 시도 (선택적)
+    if (escpos && escposUSB) {
+      try {
+        if (PRINTER_VENDOR_ID && PRINTER_PRODUCT_ID) {
+          const device = escposUSB.findPrinter(PRINTER_VENDOR_ID, PRINTER_PRODUCT_ID);
+          if (device) {
+            escposPrinter = new escpos.Printer(device);
+            console.log('✅ ESC/POS 프린터도 연결됨');
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ ESC/POS 프린터 연결 실패, Windows 기본 프린터 사용');
+      }
+    }
+    
+    return true;
+  }
+  
+  // Windows가 아닌 경우 기존 방식 사용
   if (!escpos || !escposUSB) {
     console.log('⚠️ 프린터 라이브러리가 없어 프린터 기능을 사용할 수 없습니다.');
     return false;
   }
   
   try {
-    // USB 프린터 연결 시도
     if (PRINTER_VENDOR_ID && PRINTER_PRODUCT_ID) {
       const device = escposUSB.findPrinter(PRINTER_VENDOR_ID, PRINTER_PRODUCT_ID);
       if (device) {
-        printer = new escpos.Printer(device);
+        escposPrinter = new escpos.Printer(device);
         console.log('✅ 프린터 연결 성공');
         return true;
       }
     }
-    
-    // 네트워크 프린터 (IP 주소)
-    const PRINTER_IP = process.env.PRINTER_IP || '192.168.0.100';
-    const PRINTER_PORT = process.env.PRINTER_PORT || 9100;
-    
-    // 네트워크 프린터는 escpos-network 사용 필요
-    // 일단 USB만 지원
     
     console.log('⚠️ 프린터를 찾을 수 없습니다. 환경 변수를 확인하세요.');
     return false;
@@ -54,9 +81,177 @@ function initPrinter() {
 
 // 주문서 출력
 function printOrder(order) {
-  if (!printer) {
+  try {
+    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    const orderDate = new Date(order.createdAt || new Date()).toLocaleString('ko-KR');
+    
+    // 주문서 텍스트 생성
+    let printText = '';
+    printText += '━━━━━━━━━━━━━━━━━━━━\n';
+    printText += '   시티반점 주문서\n';
+    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    printText += `주문번호: ${order.orderId}\n`;
+    printText += `주문시간: ${orderDate}\n`;
+    printText += `주문타입: ${order.orderType === 'takeout' ? '포장' : '배달'}\n\n`;
+    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    printText += `고객명: ${order.customerName}\n`;
+    printText += `전화번호: ${order.phone}\n`;
+    
+    if (order.orderType !== 'takeout' && order.address) {
+      printText += `주소: ${order.address}\n`;
+    }
+    
+    printText += '\n━━━━━━━━━━━━━━━━━━━━\n';
+    printText += '주문 내역\n';
+    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    
+    items.forEach(item => {
+      const itemName = item.name || item.menuName || '메뉴';
+      const quantity = item.quantity || 1;
+      const price = (item.price || 0) * quantity;
+      printText += `${itemName} x${quantity}\n`;
+      printText += `  ${price.toLocaleString()}원\n\n`;
+    });
+    
+    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    printText += `주문금액: ${(order.totalAmount || 0).toLocaleString()}원\n`;
+    
+    if (order.usedPoints > 0) {
+      printText += `포인트 사용: -${order.usedPoints.toLocaleString()}원\n`;
+    }
+    
+    if (order.couponDiscount > 0) {
+      printText += `쿠폰 할인: -${order.couponDiscount.toLocaleString()}원\n`;
+    }
+    
+    if (order.deliveryFee > 0) {
+      printText += `배달료: +${order.deliveryFee.toLocaleString()}원\n`;
+    }
+    
+    printText += '\n━━━━━━━━━━━━━━━━━━━━\n\n';
+    printText += '최종 결제금액\n';
+    printText += `${(order.finalAmount || order.totalAmount || 0).toLocaleString()}원\n\n`;
+    printText += `결제방법: ${order.paymentMethod || '현금'}\n\n`;
+    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    printText += '감사합니다!\n\n\n';
+    
+    // Windows 기본 프린터로 출력 (비동기, fire and forget)
+    if (os.platform() === 'win32') {
+      printToWindowsPrinter(printText, order.orderId).catch(err => {
+        console.error('❌ Windows 프린터 출력 실패:', err.message);
+      });
+      return true; // 비동기로 처리되므로 즉시 true 반환
+    }
+    
+    // ESC/POS 프린터 사용 (기존 방식)
+    if (escposPrinter) {
+      return printToEscpos(printText, order);
+    }
+    
     console.log('⚠️ 프린터가 연결되지 않았습니다. 주문 정보만 출력합니다.');
     console.log('📄 주문서:', JSON.stringify(order, null, 2));
+    return false;
+    
+  } catch (error) {
+    console.error('❌ 프린터 출력 오류:', error.message);
+    return false;
+  }
+}
+
+// Windows 기본 프린터로 출력
+function printToWindowsPrinter(text, orderId) {
+  return new Promise((resolve) => {
+    try {
+      // 임시 파일 생성
+      const tempDir = os.tmpdir();
+      const tempFile = path.join(tempDir, `order_${orderId}_${Date.now()}.txt`);
+      
+      // 텍스트 파일로 저장
+      fs.writeFileSync(tempFile, text, 'utf8');
+      
+      // Windows 기본 프린터로 출력 (print 명령어 사용)
+      // print 명령어는 기본 프린터로 자동 출력
+      const printCommand = `print /D:"%PRINTER%" "${tempFile}"`;
+      
+      // 또는 PowerShell 사용 (더 안정적)
+      const powershellCommand = `powershell -Command "Get-Content '${tempFile}' | Out-Printer"`;
+      
+      exec(powershellCommand, (error, stdout, stderr) => {
+        // 파일 삭제 (비동기)
+        setTimeout(() => {
+          try {
+            if (fs.existsSync(tempFile)) {
+              fs.unlinkSync(tempFile);
+            }
+          } catch (e) {
+            // 파일 삭제 실패는 무시
+          }
+        }, 5000);
+        
+        if (error) {
+          // PowerShell 실패 시 printer 패키지 시도
+          tryPrintWithPrinterPackage(text, orderId, resolve);
+          return;
+        }
+        
+        console.log('✅ 주문서 출력 완료 (Windows 기본 프린터):', orderId);
+        resolve(true);
+      });
+    } catch (error) {
+      console.error('❌ Windows 프린터 출력 오류:', error.message);
+      tryPrintWithPrinterPackage(text, orderId, resolve);
+    }
+  });
+}
+
+// printer 패키지로 출력 시도 (fallback)
+function tryPrintWithPrinterPackage(text, orderId, resolve) {
+  if (!nodePrinter) {
+    console.log('⚠️ Windows 기본 프린터 출력 실패. printer 패키지를 설치하세요: npm install printer');
+    resolve(false);
+    return;
+  }
+  
+  try {
+    const printers = nodePrinter.getPrinters();
+    if (printers.length === 0) {
+      console.log('⚠️ 사용 가능한 프린터가 없습니다.');
+      resolve(false);
+      return;
+    }
+    
+    // 기본 프린터 찾기
+    const defaultPrinter = printers.find(p => p.isDefault) || printers[0];
+    
+    if (!defaultPrinter) {
+      console.log('⚠️ 기본 프린터를 찾을 수 없습니다.');
+      resolve(false);
+      return;
+    }
+    
+    // 프린터로 출력
+    nodePrinter.printDirect({
+      data: text,
+      printer: defaultPrinter.name,
+      type: 'TEXT',
+      success: () => {
+        console.log('✅ 주문서 출력 완료 (printer 패키지):', orderId);
+        resolve(true);
+      },
+      error: (err) => {
+        console.error('❌ 프린터 출력 오류:', err);
+        resolve(false);
+      }
+    });
+  } catch (error) {
+    console.error('❌ printer 패키지 오류:', error.message);
+    resolve(false);
+  }
+}
+
+// ESC/POS 프린터로 출력 (기존 방식)
+function printToEscpos(text, order) {
+  if (!escposPrinter) {
     return false;
   }
   
@@ -64,7 +259,7 @@ function printOrder(order) {
     const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
     const orderDate = new Date(order.createdAt || new Date()).toLocaleString('ko-KR');
     
-    printer
+    escposPrinter
       .font('a')
       .align('ct')
       .size(1, 1)
@@ -83,10 +278,10 @@ function printOrder(order) {
       .text(`전화번호: ${order.phone}`);
     
     if (order.orderType !== 'takeout' && order.address) {
-      printer.text(`주소: ${order.address}`);
+      escposPrinter.text(`주소: ${order.address}`);
     }
     
-    printer
+    escposPrinter
       .feed(1)
       .text('━━━━━━━━━━━━━━━━━━━━')
       .feed(1)
@@ -98,13 +293,13 @@ function printOrder(order) {
       const itemName = item.name || item.menuName || '메뉴';
       const quantity = item.quantity || 1;
       const price = (item.price || 0) * quantity;
-      printer
+      escposPrinter
         .text(`${itemName} x${quantity}`)
         .text(`  ${price.toLocaleString()}원`)
         .feed(1);
     });
     
-    printer
+    escposPrinter
       .feed(1)
       .text('━━━━━━━━━━━━━━━━━━━━')
       .feed(1)
@@ -112,18 +307,18 @@ function printOrder(order) {
       .text(`주문금액: ${(order.totalAmount || 0).toLocaleString()}원`);
     
     if (order.usedPoints > 0) {
-      printer.text(`포인트 사용: -${order.usedPoints.toLocaleString()}원`);
+      escposPrinter.text(`포인트 사용: -${order.usedPoints.toLocaleString()}원`);
     }
     
     if (order.couponDiscount > 0) {
-      printer.text(`쿠폰 할인: -${order.couponDiscount.toLocaleString()}원`);
+      escposPrinter.text(`쿠폰 할인: -${order.couponDiscount.toLocaleString()}원`);
     }
     
     if (order.deliveryFee > 0) {
-      printer.text(`배달료: +${order.deliveryFee.toLocaleString()}원`);
+      escposPrinter.text(`배달료: +${order.deliveryFee.toLocaleString()}원`);
     }
     
-    printer
+    escposPrinter
       .feed(1)
       .text('━━━━━━━━━━━━━━━━━━━━')
       .feed(1)
@@ -141,11 +336,10 @@ function printOrder(order) {
       .cut()
       .close();
     
-    console.log('✅ 주문서 출력 완료:', order.orderId);
+    console.log('✅ 주문서 출력 완료 (ESC/POS):', order.orderId);
     return true;
   } catch (error) {
-    console.error('❌ 프린터 출력 오류:', error.message);
-    // 프린터 오류 시에도 주문은 정상 처리
+    console.error('❌ ESC/POS 프린터 출력 오류:', error.message);
     return false;
   }
 }
