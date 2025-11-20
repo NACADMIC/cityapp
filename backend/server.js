@@ -751,13 +751,27 @@ app.post('/api/orders', async (req, res) => {
 app.post('/api/orders/:orderId/status', (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    let { status } = req.body;
+    
+    const order = db.getOrderById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, error: '주문을 찾을 수 없습니다.' });
+    }
+    
+    // 현금 주문이고 배달 완료 상태로 변경 시 자동으로 완료 상태로 변경
+    const paymentMethod = order.paymentMethod || order.paymentmethod || 'cash';
+    const isCashOrder = paymentMethod === 'cash' || paymentMethod === '만나서현금' || paymentMethod === '만나서카드';
+    
+    if (status === 'delivering' && isCashOrder) {
+      // 현금 주문은 배달 완료 시 자동으로 완료 상태로 변경
+      status = 'completed';
+      console.log('💰 현금 주문 - 배달 완료 시 자동 완료 처리:', orderId);
+    }
     
     db.updateOrderStatus(orderId, status);
     
     // 주문 수락 시 프린터에서 자동 인쇄
     if (status === 'accepted') {
-      const order = db.getOrderById(orderId);
       if (order) {
         // 프린터 출력용 주문 데이터 준비
         const orderForPrint = {
@@ -771,7 +785,7 @@ app.post('/api/orders/:orderId/status', (req, res) => {
           couponDiscount: order.couponDiscount || order.coupondiscount || 0,
           deliveryFee: order.deliveryFee || order.deliveryfee || 0,
           finalAmount: order.finalAmount || order.finalamount || (order.totalAmount || order.totalprice),
-          paymentMethod: order.paymentMethod || order.paymentmethod || 'cash',
+          paymentMethod: paymentMethod,
           orderType: order.orderType || order.ordertype || 'delivery',
           createdAt: order.createdAt || order.createdat
         };
@@ -784,21 +798,24 @@ app.post('/api/orders/:orderId/status', (req, res) => {
     
     // 배달 완료 시 포인트 적립
     if (status === 'completed') {
-      const order = db.getOrderById(orderId);
-      if (order && order.userId && order.earnedPoints > 0) {
-        db.addPoints(order.userId, order.earnedPoints);
-        db.addPointHistory(order.userId, orderId, order.earnedPoints, 'earn');
+      if (order && order.userId) {
+        const earnedPoints = order.earnedPoints || order.earnedpoints || 0;
+        if (earnedPoints > 0) {
+          db.addPoints(order.userId, earnedPoints);
+          db.addPointHistory(order.userId, orderId, earnedPoints, 'earn');
+          console.log('💰 포인트 적립:', order.userId, earnedPoints);
+        }
       }
     }
     
     // 주문 취소 시 포인트/쿠폰 복구
     if (status === 'cancelled') {
-      const order = db.getOrderById(orderId);
       if (order && order.userId) {
         // 사용한 포인트 복구
-        if (order.usedPoints > 0) {
-          db.addPoints(order.userId, order.usedPoints);
-          db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+        const usedPoints = order.usedPoints || order.usedpoints || 0;
+        if (usedPoints > 0) {
+          db.addPoints(order.userId, usedPoints);
+          db.addPointHistory(order.userId, orderId, usedPoints, 'refund');
         }
         // 쿠폰 복구는 별도 처리 필요
       }
@@ -806,9 +823,10 @@ app.post('/api/orders/:orderId/status', (req, res) => {
     
     io.emit('order-status-changed', { orderId, status });
     
-    console.log('📝 주문 상태 변경:', orderId, '→', status);
-    res.json({ success: true });
+    console.log('📝 주문 상태 변경:', orderId, '→', status, `(결제: ${paymentMethod})`);
+    res.json({ success: true, status });
   } catch (error) {
+    console.error('❌ 주문 상태 변경 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
