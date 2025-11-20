@@ -4,7 +4,9 @@
   "description": "시티반점 주문 시스템",
   "main": "backend/server-simple.js",
   "scripts": {
-    "start": "cd backend && npm install && node server-simple.js"
+    "start": "cd backend && npm install && node server.js",
+    "backup": "node backend/scripts/backup-db.js",
+    "dev": "cd backend && nodemon server.js"
   },
   "engines": {
     "node": ">=18.x"

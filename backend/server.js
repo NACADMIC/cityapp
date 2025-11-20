@@ -6,9 +6,27 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-// 🔒 SQLite + 비밀번호 암호화 DB
-const DB = require('./database');
-const db = new DB();
+// 🔒 데이터베이스 선택: PostgreSQL (Railway) 또는 SQLite (로컬)
+// DATABASE_URL이 있으면 PostgreSQL, 없으면 SQLite 사용
+let DB, db;
+
+if (process.env.DATABASE_URL) {
+  // Railway PostgreSQL 사용
+  console.log('✅ PostgreSQL 데이터베이스 사용 (Railway)');
+  DB = require('./database-pg-complete');
+  db = new DB();
+} else {
+  // 로컬 SQLite 사용
+  console.log('✅ SQLite 데이터베이스 사용 (로컬)');
+  DB = require('./database');
+  db = new DB();
+}
+
+// 프린터 모듈
+const printer = require('./printer');
+
+// PG 결제 모듈
+const payment = require('./payment');
 
 const app = express();
 const server = http.createServer(app);
@@ -23,7 +41,21 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 클라이언트 설정 파일 제공
+app.get('/config.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(`
+    window.APP_CONFIG = {
+      IMP_KEY: '${process.env.IMP_KEY || ''}',
+      API_URL: '${req.protocol}://${req.get('host')}'
+    };
+  `);
+});
+
 const PORT = process.env.PORT || 3000;
+
+// 프린터 초기화
+printer.initPrinter();
 
 // 영업시간 설정 (기본값)
 let businessHours = {
@@ -500,6 +532,24 @@ app.post('/api/orders', async (req, res) => {
       db.useCoupon(couponId, userId, orderId);
     }
     
+    // 주문서 프린터 출력
+    const orderForPrint = {
+      orderId,
+      customerName,
+      phone,
+      address: orderType === 'takeout' ? '포장 주문' : address,
+      items,
+      totalAmount: finalAmount,
+      usedPoints: usedPoints || 0,
+      couponDiscount: couponDiscount || 0,
+      deliveryFee: finalDeliveryFee,
+      finalAmount: finalAmount,
+      paymentMethod,
+      orderType: orderType || 'delivery',
+      createdAt: orderData.createdAt
+    };
+    printer.printOrder(orderForPrint);
+    
     // POS에 주문 전송
     io.emit('new-order', {
       orderId,
@@ -565,7 +615,7 @@ app.post('/api/orders/:orderId/status', (req, res) => {
 });
 
 // API: 주문 취소 요청
-app.post('/api/orders/:orderId/cancel', (req, res) => {
+app.post('/api/orders/:orderId/cancel', async (req, res) => {
   try {
     const { orderId } = req.params;
     const { reason } = req.body;
@@ -578,6 +628,15 @@ app.post('/api/orders/:orderId/cancel', (req, res) => {
     // 이미 완료되거나 취소된 주문은 취소 불가
     if (order.status === 'completed' || order.status === 'cancelled') {
       return res.json({ success: false, error: '이미 완료되거나 취소된 주문입니다.' });
+    }
+    
+    // 결제 취소 (카드 결제인 경우)
+    if (order.paymentMethod && order.paymentMethod !== 'cash' && order.impUid) {
+      const cancelResult = await payment.cancelPayment(order.impUid, reason || '주문 취소');
+      if (!cancelResult.success) {
+        console.error('결제 취소 실패:', cancelResult.error);
+        // 결제 취소 실패해도 주문 취소는 진행
+      }
     }
     
     // 주문 취소 처리
@@ -593,6 +652,38 @@ app.post('/api/orders/:orderId/cancel', (req, res) => {
     
     console.log('❌ 주문 취소:', orderId, reason || '');
     res.json({ success: true, message: '주문이 취소되었습니다.' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 결제 검증
+app.post('/api/payment/verify', async (req, res) => {
+  try {
+    const { impUid, merchantUid } = req.body;
+    
+    const result = await payment.verifyPayment(impUid, merchantUid);
+    
+    if (result.success) {
+      // 주문 정보 업데이트 (impUid 저장)
+      const order = db.getOrderById(merchantUid);
+      if (order) {
+        // impUid를 주문에 저장 (필요시 orders 테이블에 impUid 컬럼 추가)
+        console.log('✅ 결제 검증 완료:', impUid, merchantUid);
+      }
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 프린터 테스트
+app.post('/api/printer/test', (req, res) => {
+  try {
+    const result = printer.printTest();
+    res.json({ success: result, message: result ? '프린터 테스트 완료' : '프린터 연결 실패' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

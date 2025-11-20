@@ -1423,30 +1423,74 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
 
   const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
 
-  const orderData = {
-    userId: currentUser ? currentUser.userid : null,
-    customerName,
-    phone,
-    address,
-    orderType, // 'delivery' or 'takeout'
-    items: cart,
-    totalAmount: itemsTotal,
-    deliveryFee,
-    finalAmount,
-    usedPoints,
-    paymentMethod,
-    specialRequest,
-    isGuest,
-    phoneVerified: isGuest,
-    couponCode: couponCode,
-    couponDiscount: couponDiscount
+  // 카드 결제인 경우 PG 결제 진행
+  if (paymentMethod === 'card' && typeof IMP !== 'undefined') {
+    // IMP_KEY는 서버에서 전달받음
+    const IMP_KEY = window.APP_CONFIG?.IMP_KEY || 'imp12345678';
+    
+    if (!IMP_KEY || IMP_KEY === 'imp12345678') {
+      alert('결제 시스템이 설정되지 않았습니다. 관리자에게 문의하세요.');
+      return;
+    }
+    const merchantUid = 'ORD-' + Date.now();
+    
+    IMP.init(IMP_KEY);
+    
+    IMP.request_pay({
+      pg: 'inicis', // 이니시스
+      pay_method: 'card',
+      merchant_uid: merchantUid,
+      name: `시티반점 주문 (${cart.length}개 메뉴)`,
+      amount: finalAmount,
+      buyer_name: customerName,
+      buyer_tel: phone,
+      buyer_addr: address,
+      m_redirect_url: window.location.origin + '/order-new/complete'
+    }, async (rsp) => {
+      if (rsp.success) {
+        // 결제 검증
+        const verifyRes = await fetch('/api/payment/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            impUid: rsp.imp_uid,
+            merchantUid: merchantUid
+          })
+        });
+        
+        const verifyData = await verifyRes.json();
+        
+        if (verifyData.success) {
+          // 주문 생성
+          await createOrder(orderData, merchantUid, rsp.imp_uid);
+        } else {
+          alert('결제 검증 실패: ' + verifyData.error);
+        }
+      } else {
+        alert('결제 실패: ' + rsp.error_msg);
+      }
+    });
+    
+    return; // PG 결제 진행 중이므로 여기서 종료
+  }
+
+  // 현금 결제 또는 PG 미설정 시 바로 주문 생성
+  await createOrder(orderData, null, null);
+});
+
+// 주문 생성 함수 (외부에서 호출 가능)
+async function createOrder(orderData, merchantUid, impUid) {
+  const orderPayload = {
+    ...orderData,
+    orderId: merchantUid || ('ORD-' + Date.now()),
+    impUid: impUid || null
   };
 
   try {
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(orderData)
+      body: JSON.stringify(orderPayload)
     });
 
     const data = await res.json();
@@ -1456,8 +1500,8 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
       
       // 주문번호를 sessionStorage에 저장 (비회원 주문조회용)
       sessionStorage.setItem('lastOrderId', data.orderId);
-      if (phone) {
-        sessionStorage.setItem('lastOrderPhone', phone);
+      if (orderData.phone) {
+        sessionStorage.setItem('lastOrderPhone', orderData.phone);
       }
       
       if (data.earnedPoints && data.earnedPoints > 0) {
@@ -1491,7 +1535,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
   } catch (err) {
     alert('주문 오류: ' + err.message);
   }
-});
+}
 
 // Find ID
 document.getElementById('find-id-form').addEventListener('submit', async (e) => {
