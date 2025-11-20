@@ -672,7 +672,9 @@ app.post('/api/orders', async (req, res) => {
     const finalAmount = totalAmount - (usedPoints || 0) - (couponDiscount || 0) + finalDeliveryFee;
     const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - (usedPoints || 0) - (couponDiscount || 0)) * 0.10) : 0;
     
-    const orderId = 'ORD-' + Date.now();
+    // 주문번호를 1번부터 순차적으로 생성
+    const orderNumber = db.getNextOrderNumber();
+    const orderId = orderNumber.toString();
     const orderData = {
       orderId,
       userId: userId || null,

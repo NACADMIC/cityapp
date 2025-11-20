@@ -369,6 +369,18 @@ class DB {
     return this.db.prepare('SELECT * FROM orders WHERE orderId = ?').get(orderId);
   }
 
+  // 다음 주문번호 가져오기 (1번부터 시작)
+  getNextOrderNumber() {
+    const lastOrder = this.db.prepare('SELECT orderId FROM orders WHERE CAST(orderId AS INTEGER) = CAST(orderId AS INTEGER) ORDER BY CAST(orderId AS INTEGER) DESC LIMIT 1').get();
+    
+    if (lastOrder && !isNaN(parseInt(lastOrder.orderId))) {
+      return parseInt(lastOrder.orderId) + 1;
+    }
+    
+    // 숫자로 된 주문번호가 없으면 1번부터 시작
+    return 1;
+  }
+
   updateOrderStatus(orderId, status) {
     return this.db.prepare('UPDATE orders SET status = ? WHERE orderId = ?').run(status, orderId);
   }

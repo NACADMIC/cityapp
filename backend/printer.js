@@ -82,69 +82,86 @@ function initPrinter() {
 // 주문서 출력
 function printOrder(order) {
   try {
+    console.log('🖨️ 프린터 출력 요청:', order.orderId);
+    console.log('📋 주문 데이터:', JSON.stringify(order, null, 2));
+    
     const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
     const orderDate = new Date(order.createdAt || new Date()).toLocaleString('ko-KR');
     
-    // 주문서 텍스트 생성
+    console.log('📦 주문 아이템 수:', items.length);
+    
+    // 영수증 크기로 간결한 주문서 텍스트 생성
     let printText = '';
-    printText += '━━━━━━━━━━━━━━━━━━━━\n';
-    printText += '   시티반점 주문서\n';
-    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
-    printText += `주문번호: ${order.orderId}\n`;
-    printText += `주문시간: ${orderDate}\n`;
-    printText += `주문타입: ${order.orderType === 'takeout' ? '포장' : '배달'}\n\n`;
-    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
-    printText += `고객명: ${order.customerName}\n`;
-    printText += `전화번호: ${order.phone}\n`;
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += '  시티반점\n';
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += `주문번호: ${order.orderId}번\n`;
+    printText += `${orderDate}\n`;
+    printText += `${order.orderType === 'takeout' ? '포장' : '배달'}\n`;
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += `${order.customerName}\n`;
+    printText += `${order.phone}\n`;
     
     if (order.orderType !== 'takeout' && order.address) {
-      printText += `주소: ${order.address}\n`;
+      printText += `${order.address}\n`;
     }
     
-    printText += '\n━━━━━━━━━━━━━━━━━━━━\n';
-    printText += '주문 내역\n';
-    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
+    printText += '━━━━━━━━━━━━━━\n';
     
     items.forEach(item => {
       const itemName = item.name || item.menuName || '메뉴';
       const quantity = item.quantity || 1;
       const price = (item.price || 0) * quantity;
-      printText += `${itemName} x${quantity}\n`;
-      printText += `  ${price.toLocaleString()}원\n\n`;
+      printText += `${itemName} x${quantity} ${price.toLocaleString()}원\n`;
     });
     
-    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
-    printText += `주문금액: ${(order.totalAmount || 0).toLocaleString()}원\n`;
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += `합계: ${(order.totalAmount || 0).toLocaleString()}원\n`;
     
     if (order.usedPoints > 0) {
-      printText += `포인트 사용: -${order.usedPoints.toLocaleString()}원\n`;
+      printText += `포인트: -${order.usedPoints.toLocaleString()}원\n`;
     }
     
     if (order.couponDiscount > 0) {
-      printText += `쿠폰 할인: -${order.couponDiscount.toLocaleString()}원\n`;
+      printText += `쿠폰: -${order.couponDiscount.toLocaleString()}원\n`;
     }
     
     if (order.deliveryFee > 0) {
       printText += `배달료: +${order.deliveryFee.toLocaleString()}원\n`;
     }
     
-    printText += '\n━━━━━━━━━━━━━━━━━━━━\n\n';
-    printText += '최종 결제금액\n';
-    printText += `${(order.finalAmount || order.totalAmount || 0).toLocaleString()}원\n\n`;
-    printText += `결제방법: ${order.paymentMethod || '현금'}\n\n`;
-    printText += '━━━━━━━━━━━━━━━━━━━━\n\n';
-    printText += '감사합니다!\n\n\n';
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += `총액: ${(order.finalAmount || order.totalAmount || 0).toLocaleString()}원\n`;
+    printText += `${order.paymentMethod || '현금'}\n`;
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += '감사합니다!\n';
+    printText += '━━━━━━━━━━━━━━\n';
+    printText += '시티반점을 이용해주시는\n';
+    printText += '고객분들께 감사드리는\n';
+    printText += '마음으로 직접주문을 통해서\n';
+    printText += '이익을 고객님들께\n';
+    printText += '돌려드리고자 합니다.\n';
+    printText += '본 앱을 통해 직접 주문시\n';
+    printText += '주문금액의 10%를 포인트로\n';
+    printText += '적립하여 페이백 하고자\n';
+    printText += '하오니 많은 이용 부탁드립니다.\n';
+    printText += '━━━━━━━━━━━━━━\n';
+    
+    console.log('📄 생성된 주문서 텍스트 길이:', printText.length);
     
     // Windows 기본 프린터로 출력 (비동기, fire and forget)
     if (os.platform() === 'win32') {
+      console.log('🪟 Windows 환경 감지, 기본 프린터로 출력 시도');
       printToWindowsPrinter(printText, order.orderId).catch(err => {
         console.error('❌ Windows 프린터 출력 실패:', err.message);
+        console.error('❌ 에러 스택:', err.stack);
       });
       return true; // 비동기로 처리되므로 즉시 true 반환
     }
     
     // ESC/POS 프린터 사용 (기존 방식)
     if (escposPrinter) {
+      console.log('🖨️ ESC/POS 프린터 사용');
       return printToEscpos(printText, order);
     }
     
@@ -154,6 +171,7 @@ function printOrder(order) {
     
   } catch (error) {
     console.error('❌ 프린터 출력 오류:', error.message);
+    console.error('❌ 에러 스택:', error.stack);
     return false;
   }
 }
@@ -162,21 +180,55 @@ function printOrder(order) {
 function printToWindowsPrinter(text, orderId) {
   return new Promise((resolve) => {
     try {
+      console.log('🖨️ Windows 프린터 출력 시작:', orderId);
+      
       // 임시 파일 생성
       const tempDir = os.tmpdir();
       const tempFile = path.join(tempDir, `order_${orderId}_${Date.now()}.txt`);
       
-      // 텍스트 파일로 저장
-      fs.writeFileSync(tempFile, text, 'utf8');
+      console.log('📄 임시 파일 생성:', tempFile);
       
-      // Windows 기본 프린터로 출력 (print 명령어 사용)
-      // print 명령어는 기본 프린터로 자동 출력
-      const printCommand = `print /D:"%PRINTER%" "${tempFile}"`;
+      // 텍스트 파일로 저장 (UTF-8 with BOM for Windows)
+      const BOM = '\ufeff';
+      fs.writeFileSync(tempFile, BOM + text, 'utf8');
       
-      // 또는 PowerShell 사용 (더 안정적)
-      const powershellCommand = `powershell -Command "Get-Content '${tempFile}' | Out-Printer"`;
+      // 방법 1: print 명령어 사용 (가장 간단하고 안정적)
+      const printCommand = `print /D:"%PRINTER%" "${tempFile.replace(/\//g, '\\')}"`;
       
-      exec(powershellCommand, (error, stdout, stderr) => {
+      console.log('🖨️ 프린터 명령어 실행:', printCommand);
+      
+      exec(printCommand, { shell: true }, (error, stdout, stderr) => {
+        if (error) {
+          console.log('⚠️ print 명령어 실패, PowerShell 시도:', error.message);
+          
+          // 방법 2: PowerShell 사용 (fallback)
+          const powershellCommand = `powershell -NoProfile -Command "$content = Get-Content -Path '${tempFile.replace(/'/g, "''")}' -Raw -Encoding UTF8; $content | Out-Printer"`;
+          
+          exec(powershellCommand, { shell: true }, (error2, stdout2, stderr2) => {
+            // 파일 삭제 (비동기)
+            setTimeout(() => {
+              try {
+                if (fs.existsSync(tempFile)) {
+                  fs.unlinkSync(tempFile);
+                }
+              } catch (e) {
+                // 파일 삭제 실패는 무시
+              }
+            }, 5000);
+            
+            if (error2) {
+              console.error('❌ PowerShell 프린터 출력 실패:', error2.message);
+              // printer 패키지 시도
+              tryPrintWithPrinterPackage(text, orderId, resolve);
+              return;
+            }
+            
+            console.log('✅ 주문서 출력 완료 (PowerShell):', orderId);
+            resolve(true);
+          });
+          return;
+        }
+        
         // 파일 삭제 (비동기)
         setTimeout(() => {
           try {
@@ -188,17 +240,12 @@ function printToWindowsPrinter(text, orderId) {
           }
         }, 5000);
         
-        if (error) {
-          // PowerShell 실패 시 printer 패키지 시도
-          tryPrintWithPrinterPackage(text, orderId, resolve);
-          return;
-        }
-        
-        console.log('✅ 주문서 출력 완료 (Windows 기본 프린터):', orderId);
+        console.log('✅ 주문서 출력 완료 (print 명령어):', orderId);
         resolve(true);
       });
     } catch (error) {
       console.error('❌ Windows 프린터 출력 오류:', error.message);
+      console.error('❌ 스택:', error.stack);
       tryPrintWithPrinterPackage(text, orderId, resolve);
     }
   });
