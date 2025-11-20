@@ -618,12 +618,20 @@ app.post('/api/coupons/validate', (req, res) => {
 });
 
 // API: 사용자 쿠폰 조회
-app.get('/api/coupons/user/:userId', (req, res) => {
+app.get('/api/coupons/user/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
-    const coupons = db.getUserCoupons(userId);
+    let coupons;
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      coupons = await db.getUserCoupons(userId);
+    } else {
+      // SQLite
+      coupons = db.getUserCoupons(userId);
+    }
     res.json({ success: true, coupons });
   } catch (error) {
+    console.error('쿠폰 조회 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -739,12 +747,40 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // API: 주문 상태 업데이트
+// 주문 상태 변경 (수락, 조리중, 배달중 등)
 app.post('/api/orders/:orderId/status', (req, res) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
     
     db.updateOrderStatus(orderId, status);
+    
+    // 주문 수락 시 프린터에서 자동 인쇄
+    if (status === 'accepted') {
+      const order = db.getOrderById(orderId);
+      if (order) {
+        // 프린터 출력용 주문 데이터 준비
+        const orderForPrint = {
+          orderId: order.orderId || order.orderid,
+          customerName: order.customerName || order.customername,
+          phone: order.phone || order.customerphone,
+          address: order.address,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          totalAmount: order.totalAmount || order.totalprice,
+          usedPoints: order.usedPoints || order.usedpoints || 0,
+          couponDiscount: order.couponDiscount || order.coupondiscount || 0,
+          deliveryFee: order.deliveryFee || order.deliveryfee || 0,
+          finalAmount: order.finalAmount || order.finalamount || (order.totalAmount || order.totalprice),
+          paymentMethod: order.paymentMethod || order.paymentmethod || 'cash',
+          orderType: order.orderType || order.ordertype || 'delivery',
+          createdAt: order.createdAt || order.createdat
+        };
+        
+        // 프린터 출력
+        printer.printOrder(orderForPrint);
+        console.log('🖨️ 주문 수락 - 프린터 출력:', orderId);
+      }
+    }
     
     // 배달 완료 시 포인트 적립
     if (status === 'completed') {

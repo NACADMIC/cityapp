@@ -830,12 +830,13 @@ class DB {
 
   // 사용자 쿠폰 조회
   getUserCoupons(userId) {
+    // 사용하지 않은 쿠폰 조회 (orderId가 NULL이고 usedAt이 NULL인 경우)
     const coupons = this.db.prepare(`
       SELECT c.*, cu.id as usageId, cu.orderId, cu.usedAt
       FROM coupons c
       INNER JOIN coupon_usage cu ON c.id = cu.couponId
-      WHERE cu.userId = ? AND cu.orderId IS NULL
-      ORDER BY cu.usedAt DESC
+      WHERE cu.userId = ? AND (cu.orderId IS NULL OR cu.usedAt IS NULL)
+      ORDER BY cu.id DESC
     `).all(userId);
     
     return coupons.map(c => ({

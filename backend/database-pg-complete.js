@@ -436,11 +436,18 @@ class DB {
   }
 
   async issueCouponToUser(couponId, userId) {
-    await this.query('UPDATE coupons SET "issuedCount" = "issuedCount" + 1 WHERE id = $1', [couponId]);
-    await this.query(
-      'INSERT INTO coupon_usage ("couponId", "userId", "usedAt") VALUES ($1, $2, CURRENT_TIMESTAMP)',
-      [couponId, userId]
-    );
+    try {
+      await this.query('UPDATE coupons SET "issuedCount" = COALESCE("issuedCount", 0) + 1 WHERE id = $1', [couponId]);
+      // usedAt을 NULL로 저장하여 미사용 상태 표시
+      await this.query(
+        'INSERT INTO coupon_usage ("couponId", "userId", "usedAt") VALUES ($1, $2, NULL)',
+        [couponId, userId]
+      );
+      console.log(`✅ 쿠폰 발급 완료 (PG): couponId=${couponId}, userId=${userId}`);
+    } catch (error) {
+      console.error(`❌ 쿠폰 발급 오류 (PG):`, error);
+      throw error;
+    }
   }
 
   async useCoupon(couponId, userId, orderId) {
@@ -463,14 +470,20 @@ class DB {
   }
 
   async getUserCoupons(userId) {
+    // 사용하지 않은 쿠폰 조회 (orderId가 NULL이고 usedAt이 NULL인 경우)
     const result = await this.query(`
       SELECT c.*, cu.id as "usageId", cu."orderId", cu."usedAt"
       FROM coupons c
       INNER JOIN coupon_usage cu ON c.id = cu."couponId"
-      WHERE cu."userId" = $1 AND cu."orderId" IS NULL
-      ORDER BY cu."usedAt" DESC
+      WHERE cu."userId" = $1 AND (cu."orderId" IS NULL OR cu."usedAt" IS NULL)
+      ORDER BY cu.id DESC
     `, [userId]);
-    return result.rows;
+    return result.rows.map(c => ({
+      ...c,
+      isActive: c.isActive === 1 || c.isActive === true,
+      validFrom: new Date(c.validFrom),
+      validTo: new Date(c.validTo)
+    }));
   }
 
   // ========== 즐겨찾기 ==========

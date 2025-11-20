@@ -476,6 +476,13 @@
     </div>
     <div id="orders-list" class="orders-list"></div>
     
+    <!-- 쿠폰 섹션 -->
+    <div class="section-header" style="margin-top: 50px;">
+      <h3>🎫 보유 쿠폰</h3>
+      <span class="order-count" id="coupon-count">0개</span>
+    </div>
+    <div id="coupons-list" class="orders-list"></div>
+    
     <!-- 포인트 내역 섹션 -->
     <div class="section-header" style="margin-top: 50px;">
       <h3>포인트 내역</h3>
@@ -670,6 +677,25 @@
           }
         }
         
+        // 쿠폰 목록 가져오기
+        try {
+          const couponsRes = await fetch(`/api/coupons/user/${userId}`);
+          const couponsContentType = couponsRes.headers.get('content-type');
+          if (couponsContentType && couponsContentType.includes('application/json')) {
+            const couponsData = await couponsRes.json();
+            if (couponsData.success) {
+              displayCoupons(couponsData.coupons || []);
+            } else {
+              document.getElementById('coupons-list').innerHTML = '<div class="no-orders">쿠폰을 불러올 수 없습니다.</div>';
+            }
+          } else {
+            document.getElementById('coupons-list').innerHTML = '<div class="no-orders">쿠폰을 불러올 수 없습니다.</div>';
+          }
+        } catch (couponErr) {
+          console.error('쿠폰 로드 오류:', couponErr);
+          document.getElementById('coupons-list').innerHTML = '<div class="no-orders">쿠폰을 불러올 수 없습니다.</div>';
+        }
+        
         // 포인트 내역 가져오기
         try {
           const pointHistoryRes = await fetch(`/api/points/history/${userId}`);
@@ -779,6 +805,109 @@
           </div>
         `;
       }).join('');
+    }
+    
+    function displayCoupons(coupons) {
+      const container = document.getElementById('coupons-list');
+      const countEl = document.getElementById('coupon-count');
+      
+      if (!coupons || coupons.length === 0) {
+        container.innerHTML = `
+          <div class="no-orders" style="text-align: center; padding: 40px 20px; color: #999;">
+            <div style="font-size: 48px; margin-bottom: 15px;">🎫</div>
+            <p style="font-size: 16px; margin-bottom: 5px;">보유한 쿠폰이 없습니다</p>
+            <p style="font-size: 13px; color: #666;">회원가입 시 자동으로 쿠폰이 발급됩니다!</p>
+          </div>
+        `;
+        countEl.textContent = '0개';
+        return;
+      }
+      
+      const now = new Date();
+      const validCoupons = [];
+      const expiredCoupons = [];
+      
+      coupons.forEach(coupon => {
+        const validTo = new Date(coupon.validTo);
+        const validFrom = new Date(coupon.validFrom);
+        const isExpired = validTo < now || validFrom > now || !coupon.isActive;
+        
+        if (isExpired) {
+          expiredCoupons.push(coupon);
+        } else {
+          validCoupons.push(coupon);
+        }
+      });
+      
+      let html = '';
+      
+      // 사용 가능한 쿠폰
+      if (validCoupons.length > 0) {
+        validCoupons.forEach(coupon => {
+          const discountText = coupon.discountType === 'fixed' 
+            ? `${coupon.discountValue.toLocaleString()}원`
+            : `${coupon.discountValue}%`;
+          const minAmountText = coupon.minAmount > 0 
+            ? `${coupon.minAmount.toLocaleString()}원 이상 주문 시 사용 가능`
+            : '사용 가능';
+          const validToDate = new Date(coupon.validTo).toLocaleDateString('ko-KR');
+          
+          html += `
+            <div class="coupon-card">
+              <div class="coupon-header">
+                <div>
+                  <div class="coupon-name">${coupon.name}</div>
+                  <div class="coupon-code">${coupon.code}</div>
+                </div>
+                <div class="coupon-discount">${discountText}</div>
+              </div>
+              <div class="coupon-info">
+                <div class="coupon-info-item">
+                  <span>최소 주문금액</span>
+                  <span>${coupon.minAmount > 0 ? coupon.minAmount.toLocaleString() + '원' : '없음'}</span>
+                </div>
+                <div class="coupon-info-item">
+                  <span>유효기간</span>
+                  <span>${validToDate}까지</span>
+                </div>
+                <div class="coupon-status status-valid">사용 가능</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      // 만료된 쿠폰
+      if (expiredCoupons.length > 0) {
+        expiredCoupons.forEach(coupon => {
+          const discountText = coupon.discountType === 'fixed' 
+            ? `${coupon.discountValue.toLocaleString()}원`
+            : `${coupon.discountValue}%`;
+          const validToDate = new Date(coupon.validTo).toLocaleDateString('ko-KR');
+          
+          html += `
+            <div class="coupon-card expired">
+              <div class="coupon-header">
+                <div>
+                  <div class="coupon-name">${coupon.name}</div>
+                  <div class="coupon-code">${coupon.code}</div>
+                </div>
+                <div class="coupon-discount">${discountText}</div>
+              </div>
+              <div class="coupon-info">
+                <div class="coupon-info-item">
+                  <span>유효기간</span>
+                  <span>${validToDate}까지</span>
+                </div>
+                <div class="coupon-status status-expired">만료됨</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      container.innerHTML = html;
+      countEl.textContent = `${validCoupons.length}개${expiredCoupons.length > 0 ? ' (만료 ' + expiredCoupons.length + '개)' : ''}`;
     }
     
     function displayPointHistory(history) {
