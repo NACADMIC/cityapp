@@ -767,9 +767,24 @@ async function renderCart() {
     }
   }
   
-  // 쿠폰 사용 시 최소 주문 금액 23000원으로 변경
+  // 쿠폰 사용 시 최소 주문 금액 25000원으로 변경
   if (couponCode && couponDiscount > 0) {
-    minOrderAmount = 23000;
+    minOrderAmount = 25000;
+  }
+  
+  // 쿠폰 안내 표시/숨김 (쿠폰 적용 시에만 표시)
+  const couponInfo = document.getElementById('coupon-info');
+  if (couponInfo) {
+    if (couponCode && couponDiscount > 0) {
+      // 쿠폰이 적용된 경우에만 표시 (이미 applyCoupon에서 내용이 설정됨)
+      // 내용이 없으면 기본 안내 표시
+      if (!couponInfo.textContent.trim()) {
+        couponInfo.style.display = 'none';
+      }
+    } else {
+      // 쿠폰 미적용 시 안내 숨기기
+      couponInfo.style.display = 'none';
+    }
   }
   
   // 최소 주문 금액 경고 표시
@@ -984,9 +999,13 @@ async function applyCoupon() {
       document.getElementById('coupon-discount-display').textContent = couponDiscount.toLocaleString();
       document.getElementById('coupon-error').style.display = 'none';
       
-      // 최소 주문 금액 안내 업데이트
+      // 최소 주문 금액 안내 업데이트 (쿠폰 적용 시에만 표시)
+      const couponInfo = document.getElementById('coupon-info');
       if (data.coupon.minAmount) {
-        document.getElementById('coupon-info').textContent = `💡 최소 주문 금액: ${data.coupon.minAmount.toLocaleString()}원 이상`;
+        couponInfo.textContent = `💡 최소 주문 금액: ${data.coupon.minAmount.toLocaleString()}원 이상`;
+        couponInfo.style.display = 'block';
+      } else {
+        couponInfo.style.display = 'none';
       }
       
       renderCart();
@@ -1000,6 +1019,9 @@ async function applyCoupon() {
       document.getElementById('coupon-discount-display').textContent = '0';
       document.getElementById('coupon-error').textContent = data.error;
       document.getElementById('coupon-error').style.display = 'block';
+      
+      // 쿠폰 미적용 시 안내 숨기기
+      document.getElementById('coupon-info').style.display = 'none';
       
       renderCart();
       alert(data.error);

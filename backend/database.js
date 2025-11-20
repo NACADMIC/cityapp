@@ -40,7 +40,7 @@ class DB {
         email TEXT,
         address TEXT,
         password TEXT NOT NULL,
-        points INTEGER DEFAULT 10000,
+        points INTEGER DEFAULT 0,
         createdAt TEXT NOT NULL
       )
     `);
@@ -217,13 +217,10 @@ class DB {
     const hashedPassword = await bcrypt.hash(password, 10);
     const createdAt = new Date().toISOString();
     
-    const stmt = this.db.prepare('INSERT INTO users (phone, name, email, address, password, points, createdAt) VALUES (?, ?, ?, ?, ?, 10000, ?)');
+    const stmt = this.db.prepare('INSERT INTO users (phone, name, email, address, password, points, createdAt) VALUES (?, ?, ?, ?, ?, 0, ?)');
     const result = stmt.run(phone, name, email, address, hashedPassword, createdAt);
     
     const userId = result.lastInsertRowid;
-    
-    // 포인트 내역 추가
-    this.addPointHistory(userId, null, 10000, 'earn');
     
     // 🎁 신규 회원 가입 쿠폰 자동 발급 (10,000원 쿠폰, 25,000원 이상 주문 시 사용 가능)
     const welcomeCoupon = this.createCoupon({

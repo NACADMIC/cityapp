@@ -204,7 +204,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: '🎉 회원가입 완료! 환영 포인트 10,000P와 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)' 
+      message: '🎉 회원가입 완료! 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)' 
     });
   } catch (error) {
     console.error('회원가입 오류:', error);
