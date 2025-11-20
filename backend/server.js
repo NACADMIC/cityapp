@@ -1277,6 +1277,31 @@ app.post('/api/coupons/issue', async (req, res) => {
       return res.status(400).json({ success: false, error: '필수 항목이 누락되었습니다.' });
     }
     
+    // 쿠폰 존재 확인
+    let couponExists;
+    if (process.env.DATABASE_URL) {
+      couponExists = await db.getCouponById(couponId);
+    } else {
+      couponExists = db.getCouponById(couponId);
+    }
+    
+    if (!couponExists) {
+      return res.status(400).json({ success: false, error: '쿠폰을 찾을 수 없습니다.' });
+    }
+    
+    // 사용자 존재 확인
+    let userExists;
+    if (process.env.DATABASE_URL) {
+      userExists = await db.getUserById(userId);
+    } else {
+      userExists = db.getUserById(userId);
+    }
+    
+    if (!userExists) {
+      return res.status(400).json({ success: false, error: '사용자를 찾을 수 없습니다.' });
+    }
+    
+    // 쿠폰 발급
     let coupon;
     if (process.env.DATABASE_URL) {
       coupon = await db.issueCouponToUser(couponId, userId);
@@ -1285,12 +1310,15 @@ app.post('/api/coupons/issue', async (req, res) => {
     }
     
     if (coupon) {
-      res.json({ success: true, coupon });
+      console.log(`✅ 쿠폰 발급 API 성공: couponId=${couponId}, userId=${userId}, code=${coupon.code}`);
+      res.json({ success: true, coupon, message: '쿠폰이 발급되었습니다!' });
     } else {
-      res.status(400).json({ success: false, error: '쿠폰을 발급할 수 없습니다.' });
+      console.error(`❌ 쿠폰 발급 API 실패: couponId=${couponId}, userId=${userId}`);
+      res.status(400).json({ success: false, error: '쿠폰을 발급할 수 없습니다. (이미 발급되었거나 오류 발생)' });
     }
   } catch (error) {
-    console.error('쿠폰 발급 오류:', error);
+    console.error('쿠폰 발급 API 오류:', error);
+    console.error('오류 상세:', error.stack);
     res.status(500).json({ success: false, error: error.message });
   }
 });

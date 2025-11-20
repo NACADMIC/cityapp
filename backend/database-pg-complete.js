@@ -316,29 +316,46 @@ class DB {
     
     // 🎁 신규 회원 가입 쿠폰 자동 발급 (즉시 처리)
     try {
-      // 쿠폰 생성
-      const welcomeCoupon = await this.createCoupon({
-        code: `WELCOME${userId}`,
-        name: '신규 회원 가입 쿠폰',
-        discountType: 'fixed',
-        discountValue: 10000,
-        minAmount: 25000,
-        maxDiscount: null,
-        validFrom: new Date(),
-        validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-        isActive: true
-      });
+      // 먼저 이미 생성된 쿠폰이 있는지 확인 (중복 방지)
+      const existingCoupon = await this.getCouponByCode(`WELCOME${userId}`);
+      let welcomeCoupon;
       
-      if (!welcomeCoupon) {
-        console.error(`❌ 쿠폰 생성 실패: userId=${userId}`);
+      if (existingCoupon) {
+        // 이미 쿠폰이 있으면 그 쿠폰 사용
+        welcomeCoupon = existingCoupon;
+        console.log(`✅ 기존 쿠폰 사용: ${welcomeCoupon.code} (userId=${userId})`);
       } else {
+        // 쿠폰 생성
+        welcomeCoupon = await this.createCoupon({
+          code: `WELCOME${userId}`,
+          name: '신규 회원 가입 쿠폰',
+          discountType: 'fixed',
+          discountValue: 10000,
+          minAmount: 25000,
+          maxDiscount: null,
+          validFrom: new Date(),
+          validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+          isActive: true
+        });
+        
+        if (!welcomeCoupon) {
+          console.error(`❌ 쿠폰 생성 실패: userId=${userId}`);
+        }
+      }
+      
+      if (welcomeCoupon) {
         // 쿠폰 발급 (즉시 처리)
-        await this.issueCouponToUser(welcomeCoupon.id, userId);
-        console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급 완료: ${welcomeCoupon.code} (10,000원, 25,000원 이상 주문 시 사용 가능)`);
+        const issuedCoupon = await this.issueCouponToUser(welcomeCoupon.id, userId);
+        if (issuedCoupon) {
+          console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급 완료: ${welcomeCoupon.code} (10,000원, 25,000원 이상 주문 시 사용 가능)`);
+        } else {
+          console.error(`❌ 쿠폰 발급 실패: couponId=${welcomeCoupon.id}, userId=${userId}`);
+        }
       }
     } catch (error) {
       // 쿠폰 발급 실패해도 회원가입은 성공 (나중에 수동 발급 가능)
       console.error(`❌ 회원가입 쿠폰 발급 오류 (userId=${userId}):`, error);
+      console.error(`   오류 상세:`, error.stack);
       console.error(`⚠️ 회원가입은 성공했으나 쿠폰 발급에 실패했습니다. 수동으로 발급해주세요.`);
     }
     
@@ -549,13 +566,47 @@ class DB {
 
   async issueCouponToUser(couponId, userId) {
     try {
+      // 이미 발급받았는지 확인
+      const existingUsage = await this.query(
+        'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 AND ("usedAt" IS NULL) ORDER BY id DESC LIMIT 1',
+        [couponId, userId]
+      );
+      
+      if (existingUsage.rows.length > 0) {
+        // 이미 발급받았고 사용하지 않은 경우
+        const coupon = await this.getCouponById(couponId);
+        console.log(`⚠️ 쿠폰 이미 발급됨 (PG): couponId=${couponId}, userId=${userId}`);
+        return coupon;
+      }
+      
+      // 쿠폰 정보 조회
+      const coupon = await this.getCouponById(couponId);
+      if (!coupon) {
+        console.error(`❌ 쿠폰을 찾을 수 없음 (PG): couponId=${couponId}`);
+        return null;
+      }
+      
+      // 발급 카운트 증가
       await this.query('UPDATE coupons SET "issuedCount" = COALESCE("issuedCount", 0) + 1 WHERE id = $1', [couponId]);
+      
       // usedAt을 NULL로 저장하여 미사용 상태 표시
       await this.query(
         'INSERT INTO coupon_usage ("couponId", "userId", "usedAt") VALUES ($1, $2, NULL)',
         [couponId, userId]
       );
-      console.log(`✅ 쿠폰 발급 완료 (PG): couponId=${couponId}, userId=${userId}`);
+      
+      console.log(`✅ 쿠폰 발급 완료 (PG): couponId=${couponId}, userId=${userId}, code=${coupon.code}`);
+      
+      // 쿠폰 정보 반환
+      return {
+        ...coupon,
+        isActive: coupon.isActive === true || coupon.isActive === 1,
+        validFrom: new Date(coupon.validFrom),
+        validTo: new Date(coupon.validTo),
+        discountValue: parseInt(coupon.discountValue) || 0,
+        minAmount: parseInt(coupon.minAmount) || 0,
+        maxDiscount: coupon.maxDiscount ? parseInt(coupon.maxDiscount) : null
+      };
     } catch (error) {
       console.error(`❌ 쿠폰 발급 오류 (PG):`, error);
       throw error;
