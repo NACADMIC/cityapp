@@ -9,18 +9,12 @@ class DB {
   }
 
   init() {
-    // 프로덕션 모드: 테이블 삭제하지 않음 (실제 데이터 보존)
-    // 개발 모드에서만 테이블 삭제하려면 환경 변수로 제어
-    if (process.env.NODE_ENV === 'development' && process.env.RESET_DB === 'true') {
-      try {
-        this.db.exec('DROP TABLE IF EXISTS orders');
-        this.db.exec('DROP TABLE IF EXISTS point_history');
-        this.db.exec('DROP TABLE IF EXISTS phone_verification');
-        console.log('⚠️ 개발 모드: 기존 테이블 삭제 완료');
-      } catch (err) {
-        console.log('⚠️ 테이블 삭제 오류:', err.message);
-      }
-    }
+    // ⚠️ 프로덕션 모드: 절대 테이블 삭제하지 않음 (데이터 보존)
+    // 개발 모드에서도 기본적으로 삭제하지 않음
+    // 테이블 삭제는 수동 스크립트로만 가능
+    // if (process.env.NODE_ENV === 'development' && process.env.RESET_DB === 'true') {
+    //   // 테이블 삭제 로직 제거 - 데이터 보존을 위해 비활성화
+    // }
 
     // 메뉴 테이블
     this.db.exec(`

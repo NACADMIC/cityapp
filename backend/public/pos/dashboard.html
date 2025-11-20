@@ -493,7 +493,36 @@
 
     <!-- 고객 분석 탭 -->
     <div id="customers-tab" class="tab-content">
+      <!-- 회원 목록 (제일 먼저 표시) -->
       <div class="table-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>👤 전체 회원 목록</h3>
+          <div>
+            <input type="text" id="users-search-in-customers" placeholder="이름/전화번호 검색..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 250px;" onkeyup="filterUsersInCustomers()">
+            <button onclick="loadUsersInCustomers()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">🔄 새로고침</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>회원번호</th>
+              <th>이름</th>
+              <th>전화번호</th>
+              <th>이메일</th>
+              <th>주소</th>
+              <th>보유 포인트</th>
+              <th>가입일</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body-in-customers">
+            <tr><td colspan="7" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+        <div id="users-count-in-customers" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+      </div>
+
+      <!-- 우수 고객 Top 10 -->
+      <div class="table-container" style="margin-top: 30px;">
         <h3>👑 우수 고객 Top 10</h3>
         <table class="data-table">
           <thead>

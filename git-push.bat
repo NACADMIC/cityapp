@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
 )
 echo.
 echo [2/3] 커밋...
-git commit -m "충돌 해결: 프린터 기능 통합 및 모든 기능 구현 완료"
+git commit -m "오늘 출시 준비: 쿠폰/포인트 데이터 유지 보장, 모바일 최적화, 고객분석 개선, 신규가입 쿠폰 자동발급 강화"
 if %errorlevel% neq 0 (
     echo ⚠️ 커밋 실패 (변경사항이 없을 수 있음)
 )

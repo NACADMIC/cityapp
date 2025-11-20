@@ -882,6 +882,39 @@ h2 {
     font-size: 1.3em;
   }
 
+  /* 특별 메뉴 탭 모바일 최적화 */
+  .special-menu-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    justify-content: flex-start;
+  }
+
+  .special-menu-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .special-tab {
+    padding: 8px 16px;
+    font-size: 11px;
+    min-width: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .special-tab-text {
+    font-size: 11px;
+  }
+
+  .special-tab-icon {
+    font-size: 14px;
+  }
+
   .category-tabs {
     padding: 15px;
     gap: 8px;
@@ -1013,6 +1046,25 @@ h2 {
 
   .price {
     font-size: 1em;
+  }
+
+  /* 작은 화면에서 특별 메뉴 탭 더 작게 */
+  .special-menu-tabs {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  .special-tab {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+
+  .special-tab-text {
+    font-size: 10px;
+  }
+
+  .special-tab-icon {
+    font-size: 12px;
   }
 
   .category-tab {

@@ -15,6 +15,16 @@ if (process.env.DATABASE_URL) {
   console.log('✅ PostgreSQL 데이터베이스 사용 (Railway)');
   DB = require('./database-pg-complete');
   db = new DB();
+  
+  // 데이터베이스 초기화 후 시드 데이터 확인 (비동기)
+  setTimeout(async () => {
+    try {
+      const seedData = require('./seed-data');
+      await seedData();
+    } catch (err) {
+      console.error('⚠️ 시드 데이터 확인 오류:', err.message);
+    }
+  }, 2000);
 } else {
   // 로컬 SQLite 사용
   console.log('✅ SQLite 데이터베이스 사용 (로컬)');
@@ -270,36 +280,46 @@ app.post('/api/auth/register', async (req, res) => {
       return res.json({ success: false, error: '이미 가입된 전화번호입니다.' });
     }
     
-    // 🔒 비밀번호 암호화하여 저장 및 쿠폰 발급
+    // 🔒 비밀번호 암호화하여 저장 및 쿠폰 발급 (즉시 처리)
     const user = await db.createUser(phone, name, email, address, password);
     
-    // 쿠폰 발급 확인
+    // 쿠폰 발급 확인 (즉시 확인)
     let couponCode = null;
+    let couponName = null;
     try {
       if (process.env.DATABASE_URL) {
-        // PostgreSQL
-        const couponResult = await db.query('SELECT code FROM coupons WHERE code = $1', [`WELCOME${user.userId}`]);
+        // PostgreSQL - 쿠폰 코드와 이름 확인
+        const couponResult = await db.query('SELECT code, name FROM coupons WHERE code = $1', [`WELCOME${user.userId}`]);
         if (couponResult.rows.length > 0) {
           couponCode = couponResult.rows[0].code;
+          couponName = couponResult.rows[0].name;
         }
       } else {
-        // SQLite
-        const coupon = db.db.prepare('SELECT code FROM coupons WHERE code = ?').get(`WELCOME${user.userId}`);
+        // SQLite - 쿠폰 코드와 이름 확인
+        const coupon = db.db.prepare('SELECT code, name FROM coupons WHERE code = ?').get(`WELCOME${user.userId}`);
         if (coupon) {
           couponCode = coupon.code;
+          couponName = coupon.name;
         }
       }
     } catch (err) {
       console.error('쿠폰 확인 오류:', err);
     }
     
-    console.log(`✅ 회원가입 완료: ${name} (${phone}) - UserId: ${user.userId} - 쿠폰: ${couponCode || '발급 확인 필요'}`);
+    if (couponCode) {
+      console.log(`✅ 회원가입 완료: ${name} (${phone}) - UserId: ${user.userId} - 쿠폰 발급 완료: ${couponCode}`);
+    } else {
+      console.warn(`⚠️ 회원가입 완료: ${name} (${phone}) - UserId: ${user.userId} - 쿠폰 발급 확인 필요`);
+    }
     
     res.json({ 
       success: true, 
-      message: '🎉 회원가입 완료! 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)',
+      message: couponCode 
+        ? '🎉 회원가입 완료! 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)'
+        : '🎉 회원가입 완료! (쿠폰 발급 확인 중...)',
       userId: user.userId,
-      couponCode: couponCode
+      couponCode: couponCode,
+      couponName: couponName
     });
   } catch (error) {
     console.error('회원가입 오류:', error);
@@ -493,6 +513,96 @@ app.get('/api/auth/me/:userId', (req, res) => {
     console.log('✅ 사용자 정보 반환:', { userId: userWithoutPassword.userId, name: userWithoutPassword.name });
     res.json({ success: true, user: userWithoutPassword });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 데이터베이스 상태 확인 (관리자용)
+app.get('/api/admin/db-status', async (req, res) => {
+  try {
+    let stats = {};
+    
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      const userCount = await db.query('SELECT COUNT(*) as count FROM users');
+      const orderCount = await db.query('SELECT COUNT(*) as count FROM orders');
+      const menuCount = await db.query('SELECT COUNT(*) as count FROM menu');
+      const couponCount = await db.query('SELECT COUNT(*) as count FROM coupons');
+      
+      const recentUsers = await db.query(`
+        SELECT "userId", name, phone, "createdAt" 
+        FROM users 
+        ORDER BY "createdAt" DESC 
+        LIMIT 5
+      `);
+      
+      const recentOrders = await db.query(`
+        SELECT "orderId", "customerName", phone, status, "createdAt"
+        FROM orders
+        ORDER BY "createdAt" DESC
+        LIMIT 5
+      `);
+      
+      stats = {
+        database: 'PostgreSQL (Railway)',
+        users: {
+          total: parseInt(userCount.rows[0].count),
+          recent: recentUsers.rows
+        },
+        orders: {
+          total: parseInt(orderCount.rows[0].count),
+          recent: recentOrders.rows
+        },
+        menu: {
+          total: parseInt(menuCount.rows[0].count)
+        },
+        coupons: {
+          total: parseInt(couponCount.rows[0].count)
+        }
+      };
+    } else {
+      // SQLite
+      const userCount = db.db.prepare('SELECT COUNT(*) as count FROM users').get();
+      const orderCount = db.db.prepare('SELECT COUNT(*) as count FROM orders').get();
+      const menuCount = db.db.prepare('SELECT COUNT(*) as count FROM menu').get();
+      const couponCount = db.db.prepare('SELECT COUNT(*) as count FROM coupons').get();
+      
+      const recentUsers = db.db.prepare(`
+        SELECT userId, name, phone, createdAt 
+        FROM users 
+        ORDER BY createdAt DESC 
+        LIMIT 5
+      `).all();
+      
+      const recentOrders = db.db.prepare(`
+        SELECT orderId, customerName, phone, status, createdAt
+        FROM orders
+        ORDER BY createdAt DESC
+        LIMIT 5
+      `).all();
+      
+      stats = {
+        database: 'SQLite (로컬)',
+        users: {
+          total: userCount.count,
+          recent: recentUsers
+        },
+        orders: {
+          total: orderCount.count,
+          recent: recentOrders
+        },
+        menu: {
+          total: menuCount.count
+        },
+        coupons: {
+          total: couponCount.count
+        }
+      };
+    }
+    
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('데이터베이스 상태 확인 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -1601,18 +1711,30 @@ app.post('/api/addresses/:userId/:addressId/set-default', (req, res) => {
 server.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🏮 시티반점 주문 서버 시작! (SQLite + 암호화)');
+  if (process.env.DATABASE_URL) {
+    console.log('🏮 시티반점 주문 서버 시작! (PostgreSQL + Railway)');
+    console.log('💾 데이터베이스: PostgreSQL (Railway)');
+  } else {
+    console.log('🏮 시티반점 주문 서버 시작! (SQLite + 암호화)');
+    console.log('💾 데이터베이스: SQLite (restaurant.db)');
+  }
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
-  console.log('📌 로컬 주소:');
+  console.log('📌 서비스 주소:');
   console.log(`   http://localhost:${PORT}/order-new`);
-  console.log(`   http://127.0.0.1:${PORT}/order-new`);
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    console.log(`   https://${process.env.RAILWAY_PUBLIC_DOMAIN}/order-new`);
+  }
   console.log('');
-  console.log('💾 데이터베이스: SQLite (restaurant.db)');
   console.log('🔒 비밀번호: bcrypt 암호화');
+  console.log('🔔 알림톡: ' + (sms ? '활성화' : '비활성화 (환경 변수 없음)'));
+  console.log('🖨️ 프린터: ' + (process.env.PRINTER_SERVER_URL ? '원격 서버 연결' : '로컬/없음'));
   console.log('');
   console.log('🎯 POS 주소:');
   console.log(`   http://localhost:${PORT}/pos/login.html`);
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    console.log(`   https://${process.env.RAILWAY_PUBLIC_DOMAIN}/pos/login.html`);
+  }
   console.log('');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });

@@ -35,9 +35,17 @@ class DB {
           price INTEGER NOT NULL,
           emoji TEXT,
           image TEXT,
-          bestseller INTEGER DEFAULT 0
+          bestseller INTEGER DEFAULT 0,
+          "isAvailable" INTEGER DEFAULT 1
         )
       `);
+      
+      // isAvailable 컬럼 추가 (기존 테이블에 없으면)
+      try {
+        await this.query('ALTER TABLE menu ADD COLUMN "isAvailable" INTEGER DEFAULT 1');
+      } catch (err) {
+        // 컬럼이 이미 있으면 무시
+      }
 
       // 회원 테이블
       await this.query(`
@@ -203,20 +211,41 @@ class DB {
       }
 
       const menuItems = [
-        { name: '짜장면', category: '면류', price: 6000, emoji: '🍜', bestseller: 1 },
-        { name: '짬뽕', category: '면류', price: 7000, emoji: '🌶️', bestseller: 1 },
+        // 오늘의 메뉴
+        { name: '짜장면', category: '오늘의메뉴', price: 6000, emoji: '🍜', bestseller: 1 },
+        { name: '짬뽕', category: '오늘의메뉴', price: 7000, emoji: '🌶️', bestseller: 1 },
+        // 추천 메뉴
+        { name: '탕수육', category: '추천메뉴', price: 15000, emoji: '🥘', bestseller: 1 },
+        { name: '깐풍기', category: '추천메뉴', price: 18000, emoji: '🍗', bestseller: 1 },
+        { name: '양장피', category: '추천메뉴', price: 20000, emoji: '🥗', bestseller: 0 },
+        // 면류
+        { name: '짜장면', category: '면류', price: 6000, emoji: '🍜', bestseller: 0 },
+        { name: '짬뽕', category: '면류', price: 7000, emoji: '🌶️', bestseller: 0 },
         { name: '울면', category: '면류', price: 7000, emoji: '🍝', bestseller: 0 },
+        { name: '간짜장', category: '면류', price: 7000, emoji: '🍜', bestseller: 0 },
+        // 밥류
         { name: '볶음밥', category: '밥류', price: 7000, emoji: '🍚', bestseller: 0 },
         { name: '짜장밥', category: '밥류', price: 6500, emoji: '🍚', bestseller: 0 },
-        { name: '탕수육', category: '세트메뉴', price: 15000, emoji: '🥘', bestseller: 1 },
-        { name: '깐풍기', category: '세트메뉴', price: 18000, emoji: '🍗', bestseller: 1 },
-        { name: '양장피', category: '세트메뉴', price: 20000, emoji: '🥗', bestseller: 0 },
-        { name: '군만두', category: '사이드', price: 5000, emoji: '🥟', bestseller: 0 },
-        { name: '물만두', category: '사이드', price: 5000, emoji: '🥟', bestseller: 0 },
+        { name: '짬뽕밥', category: '밥류', price: 7500, emoji: '🍚', bestseller: 0 },
+        // 디저트
+        { name: '군만두', category: '디저트', price: 5000, emoji: '🥟', bestseller: 0 },
+        { name: '물만두', category: '디저트', price: 5000, emoji: '🥟', bestseller: 0 },
+        { name: '짬뽕순두부', category: '디저트', price: 8000, emoji: '🥘', bestseller: 0 },
+        // 음료
         { name: '코카콜라 2L', category: '음료', price: 3500, emoji: '🥤', bestseller: 0 },
+        { name: '제로콜라', category: '음료', price: 2500, emoji: '🥤', bestseller: 0 },
         { name: '사이다', category: '음료', price: 2000, emoji: '🥤', bestseller: 0 },
-        { name: '테라', category: '주류', price: 4500, emoji: '🍺', bestseller: 0 },
-        { name: '참이슬', category: '주류', price: 4500, emoji: '🍶', bestseller: 0 }
+        { name: '매실', category: '음료', price: 3000, emoji: '🍵', bestseller: 0 },
+        // 맥주
+        { name: '테라', category: '맥주', price: 4500, emoji: '🍺', bestseller: 0 },
+        { name: '카스', category: '맥주', price: 4000, emoji: '🍺', bestseller: 0 },
+        { name: '기네스', category: '맥주', price: 6000, emoji: '🍺', bestseller: 0 },
+        { name: '아사히', category: '맥주', price: 5000, emoji: '🍺', bestseller: 0 },
+        { name: '칭따오', category: '맥주', price: 4500, emoji: '🍺', bestseller: 0 },
+        // 소주
+        { name: '참이슬', category: '소주', price: 4500, emoji: '🍶', bestseller: 0 },
+        { name: '처음처럼', category: '소주', price: 4500, emoji: '🍶', bestseller: 0 },
+        { name: '연태고량주(중)', category: '소주', price: 25000, emoji: '🍶', bestseller: 0 }
       ];
 
       for (const item of menuItems) {
@@ -249,22 +278,33 @@ class DB {
     const user = result.rows[0];
     const userId = user.userId;
     
-    // 신규 회원 가입 쿠폰 자동 발급
-    const welcomeCoupon = await this.createCoupon({
-      code: `WELCOME${userId}`,
-      name: '신규 회원 가입 쿠폰',
-      discountType: 'fixed',
-      discountValue: 10000,
-      minAmount: 25000,
-      maxDiscount: null,
-      validFrom: new Date(),
-      validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-      isActive: true
-    });
-    
-    await this.issueCouponToUser(welcomeCoupon.id, userId);
-    
-    console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code}`);
+    // 🎁 신규 회원 가입 쿠폰 자동 발급 (즉시 처리)
+    try {
+      // 쿠폰 생성
+      const welcomeCoupon = await this.createCoupon({
+        code: `WELCOME${userId}`,
+        name: '신규 회원 가입 쿠폰',
+        discountType: 'fixed',
+        discountValue: 10000,
+        minAmount: 25000,
+        maxDiscount: null,
+        validFrom: new Date(),
+        validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        isActive: true
+      });
+      
+      if (!welcomeCoupon) {
+        console.error(`❌ 쿠폰 생성 실패: userId=${userId}`);
+      } else {
+        // 쿠폰 발급 (즉시 처리)
+        await this.issueCouponToUser(welcomeCoupon.id, userId);
+        console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급 완료: ${welcomeCoupon.code} (10,000원, 25,000원 이상 주문 시 사용 가능)`);
+      }
+    } catch (error) {
+      // 쿠폰 발급 실패해도 회원가입은 성공 (나중에 수동 발급 가능)
+      console.error(`❌ 회원가입 쿠폰 발급 오류 (userId=${userId}):`, error);
+      console.error(`⚠️ 회원가입은 성공했으나 쿠폰 발급에 실패했습니다. 수동으로 발급해주세요.`);
+    }
     
     return user;
   }
@@ -451,21 +491,38 @@ class DB {
   }
 
   async useCoupon(couponId, userId, orderId) {
-    await this.query('UPDATE coupons SET "usedCount" = "usedCount" + 1 WHERE id = $1', [couponId]);
-    if (orderId) {
-      const usage = await this.query(
-        'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 AND "orderId" IS NULL ORDER BY id DESC LIMIT 1',
-        [couponId, userId]
-      );
-      if (usage.rows.length > 0) {
-        await this.query('UPDATE coupon_usage SET "orderId" = $1 WHERE id = $2', [orderId, usage.rows[0].id]);
-      } else {
-        await this.query(
-          'INSERT INTO coupon_usage ("couponId", "userId", "orderId", "usedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
-          [couponId, userId, orderId]
-        );
-      }
+    // 이미 사용한 쿠폰인지 확인
+    const existingUsage = await this.query(
+      'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 AND ("orderId" IS NOT NULL OR "usedAt" IS NOT NULL) ORDER BY id DESC LIMIT 1',
+      [couponId, userId]
+    );
+    
+    if (existingUsage.rows.length > 0 && (existingUsage.rows[0].orderId || existingUsage.rows[0].usedAt)) {
+      console.error('❌ 이미 사용한 쿠폰입니다:', couponId, userId);
+      return false;
     }
+    
+    // 사용 횟수 증가
+    await this.query('UPDATE coupons SET "usedCount" = COALESCE("usedCount", 0) + 1 WHERE id = $1', [couponId]);
+    
+    // 쿠폰 사용 내역 업데이트 (orderId와 usedAt 추가)
+    const usage = await this.query(
+      'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 AND ("orderId" IS NULL AND "usedAt" IS NULL) ORDER BY id DESC LIMIT 1',
+      [couponId, userId]
+    );
+    
+    if (usage.rows.length > 0) {
+      // 기존 발급 내역 업데이트
+      await this.query('UPDATE coupon_usage SET "orderId" = $1, "usedAt" = CURRENT_TIMESTAMP WHERE id = $2', [orderId, usage.rows[0].id]);
+    } else {
+      // 새로 추가 (발급되지 않은 경우)
+      await this.query(
+        'INSERT INTO coupon_usage ("couponId", "userId", "orderId", "usedAt") VALUES ($1, $2, $3, CURRENT_TIMESTAMP)',
+        [couponId, userId, orderId]
+      );
+    }
+    
+    console.log(`✅ 쿠폰 사용 완료 (PG): couponId=${couponId}, userId=${userId}, orderId=${orderId}`);
     return true;
   }
 

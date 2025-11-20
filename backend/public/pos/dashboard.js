@@ -356,6 +356,9 @@ async function loadSettlement() {
 // ========== 고객 분석 탭 ==========
 async function loadCustomersTab() {
   try {
+    // 회원 목록 먼저 로드 (제일 먼저 표시)
+    await loadUsersInCustomers();
+    
     // 우수 고객
     const customersRes = await fetch('/api/stats/top-customers?limit=10');
     const customersData = await customersRes.json();
@@ -775,6 +778,57 @@ function renderRiTable(data) {
 
 // ========== 회원 목록 탭 ==========
 let allUsersData = [];
+
+// 고객분석 탭용 회원 목록 로드
+async function loadUsersInCustomers() {
+  try {
+    const res = await fetch('/api/users');
+    const data = await res.json();
+    
+    if (data.success && data.users) {
+      renderUsersTableInCustomers(data.users);
+      document.getElementById('users-count-in-customers').textContent = `총 ${data.users.length}명의 회원`;
+    } else {
+      document.getElementById('users-table-body-in-customers').innerHTML = '<tr><td colspan="7">회원 데이터를 불러올 수 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('회원 목록 로드 오류:', error);
+    document.getElementById('users-table-body-in-customers').innerHTML = '<tr><td colspan="7">오류가 발생했습니다.</td></tr>';
+  }
+}
+
+// 고객분석 탭용 회원 목록 테이블 렌더링
+function renderUsersTableInCustomers(users) {
+  const tbody = document.getElementById('users-table-body-in-customers');
+  
+  if (!users || users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7">등록된 회원이 없습니다.</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = users.map((user, index) => `
+    <tr>
+      <td>${user.userId || '-'}</td>
+      <td>${user.name || '-'}</td>
+      <td>${user.phone || '-'}</td>
+      <td>${user.email || '-'}</td>
+      <td>${user.address || '-'}</td>
+      <td>${(user.points || 0).toLocaleString()}P</td>
+      <td>${user.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : '-'}</td>
+    </tr>
+  `).join('');
+}
+
+// 고객분석 탭용 회원 검색 필터
+function filterUsersInCustomers() {
+  const searchTerm = document.getElementById('users-search-in-customers').value.toLowerCase();
+  const rows = document.querySelectorAll('#users-table-body-in-customers tr');
+  
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(searchTerm) ? '' : 'none';
+  });
+}
 
 async function loadUsers() {
   try {
