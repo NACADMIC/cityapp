@@ -1050,11 +1050,12 @@ app.post('/api/coupons/validate', async (req, res) => {
     }
     
     // 할인 금액 계산
+    const discountValue = parseInt(coupon.discountValue) || 0; // 문자열인 경우 숫자로 변환
     let discountAmount = 0;
     if (coupon.discountType === 'fixed') {
-      discountAmount = coupon.discountValue;
+      discountAmount = discountValue;
     } else if (coupon.discountType === 'percent') {
-      discountAmount = Math.floor(totalAmount * (coupon.discountValue / 100));
+      discountAmount = Math.floor(totalAmount * (discountValue / 100));
       if (coupon.maxDiscount && discountAmount > coupon.maxDiscount) {
         discountAmount = coupon.maxDiscount;
       }
@@ -1067,13 +1068,94 @@ app.post('/api/coupons/validate', async (req, res) => {
         code: coupon.code,
         name: coupon.name,
         discountType: coupon.discountType,
-        discountValue: coupon.discountValue,
-        minAmount: coupon.minAmount,
+        discountValue: discountValue,
+        minAmount: coupon.minAmount ? parseInt(coupon.minAmount) : 0,
         discountAmount: discountAmount
       }
     });
   } catch (error) {
     console.error('쿠폰 검증 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 모든 쿠폰 조회 (관리자용)
+app.get('/api/coupons', async (req, res) => {
+  try {
+    let coupons;
+    if (process.env.DATABASE_URL) {
+      coupons = await db.getAllCoupons();
+    } else {
+      coupons = db.getAllCoupons();
+    }
+    
+    // 발급량과 사용량 포함하여 반환
+    const couponsWithStats = await Promise.all(coupons.map(async (coupon) => {
+      let issuedCount = 0;
+      let usedCount = 0;
+      
+      if (process.env.DATABASE_URL) {
+        // PostgreSQL: 발급량과 사용량 조회
+        const issuedResult = await db.query(
+          'SELECT COUNT(*) as count FROM coupon_usage WHERE "couponId" = $1',
+          [coupon.id]
+        );
+        const usedResult = await db.query(
+          'SELECT COUNT(*) as count FROM coupon_usage WHERE "couponId" = $1 AND "usedAt" IS NOT NULL',
+          [coupon.id]
+        );
+        issuedCount = parseInt(issuedResult.rows[0].count || 0);
+        usedCount = parseInt(usedResult.rows[0].count || 0);
+      } else {
+        // SQLite: 발급량과 사용량 조회
+        const issuedResult = db.db.prepare(
+          'SELECT COUNT(*) as count FROM coupon_usage WHERE couponId = ?'
+        ).get(coupon.id);
+        const usedResult = db.db.prepare(
+          'SELECT COUNT(*) as count FROM coupon_usage WHERE couponId = ? AND usedAt IS NOT NULL'
+        ).get(coupon.id);
+        issuedCount = issuedResult.count || 0;
+        usedCount = usedResult.count || 0;
+      }
+      
+      return {
+        ...coupon,
+        issuedCount,
+        usedCount
+      };
+    }));
+    
+    res.json({ success: true, coupons: couponsWithStats });
+  } catch (error) {
+    console.error('쿠폰 목록 조회 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 통계 조회
+app.get('/api/coupons/stats', async (req, res) => {
+  try {
+    let stats;
+    if (process.env.DATABASE_URL) {
+      stats = await db.getCouponStats();
+    } else {
+      stats = db.getCouponStats();
+    }
+    
+    // 사용률 계산
+    const usageRate = stats.totalIssued > 0 
+      ? Math.round((stats.totalUsed / stats.totalIssued) * 100) 
+      : 0;
+    
+    res.json({ 
+      success: true, 
+      stats: {
+        ...stats,
+        usageRate
+      }
+    });
+  } catch (error) {
+    console.error('쿠폰 통계 조회 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -1134,7 +1216,7 @@ app.post('/api/coupons', async (req, res) => {
   }
 });
 
-// API: 쿠폰 발급 (사용자에게 쿠폰 지급)
+// API: 쿠폰 발급 (사용자에게 쿠폰 지급) - 관리자용
 app.post('/api/coupons/issue', async (req, res) => {
   try {
     const { couponId, userId } = req.body;
@@ -1157,6 +1239,79 @@ app.post('/api/coupons/issue', async (req, res) => {
     }
   } catch (error) {
     console.error('쿠폰 발급 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 쿠폰 리딤 (쿠폰 코드로 발급받기) - 고객용
+app.post('/api/coupons/redeem', async (req, res) => {
+  try {
+    const { code, userId } = req.body;
+    
+    if (!code || !userId) {
+      return res.status(400).json({ success: false, error: '쿠폰 코드를 입력해주세요.' });
+    }
+    
+    // 쿠폰 조회
+    let coupon;
+    if (process.env.DATABASE_URL) {
+      coupon = await db.getCouponByCode(code.toUpperCase());
+    } else {
+      coupon = db.getCouponByCode(code.toUpperCase());
+    }
+    
+    if (!coupon) {
+      return res.json({ success: false, error: '유효하지 않은 쿠폰 코드입니다.' });
+    }
+    
+    // 유효기간 체크
+    const now = new Date();
+    if (new Date(coupon.validFrom) > now || new Date(coupon.validTo) < now) {
+      return res.json({ success: false, error: '쿠폰 유효기간이 만료되었습니다.' });
+    }
+    
+    // 활성화 상태 체크
+    if (!coupon.isActive) {
+      return res.json({ success: false, error: '사용할 수 없는 쿠폰입니다.' });
+    }
+    
+    // 이미 발급받았는지 확인
+    let existingUsage;
+    if (process.env.DATABASE_URL) {
+      const result = await db.query(
+        'SELECT * FROM coupon_usage WHERE "couponId" = $1 AND "userId" = $2 ORDER BY id DESC LIMIT 1',
+        [coupon.id, userId]
+      );
+      existingUsage = result.rows[0] || null;
+    } else {
+      existingUsage = db.db.prepare(`
+        SELECT * FROM coupon_usage 
+        WHERE couponId = ? AND userId = ? 
+        ORDER BY id DESC LIMIT 1
+      `).get(coupon.id, userId);
+    }
+    
+    // 이미 발급받았고 사용하지 않았다면 발급 불가
+    if (existingUsage && !existingUsage.orderId && !existingUsage.usedAt) {
+      return res.json({ success: false, error: '이미 발급받은 쿠폰입니다.' });
+    }
+    
+    // 쿠폰 발급
+    let issuedCoupon;
+    if (process.env.DATABASE_URL) {
+      issuedCoupon = await db.issueCouponToUser(coupon.id, userId);
+    } else {
+      issuedCoupon = db.issueCouponToUser(coupon.id, userId);
+    }
+    
+    if (issuedCoupon) {
+      console.log(`✅ 쿠폰 리딤 완료: ${code} -> userId=${userId}`);
+      res.json({ success: true, coupon: issuedCoupon, message: '쿠폰이 발급되었습니다!' });
+    } else {
+      res.status(400).json({ success: false, error: '쿠폰을 발급할 수 없습니다.' });
+    }
+  } catch (error) {
+    console.error('쿠폰 리딤 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -1812,6 +1967,31 @@ app.get('/api/orders/phone/:phone', (req, res) => {
     const orders = allOrders.filter(o => o.phone === phone);
     
     res.json({ success: true, orders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 바쁨 상태 조회
+app.get('/api/busy-status', (req, res) => {
+  try {
+    const status = db.getBusyStatus();
+    res.json({ success: true, status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 바쁨 상태 설정
+app.post('/api/busy-status', (req, res) => {
+  try {
+    const { status } = req.body;
+    const newStatus = db.setBusyStatus(status);
+    if (newStatus) {
+      res.json({ success: true, status: newStatus });
+    } else {
+      res.status(400).json({ success: false, error: 'Invalid status' });
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 
 class DB {
   constructor() {
+    this.busyStatus = 'normal'; // 바쁨 상태 기본값 (메모리 기반)
     // Railway PostgreSQL 연결
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
@@ -483,12 +484,32 @@ class DB {
 
   async getCouponByCode(code) {
     const result = await this.query('SELECT * FROM coupons WHERE code = $1 AND "isActive" = 1', [code]);
-    return result.rows[0] || null;
+    if (result.rows[0]) {
+      const coupon = result.rows[0];
+      return {
+        ...coupon,
+        isActive: coupon.isActive === true || coupon.isActive === 1,
+        validFrom: new Date(coupon.validFrom),
+        validTo: new Date(coupon.validTo),
+        discountValue: parseInt(coupon.discountValue) || 0,
+        minAmount: coupon.minAmount ? parseInt(coupon.minAmount) : 0,
+        maxDiscount: coupon.maxDiscount ? parseInt(coupon.maxDiscount) : null
+      };
+    }
+    return null;
   }
 
   async getAllCoupons() {
     const result = await this.query('SELECT * FROM coupons ORDER BY id DESC');
-    return result.rows;
+    return result.rows.map(c => ({
+      ...c,
+      isActive: c.isActive === true || c.isActive === 1,
+      validFrom: new Date(c.validFrom),
+      validTo: new Date(c.validTo),
+      discountValue: parseInt(c.discountValue) || 0,
+      minAmount: parseInt(c.minAmount) || 0,
+      maxDiscount: c.maxDiscount ? parseInt(c.maxDiscount) : null
+    }));
   }
 
   async issueCouponToUser(couponId, userId) {
@@ -548,14 +569,15 @@ class DB {
       SELECT c.*, cu.id as "usageId", cu."orderId", cu."usedAt"
       FROM coupons c
       INNER JOIN coupon_usage cu ON c.id = cu."couponId"
-      WHERE cu."userId" = $1 AND (cu."orderId" IS NULL OR cu."usedAt" IS NULL)
+      WHERE cu."userId" = $1 AND cu."orderId" IS NULL AND cu."usedAt" IS NULL
       ORDER BY cu.id DESC
     `, [userId]);
     return result.rows.map(c => ({
       ...c,
       isActive: c.isActive === 1 || c.isActive === true,
       validFrom: new Date(c.validFrom),
-      validTo: new Date(c.validTo)
+      validTo: new Date(c.validTo),
+      discountValue: parseInt(c.discountValue) || 0
     }));
   }
 
@@ -1034,6 +1056,20 @@ class DB {
       totalIssued: parseInt(issued.rows[0].total || 0),
       totalUsed: parseInt(used.rows[0].total || 0)
     };
+  }
+
+  // 바쁨 상태 설정/조회 (메모리 기반)
+  setBusyStatus(status) {
+    if (['very-busy', 'busy', 'normal'].includes(status)) {
+      this.busyStatus = status;
+      console.log('✅ 바쁨 상태 설정 (PG):', status);
+      return this.busyStatus;
+    }
+    return null;
+  }
+  
+  getBusyStatus() {
+    return this.busyStatus || 'normal';
   }
 }
 

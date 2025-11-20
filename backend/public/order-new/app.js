@@ -2337,6 +2337,60 @@ function useCouponCode(code) {
   }, 300);
 }
 
+// 쿠폰 리딤 (쿠폰 코드로 발급받기)
+async function redeemCoupon() {
+  if (!currentUser || isGuest) {
+    alert('로그인이 필요합니다.');
+    showLogin();
+    return;
+  }
+
+  const codeInput = document.getElementById('redeem-coupon-code');
+  const errorDiv = document.getElementById('redeem-error');
+  
+  if (!codeInput) {
+    console.error('❌ 리딤 입력 필드를 찾을 수 없습니다.');
+    return;
+  }
+
+  const code = codeInput.value.trim().toUpperCase();
+  if (!code) {
+    errorDiv.textContent = '쿠폰 코드를 입력해주세요.';
+    errorDiv.style.display = 'block';
+    return;
+  }
+
+  errorDiv.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/coupons/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: code,
+        userId: currentUser.userid
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      codeInput.value = '';
+      errorDiv.style.display = 'none';
+      alert('✅ 쿠폰이 발급되었습니다!');
+      // 쿠폰 목록 새로고침
+      showCouponList();
+    } else {
+      errorDiv.textContent = data.error || '쿠폰 발급에 실패했습니다.';
+      errorDiv.style.display = 'block';
+    }
+  } catch (err) {
+    console.error('쿠폰 리딤 오류:', err);
+    errorDiv.textContent = '쿠폰 발급 중 오류가 발생했습니다: ' + err.message;
+    errorDiv.style.display = 'block';
+  }
+}
+
 function updateNavActive(active) {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.remove('active');

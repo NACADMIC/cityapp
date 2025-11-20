@@ -4,6 +4,7 @@ const path = require('path');
 
 class DB {
   constructor() {
+    this.busyStatus = 'normal'; // 바쁨 상태 기본값
     this.db = new Database(path.join(__dirname, 'restaurant.db'));
     this.init();
   }
@@ -1186,7 +1187,10 @@ class DB {
         ...coupon,
         isActive: coupon.isActive === 1,
         validFrom: new Date(coupon.validFrom),
-        validTo: new Date(coupon.validTo)
+        validTo: new Date(coupon.validTo),
+        discountValue: parseInt(coupon.discountValue) || 0,
+        minAmount: coupon.minAmount ? parseInt(coupon.minAmount) : 0,
+        maxDiscount: coupon.maxDiscount ? parseInt(coupon.maxDiscount) : null
       };
     }
     return null;
@@ -1278,7 +1282,7 @@ class DB {
       SELECT c.*, cu.id as usageId, cu.orderId, cu.usedAt
       FROM coupons c
       INNER JOIN coupon_usage cu ON c.id = cu.couponId
-      WHERE cu.userId = ? AND (cu.orderId IS NULL OR cu.usedAt IS NULL)
+      WHERE cu.userId = ? AND cu.orderId IS NULL AND cu.usedAt IS NULL
       ORDER BY cu.id DESC
     `).all(userId);
     
@@ -1286,7 +1290,8 @@ class DB {
       ...c,
       isActive: c.isActive === 1,
       validFrom: new Date(c.validFrom),
-      validTo: new Date(c.validTo)
+      validTo: new Date(c.validTo),
+      discountValue: parseInt(c.discountValue) || 0
     }));
   }
 
@@ -1375,6 +1380,20 @@ class DB {
     this.db.prepare('UPDATE saved_addresses SET isDefault = 0 WHERE userId = ?').run(userId);
     const stmt = this.db.prepare('UPDATE saved_addresses SET isDefault = 1 WHERE id = ? AND userId = ?');
     return stmt.run(addressId, userId).changes > 0;
+  }
+
+  // 바쁨 상태 설정/조회
+  setBusyStatus(status) {
+    if (['very-busy', 'busy', 'normal'].includes(status)) {
+      this.busyStatus = status;
+      console.log('✅ 바쁨 상태 설정:', status);
+      return this.busyStatus;
+    }
+    return null;
+  }
+  
+  getBusyStatus() {
+    return this.busyStatus || 'normal';
   }
 }
 
