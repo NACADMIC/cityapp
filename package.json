@@ -6,7 +6,9 @@
   "scripts": {
     "start": "cd backend && npm install && node server.js",
     "backup": "node backend/scripts/backup-db.js",
-    "dev": "cd backend && nodemon server.js"
+    "dev": "cd backend && nodemon server.js",
+    "clear-test": "node backend/scripts/clear-test-data.js",
+    "clear-all": "node backend/scripts/clear-all-data.js"
   },
   "engines": {
     "node": ">=18.x"

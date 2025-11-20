@@ -152,10 +152,10 @@ function printOrder(order) {
 
 // 간단한 텍스트 출력 (테스트용)
 function printTest() {
-  // 프린터 라이브러리가 없으면 테스트 불가
+  // 프린터 라이브러리가 없으면 일반 프린터로 테스트
   if (!escpos || !printer) {
-    console.log('⚠️ 프린터가 연결되지 않았습니다.');
-    return false;
+    console.log('⚠️ ESC/POS 프린터가 연결되지 않았습니다. 일반 프린터로 테스트합니다.');
+    return printTestGeneral();
   }
   
   try {
@@ -172,6 +172,81 @@ function printTest() {
     return true;
   } catch (error) {
     console.error('❌ 프린터 테스트 오류:', error.message);
+    return printTestGeneral();
+  }
+}
+
+// 일반 프린터 테스트 (브라우저 인쇄 기능 사용)
+function printTestGeneral() {
+  try {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      console.log('⚠️ 팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+      return false;
+    }
+    
+    const testContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>프린터 테스트</title>
+        <style>
+          @media print {
+            @page { margin: 10mm; }
+            body { margin: 0; padding: 0; }
+          }
+          body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            text-align: center;
+          }
+          .test-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+          }
+          .test-info {
+            font-size: 14px;
+            line-height: 1.8;
+            margin: 20px 0;
+          }
+          .test-footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="test-header">프린터 테스트</div>
+        <div class="test-info">
+          <p>시티반점 주문 시스템</p>
+          <p>테스트 일시: ${new Date().toLocaleString('ko-KR')}</p>
+          <p>이 전표가 정상적으로 출력되면 프린터가 정상 작동합니다.</p>
+        </div>
+        <div class="test-footer">
+          <p>━━━━━━━━━━━━━━━━━━━━</p>
+          <p>테스트 완료</p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(testContent);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    // 자동 인쇄
+    setTimeout(() => {
+      printWindow.print();
+      console.log('✅ 일반 프린터 테스트 완료 (인쇄 대화상자 열림)');
+    }, 500);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ 일반 프린터 테스트 오류:', error.message);
     return false;
   }
 }

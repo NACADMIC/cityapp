@@ -9,14 +9,17 @@ class DB {
   }
 
   init() {
-    // 기존 테이블 삭제 (개발 단계)
-    try {
-      this.db.exec('DROP TABLE IF EXISTS orders');
-      this.db.exec('DROP TABLE IF EXISTS point_history');
-      this.db.exec('DROP TABLE IF EXISTS phone_verification');
-      console.log('✅ 기존 테이블 삭제 완료');
-    } catch (err) {
-      console.log('⚠️ 테이블 삭제 오류:', err.message);
+    // 프로덕션 모드: 테이블 삭제하지 않음 (실제 데이터 보존)
+    // 개발 모드에서만 테이블 삭제하려면 환경 변수로 제어
+    if (process.env.NODE_ENV === 'development' && process.env.RESET_DB === 'true') {
+      try {
+        this.db.exec('DROP TABLE IF EXISTS orders');
+        this.db.exec('DROP TABLE IF EXISTS point_history');
+        this.db.exec('DROP TABLE IF EXISTS phone_verification');
+        console.log('⚠️ 개발 모드: 기존 테이블 삭제 완료');
+      } catch (err) {
+        console.log('⚠️ 테이블 삭제 오류:', err.message);
+      }
     }
 
     // 메뉴 테이블
@@ -246,22 +249,33 @@ class DB {
     const userId = result.lastInsertRowid;
     
     // 🎁 신규 회원 가입 쿠폰 자동 발급 (10,000원 쿠폰, 25,000원 이상 주문 시 사용 가능)
-    const welcomeCoupon = this.createCoupon({
-      code: `WELCOME${userId}`,
-      name: '신규 회원 가입 쿠폰',
-      discountType: 'fixed',
-      discountValue: 10000,
-      minAmount: 25000, // 최소 주문 금액 25,000원
-      maxDiscount: null,
-      validFrom: new Date(),
-      validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90일 유효
-      isActive: true
-    });
-    
-    // 쿠폰 발급 기록
-    this.issueCouponToUser(welcomeCoupon.id, userId);
-    
-    console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code} (10,000원, 25,000원 이상 주문 시 사용 가능)`);
+    try {
+      const welcomeCoupon = this.createCoupon({
+        code: `WELCOME${userId}`,
+        name: '신규 회원 가입 쿠폰',
+        discountType: 'fixed',
+        discountValue: 10000,
+        minAmount: 25000, // 최소 주문 금액 25,000원
+        maxDiscount: null,
+        validFrom: new Date(),
+        validTo: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90일 유효
+        isActive: true
+      });
+      
+      if (!welcomeCoupon) {
+        console.error(`❌ 쿠폰 생성 실패: userId=${userId}`);
+      } else {
+        // 쿠폰 발급 기록
+        const issued = this.issueCouponToUser(welcomeCoupon.id, userId);
+        if (issued) {
+          console.log(`✅ 신규 회원 가입: ${name} (${phone}) - 쿠폰 발급: ${welcomeCoupon.code} (10,000원, 25,000원 이상 주문 시 사용 가능)`);
+        } else {
+          console.error(`❌ 쿠폰 발급 실패: userId=${userId}, couponId=${welcomeCoupon.id}`);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ 회원가입 쿠폰 발급 오류:`, error);
+    }
     
     return this.getUserById(userId);
   }
@@ -762,19 +776,31 @@ class DB {
 
   // 쿠폰 발급 (사용자에게 쿠폰 지급)
   issueCouponToUser(couponId, userId) {
-    const coupon = this.getCouponById(couponId);
-    if (!coupon || !coupon.isActive) {
+    try {
+      const coupon = this.getCouponById(couponId);
+      if (!coupon) {
+        console.error(`❌ 쿠폰을 찾을 수 없습니다. couponId: ${couponId}`);
+        return null;
+      }
+      
+      if (!coupon.isActive) {
+        console.error(`❌ 쿠폰이 비활성화되어 있습니다. couponId: ${couponId}`);
+        return null;
+      }
+      
+      // 발급 횟수 증가
+      this.db.prepare('UPDATE coupons SET issuedCount = COALESCE(issuedCount, 0) + 1 WHERE id = ?').run(couponId);
+      
+      // 쿠폰 사용 내역에 발급 기록 (usedAt은 null로 저장하여 미사용 상태 표시)
+      const stmt = this.db.prepare('INSERT INTO coupon_usage (couponId, userId, usedAt) VALUES (?, ?, NULL)');
+      stmt.run(couponId, userId);
+      
+      console.log(`✅ 쿠폰 발급 완료: couponId=${couponId}, userId=${userId}, code=${coupon.code}`);
+      return coupon;
+    } catch (error) {
+      console.error(`❌ 쿠폰 발급 오류:`, error);
       return null;
     }
-    
-    // 발급 횟수 증가
-    this.db.prepare('UPDATE coupons SET issuedCount = issuedCount + 1 WHERE id = ?').run(couponId);
-    
-    // 쿠폰 사용 내역에 발급 기록
-    const stmt = this.db.prepare('INSERT INTO coupon_usage (couponId, userId, usedAt) VALUES (?, ?, ?)');
-    stmt.run(couponId, userId, new Date().toISOString());
-    
-    return coupon;
   }
 
   // 쿠폰 사용

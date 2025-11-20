@@ -527,6 +527,12 @@
             <button onclick="applyCoupon()" class="point-apply-btn">적용</button>
           </div>
           
+          <div style="margin-top: 10px;">
+            <button onclick="showCouponList()" style="width: 100%; padding: 10px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; color: #333;">
+              🎫 내 쿠폰 보기
+            </button>
+          </div>
+          
           <p class="point-info" id="coupon-info" style="display: none; font-size: 12px; color: #666; margin-top: 8px;"></p>
           
           <div id="coupon-error" style="display: none; color: #e74c3c; font-size: 12px; margin-top: 8px;"></div>
@@ -597,16 +603,38 @@
 
         <div class="form-group">
           <label>결제 방법</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="payment" value="cash" checked>
-              <span>현금</span>
+          <div class="radio-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="cash_on_delivery" checked>
+              <span>💵 만나서 현금</span>
             </label>
-            <label class="radio-label">
-              <input type="radio" name="payment" value="card">
-              <span>카드</span>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="cash_on_delivery_card">
+              <span>💳 만나서 카드</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="card_prepaid">
+              <span>💳 선결제 (카드)</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="kakao_pay">
+              <span>🟡 카카오페이</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="naver_pay">
+              <span>🟢 네이버페이</span>
             </label>
           </div>
+          <style>
+            .radio-label input[type="radio"]:checked + span {
+              font-weight: 800;
+              color: #FFD700;
+            }
+            .radio-label:has(input[type="radio"]:checked) {
+              border-color: #FFD700 !important;
+              background: rgba(255, 215, 0, 0.1);
+            }
+          </style>
         </div>
 
         <div class="order-summary">

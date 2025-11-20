@@ -1308,5 +1308,14 @@ async function saveBreakTime() {
 
 setInterval(updateBusinessStatus, 60000); // 1분마다 영업시간 상태 업데이트
 
+// 프린터 테스트 함수
+function testPrinter() {
+  // 일반 프린터 테스트 페이지 열기
+  const testWindow = window.open('/api/printer/test-general', '_blank', 'width=400,height=600');
+  if (!testWindow) {
+    alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+  }
+}
+
 console.log('🏮 POS 시스템 준비 완료!');
 

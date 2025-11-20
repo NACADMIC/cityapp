@@ -1603,46 +1603,52 @@ server.listen(PORT, '0.0.0.0', () => {
   // Railway 환경에서만 테스트 데이터 생성
   if (process.env.RAILWAY_ENVIRONMENT || process.env.PORT) {
     // 서버 시작 후 5초 대기 후 데이터 생성 (DB 초기화 완료 보장)
-    setTimeout(async () => {
-      console.log('\n🎲 테스트 데이터 생성 시작...\n');
-      
-      try {
-        // 메뉴 확인
-        const menus = db.getAllMenu();
-        console.log(`✅ 메뉴 확인: ${menus.length}개`);
+    // 프로덕션 모드: 테스트 데이터 생성하지 않음
+    // 개발 모드에서만 테스트 데이터 생성하려면 환경 변수로 제어
+    if (process.env.NODE_ENV === 'development' && process.env.GENERATE_TEST_DATA === 'true') {
+      setTimeout(async () => {
+        console.log('\n🎲 테스트 데이터 생성 시작...\n');
         
-        if (!menus || menus.length === 0) {
-          console.error('❌ 메뉴가 없습니다!');
-          return;
+        try {
+          // 메뉴 확인
+          const menus = db.getAllMenu();
+          console.log(`✅ 메뉴 확인: ${menus.length}개`);
+          
+          if (!menus || menus.length === 0) {
+            console.error('❌ 메뉴가 없습니다!');
+            return;
+          }
+          
+          // 데이터 생성 실행
+          await generateTestData();
+          
+          // 최종 확인
+          const finalUsers = db.users.length;
+          const finalOrders = db.orders.length;
+          console.log(`\n📊 최종 데이터 확인:`);
+          console.log(`   ✅ 회원: ${finalUsers}명`);
+          console.log(`   ✅ 주문: ${finalOrders}건`);
+          console.log(`   ✅ 메뉴: ${menus.length}개`);
+          
+          if (finalOrders === 0) {
+            console.error('⚠️ 경고: 주문이 하나도 저장되지 않았습니다!');
+            console.log('🔍 DB 상태 확인:', {
+              users: db.users.length,
+              orders: db.orders.length,
+              menu: db.menu.length
+            });
+          } else {
+            console.log(`✅ 데이터 저장 완료!\n`);
+          }
+          
+        } catch (error) {
+          console.error('❌ 테스트 데이터 생성 오류:', error.message);
+          console.error('상세:', error);
         }
-        
-        // 데이터 생성 실행
-        await generateTestData();
-        
-        // 최종 확인
-        const finalUsers = db.users.length;
-        const finalOrders = db.orders.length;
-        console.log(`\n📊 최종 데이터 확인:`);
-        console.log(`   ✅ 회원: ${finalUsers}명`);
-        console.log(`   ✅ 주문: ${finalOrders}건`);
-        console.log(`   ✅ 메뉴: ${menus.length}개`);
-        
-        if (finalOrders === 0) {
-          console.error('⚠️ 경고: 주문이 하나도 저장되지 않았습니다!');
-          console.log('🔍 DB 상태 확인:', {
-            users: db.users.length,
-            orders: db.orders.length,
-            menu: db.menu.length
-          });
-        } else {
-          console.log(`✅ 데이터 저장 완료!\n`);
-        }
-        
-      } catch (error) {
-        console.error('❌ 테스트 데이터 생성 오류:', error.message);
-        console.error('상세:', error);
-      }
-    }, 5000); // 5초 후 실행
+      }, 5000); // 5초 후 실행
+    } else {
+      console.log('✅ 프로덕션 모드: 실제 가입 데이터만 저장됩니다.');
+    }
   }
 });
 

@@ -393,6 +393,10 @@
       <button class="tab-btn" onclick="switchTab('ri')">🏘️ 리 단위 통계</button>
       <button class="tab-btn" onclick="switchTab('apartments')">🏢 아파트 단지 통계</button>
       <button class="tab-btn" onclick="switchTab('menu-analysis')">📊 메뉴별 판매 분석</button>
+      <button class="tab-btn" onclick="switchTab('users')">👤 회원 목록</button>
+      <button class="tab-btn" onclick="switchTab('orders')">📦 주문 내역</button>
+      <button class="tab-btn" onclick="switchTab('points')">💰 포인트 내역</button>
+      <button class="tab-btn" onclick="switchTab('coupons')">🎫 쿠폰 사용 내역</button>
     </div>
 
     <!-- 매출 통계 탭 -->
@@ -813,6 +817,143 @@
         <div class="popup-actions">
           <button class="btn btn-accept" onclick="closeMenuCostSettings()">닫기</button>
         </div>
+      </div>
+    </div>
+
+    <!-- 회원 목록 탭 -->
+    <div id="users-tab" class="tab-content">
+      <div class="table-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>👤 전체 회원 목록</h3>
+          <div>
+            <input type="text" id="user-search" placeholder="이름/전화번호 검색..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 250px;" onkeyup="filterUsers()">
+            <button onclick="loadUsers()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">🔄 새로고침</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>번호</th>
+              <th>이름</th>
+              <th>전화번호</th>
+              <th>이메일</th>
+              <th>주소</th>
+              <th>보유 포인트</th>
+              <th>가입일</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr><td colspan="7" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+        <div id="users-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+      </div>
+    </div>
+
+    <!-- 주문 내역 탭 -->
+    <div id="orders-tab" class="tab-content">
+      <div class="table-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>📦 전체 주문 내역</h3>
+          <div>
+            <select id="order-status-filter" onchange="filterOrders()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-right: 10px;">
+              <option value="">전체 상태</option>
+              <option value="pending">주문 대기</option>
+              <option value="accepted">주문 수락</option>
+              <option value="preparing">조리 중</option>
+              <option value="delivering">배달 중</option>
+              <option value="completed">배달 완료</option>
+              <option value="cancelled">취소됨</option>
+            </select>
+            <input type="text" id="order-search" placeholder="고객명/전화번호 검색..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 250px;" onkeyup="filterOrders()">
+            <button onclick="loadOrders()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">🔄 새로고침</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>주문번호</th>
+              <th>고객명</th>
+              <th>전화번호</th>
+              <th>주소</th>
+              <th>주문타입</th>
+              <th>주문금액</th>
+              <th>결제방법</th>
+              <th>상태</th>
+              <th>주문시간</th>
+            </tr>
+          </thead>
+          <tbody id="orders-table-body">
+            <tr><td colspan="9" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+        <div id="orders-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+      </div>
+    </div>
+
+    <!-- 포인트 내역 탭 -->
+    <div id="points-tab" class="tab-content">
+      <div class="table-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>💰 포인트 사용/적립 내역</h3>
+          <div>
+            <select id="point-type-filter" onchange="filterPointHistory()" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-right: 10px;">
+              <option value="">전체</option>
+              <option value="earn">적립</option>
+              <option value="use">사용</option>
+              <option value="refund">환불</option>
+            </select>
+            <input type="text" id="point-search" placeholder="사용자명/전화번호 검색..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 250px;" onkeyup="filterPointHistory()">
+            <button onclick="loadPointHistory()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">🔄 새로고침</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>일시</th>
+              <th>사용자</th>
+              <th>전화번호</th>
+              <th>주문번호</th>
+              <th>유형</th>
+              <th>포인트</th>
+            </tr>
+          </thead>
+          <tbody id="points-table-body">
+            <tr><td colspan="6" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+        <div id="points-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
+      </div>
+    </div>
+
+    <!-- 쿠폰 사용 내역 탭 -->
+    <div id="coupons-tab" class="tab-content">
+      <div class="table-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3>🎫 쿠폰 사용 내역</h3>
+          <div>
+            <input type="text" id="coupon-search" placeholder="쿠폰코드/사용자명 검색..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; width: 250px;" onkeyup="filterCouponUsage()">
+            <button onclick="loadCouponUsage()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; margin-left: 10px;">🔄 새로고침</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>사용일시</th>
+              <th>쿠폰명</th>
+              <th>쿠폰코드</th>
+              <th>할인타입</th>
+              <th>할인금액</th>
+              <th>사용자</th>
+              <th>전화번호</th>
+              <th>주문번호</th>
+            </tr>
+          </thead>
+          <tbody id="coupons-table-body">
+            <tr><td colspan="8" class="loading">로딩 중...</td></tr>
+          </tbody>
+        </table>
+        <div id="coupons-count" style="margin-top: 15px; color: #666; font-size: 14px;"></div>
       </div>
     </div>
   </div>

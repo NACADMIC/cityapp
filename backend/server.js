@@ -226,17 +226,48 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { phone, name, email, address, password } = req.body;
     
-    const existing = db.getUserByPhone(phone);
+    // 사용자 중복 체크
+    let existing;
+    if (process.env.DATABASE_URL) {
+      existing = await db.getUserByPhone(phone);
+    } else {
+      existing = db.getUserByPhone(phone);
+    }
+    
     if (existing) {
       return res.json({ success: false, error: '이미 가입된 전화번호입니다.' });
     }
     
-    // 🔒 비밀번호 암호화하여 저장
+    // 🔒 비밀번호 암호화하여 저장 및 쿠폰 발급
     const user = await db.createUser(phone, name, email, address, password);
+    
+    // 쿠폰 발급 확인
+    let couponCode = null;
+    try {
+      if (process.env.DATABASE_URL) {
+        // PostgreSQL
+        const couponResult = await db.query('SELECT code FROM coupons WHERE code = $1', [`WELCOME${user.userId}`]);
+        if (couponResult.rows.length > 0) {
+          couponCode = couponResult.rows[0].code;
+        }
+      } else {
+        // SQLite
+        const coupon = db.db.prepare('SELECT code FROM coupons WHERE code = ?').get(`WELCOME${user.userId}`);
+        if (coupon) {
+          couponCode = coupon.code;
+        }
+      }
+    } catch (err) {
+      console.error('쿠폰 확인 오류:', err);
+    }
+    
+    console.log(`✅ 회원가입 완료: ${name} (${phone}) - UserId: ${user.userId} - 쿠폰: ${couponCode || '발급 확인 필요'}`);
     
     res.json({ 
       success: true, 
-      message: '🎉 회원가입 완료! 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)' 
+      message: '🎉 회원가입 완료! 신규 회원 가입 쿠폰 10,000원이 지급되었습니다! (25,000원 이상 주문 시 사용 가능)',
+      userId: user.userId,
+      couponCode: couponCode
     });
   } catch (error) {
     console.error('회원가입 오류:', error);
@@ -275,6 +306,138 @@ app.post('/api/auth/login', async (req, res) => {
     });
   } catch (error) {
     console.error('로그인 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 모든 회원 목록 조회 (POS용)
+app.get('/api/users', async (req, res) => {
+  try {
+    let users;
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      const result = await db.query('SELECT "userId", phone, name, email, address, points, "createdAt" FROM users ORDER BY "createdAt" DESC');
+      users = result.rows.map(user => ({
+        userId: user.userId,
+        phone: user.phone,
+        name: user.name,
+        email: user.email || '',
+        address: user.address || '',
+        points: user.points || 0,
+        createdAt: user.createdAt
+      }));
+    } else {
+      // SQLite
+      const allUsers = db.db.prepare('SELECT userId, phone, name, email, address, points, createdAt FROM users ORDER BY createdAt DESC').all();
+      users = allUsers.map(user => ({
+        userId: user.userId,
+        phone: user.phone,
+        name: user.name,
+        email: user.email || '',
+        address: user.address || '',
+        points: user.points || 0,
+        createdAt: user.createdAt
+      }));
+    }
+    res.json({ success: true, users });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 모든 주문 내역 조회 (POS용)
+app.get('/api/orders', async (req, res) => {
+  try {
+    let orders;
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      const result = await db.query('SELECT * FROM orders ORDER BY "createdAt" DESC LIMIT 1000');
+      orders = result.rows.map(order => ({
+        ...order,
+        items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items
+      }));
+    } else {
+      // SQLite
+      orders = db.getAllOrders();
+    }
+    res.json({ success: true, orders });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 모든 포인트 내역 조회 (POS용)
+app.get('/api/points/history/all', async (req, res) => {
+  try {
+    let history;
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      const result = await db.query(`
+        SELECT ph.*, u.name as "userName", u.phone 
+        FROM point_history ph
+        LEFT JOIN users u ON ph."userId" = u."userId"
+        ORDER BY ph."createdAt" DESC
+        LIMIT 1000
+      `);
+      history = result.rows;
+    } else {
+      // SQLite
+      history = db.db.prepare(`
+        SELECT ph.*, u.name as userName, u.phone 
+        FROM point_history ph
+        LEFT JOIN users u ON ph.userId = u.userId
+        ORDER BY ph.createdAt DESC
+        LIMIT 1000
+      `).all();
+    }
+    res.json({ success: true, history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 모든 쿠폰 사용 내역 조회 (POS용)
+app.get('/api/coupons/usage/all', async (req, res) => {
+  try {
+    let usage;
+    if (process.env.DATABASE_URL) {
+      // PostgreSQL
+      const result = await db.query(`
+        SELECT 
+          cu.*,
+          c.code,
+          c.name as "couponName",
+          c."discountType",
+          c."discountValue",
+          u.name as "userName",
+          u.phone
+        FROM coupon_usage cu
+        LEFT JOIN coupons c ON cu."couponId" = c.id
+        LEFT JOIN users u ON cu."userId" = u."userId"
+        ORDER BY cu."usedAt" DESC
+        LIMIT 1000
+      `);
+      usage = result.rows;
+    } else {
+      // SQLite
+      usage = db.db.prepare(`
+        SELECT 
+          cu.*,
+          c.code,
+          c.name as couponName,
+          c.discountType,
+          c.discountValue,
+          u.name as userName,
+          u.phone
+        FROM coupon_usage cu
+        LEFT JOIN coupons c ON cu.couponId = c.id
+        LEFT JOIN users u ON cu.userId = u.userId
+        ORDER BY cu.usedAt DESC
+        LIMIT 1000
+      `).all();
+    }
+    res.json({ success: true, usage });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -686,6 +849,77 @@ app.post('/api/printer/test', (req, res) => {
     res.json({ success: result, message: result ? '프린터 테스트 완료' : '프린터 연결 실패' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 일반 프린터 테스트 (브라우저 인쇄)
+app.get('/api/printer/test-general', (req, res) => {
+  try {
+    const testHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>프린터 테스트 - 시티반점</title>
+        <style>
+          @media print {
+            @page { margin: 10mm; size: 80mm auto; }
+            body { margin: 0; padding: 0; }
+          }
+          body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            text-align: center;
+            width: 80mm;
+            margin: 0 auto;
+          }
+          .test-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+          }
+          .test-info {
+            font-size: 12px;
+            line-height: 1.6;
+            margin: 15px 0;
+            text-align: left;
+          }
+          .test-footer {
+            margin-top: 20px;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="test-header">프린터 테스트</div>
+        <div class="test-info">
+          <p><strong>시티반점 주문 시스템</strong></p>
+          <p>테스트 일시: ${new Date().toLocaleString('ko-KR')}</p>
+          <p>━━━━━━━━━━━━━━━━━━━━</p>
+          <p>이 전표가 정상적으로 출력되면</p>
+          <p>프린터가 정상 작동합니다.</p>
+          <p>━━━━━━━━━━━━━━━━━━━━</p>
+        </div>
+        <div class="test-footer">
+          <p>테스트 완료</p>
+        </div>
+        <script>
+          window.onload = function() {
+            setTimeout(() => {
+              window.print();
+            }, 500);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+    res.send(testHtml);
+  } catch (error) {
+    res.status(500).send('오류: ' + error.message);
   }
 });
 

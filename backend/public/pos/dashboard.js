@@ -84,9 +84,18 @@ function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
   
-  // 선택된 탭 활성화
-  event.target.classList.add('active');
-  document.getElementById(tabName + '-tab').classList.add('active');
+  // 선택된 탭 버튼 활성화
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.textContent.includes(getTabName(tabName)) || btn.onclick && btn.onclick.toString().includes(tabName)) {
+      btn.classList.add('active');
+    }
+  });
+  
+  // 선택된 탭 컨텐츠 활성화
+  const tabContent = document.getElementById(tabName + '-tab');
+  if (tabContent) {
+    tabContent.classList.add('active');
+  }
   
   // 해당 탭 데이터 로드
   if (tabName === 'stats') {
@@ -99,12 +108,18 @@ function switchTab(tabName) {
     loadRegionsTab();
   } else if (tabName === 'ri') {
     loadRiTab();
-  } else   if (tabName === 'apartments') {
+  } else if (tabName === 'apartments') {
     loadApartmentsTab();
-    // 프로젝트 수정 가능 확인 - 이 주석이 보이면 정상 작동 중!
-  }
-  if (tabName === 'menu-analysis') {
+  } else if (tabName === 'menu-analysis') {
     loadMenuAnalysisTab();
+  } else if (tabName === 'users') {
+    loadUsers();
+  } else if (tabName === 'orders') {
+    loadOrders();
+  } else if (tabName === 'points') {
+    loadPointHistory();
+  } else if (tabName === 'coupons') {
+    loadCouponUsage();
   }
 }
 
@@ -614,6 +629,14 @@ window.addEventListener('load', function() {
       loadCustomersTab();
     } else if (tab === 'regions') {
       loadRegionsTab();
+    } else if (tab === 'users') {
+      loadUsers();
+    } else if (tab === 'orders') {
+      loadOrders();
+    } else if (tab === 'points') {
+      loadPointHistory();
+    } else if (tab === 'coupons') {
+      loadCouponUsage();
     }
   } else {
     // 기본: 매출 통계
@@ -748,6 +771,290 @@ function renderRiTable(data) {
       </tr>
     `;
   }).join('');
+}
+
+// ========== 회원 목록 탭 ==========
+let allUsersData = [];
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/users');
+    const data = await res.json();
+    if (data.success) {
+      allUsersData = data.users;
+      renderUsers();
+    } else {
+      document.getElementById('users-table-body').innerHTML = '<tr><td colspan="7" class="error">데이터를 불러올 수 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('회원 목록 로드 오류:', error);
+    document.getElementById('users-table-body').innerHTML = '<tr><td colspan="7" class="error">오류가 발생했습니다.</td></tr>';
+  }
+}
+
+function renderUsers(searchTerm = '') {
+  const tbody = document.getElementById('users-table-body');
+  let filtered = allUsersData;
+  
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filtered = allUsersData.filter(user => 
+      user.name.toLowerCase().includes(term) ||
+      user.phone.includes(term) ||
+      (user.email && user.email.toLowerCase().includes(term))
+    );
+  }
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">회원이 없습니다.</td></tr>';
+    document.getElementById('users-count').textContent = '';
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map((user, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td>${user.name}</td>
+      <td>${user.phone}</td>
+      <td>${user.email || '-'}</td>
+      <td>${user.address || '-'}</td>
+      <td style="font-weight: 600; color: #667eea;">${(user.points || 0).toLocaleString()}P</td>
+      <td>${new Date(user.createdAt).toLocaleString('ko-KR')}</td>
+    </tr>
+  `).join('');
+  
+  document.getElementById('users-count').textContent = `총 ${filtered.length}명 (전체 ${allUsersData.length}명)`;
+}
+
+function filterUsers() {
+  const searchTerm = document.getElementById('user-search').value;
+  renderUsers(searchTerm);
+}
+
+// ========== 주문 내역 탭 ==========
+let allOrdersData = [];
+
+async function loadOrders() {
+  try {
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    if (data.success) {
+      allOrdersData = data.orders;
+      renderOrders();
+    } else {
+      document.getElementById('orders-table-body').innerHTML = '<tr><td colspan="9" class="error">데이터를 불러올 수 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('주문 내역 로드 오류:', error);
+    document.getElementById('orders-table-body').innerHTML = '<tr><td colspan="9" class="error">오류가 발생했습니다.</td></tr>';
+  }
+}
+
+function renderOrders(statusFilter = '', searchTerm = '') {
+  const tbody = document.getElementById('orders-table-body');
+  let filtered = allOrdersData;
+  
+  if (statusFilter) {
+    filtered = filtered.filter(order => order.status === statusFilter);
+  }
+  
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filtered = filtered.filter(order => 
+      order.customerName.toLowerCase().includes(term) ||
+      order.phone.includes(term) ||
+      order.orderId.toLowerCase().includes(term)
+    );
+  }
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">주문이 없습니다.</td></tr>';
+    document.getElementById('orders-count').textContent = '';
+    return;
+  }
+  
+  const statusText = {
+    'pending': '주문 대기',
+    'accepted': '주문 수락',
+    'preparing': '조리 중',
+    'delivering': '배달 중',
+    'completed': '배달 완료',
+    'cancelled': '취소됨'
+  };
+  
+  const statusColor = {
+    'pending': '#f39c12',
+    'accepted': '#3498db',
+    'preparing': '#9b59b6',
+    'delivering': '#1abc9c',
+    'completed': '#27ae60',
+    'cancelled': '#e74c3c'
+  };
+  
+  tbody.innerHTML = filtered.map(order => {
+    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    return `
+      <tr>
+        <td>${order.orderId}</td>
+        <td>${order.customerName}</td>
+        <td>${order.phone}</td>
+        <td>${order.address || '-'}</td>
+        <td>${order.orderType === 'takeout' ? '📦 포장' : '🚚 배달'}</td>
+        <td style="font-weight: 600;">${(order.totalAmount || 0).toLocaleString()}원</td>
+        <td>${order.paymentMethod || '현금'}</td>
+        <td style="color: ${statusColor[order.status] || '#666'}; font-weight: 600;">${statusText[order.status] || order.status}</td>
+        <td>${new Date(order.createdAt).toLocaleString('ko-KR')}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  document.getElementById('orders-count').textContent = `총 ${filtered.length}건 (전체 ${allOrdersData.length}건)`;
+}
+
+function filterOrders() {
+  const statusFilter = document.getElementById('order-status-filter').value;
+  const searchTerm = document.getElementById('order-search').value;
+  renderOrders(statusFilter, searchTerm);
+}
+
+// ========== 포인트 내역 탭 ==========
+let allPointHistoryData = [];
+
+async function loadPointHistory() {
+  try {
+    const res = await fetch('/api/points/history/all');
+    const data = await res.json();
+    if (data.success) {
+      allPointHistoryData = data.history;
+      renderPointHistory();
+    } else {
+      document.getElementById('points-table-body').innerHTML = '<tr><td colspan="6" class="error">데이터를 불러올 수 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('포인트 내역 로드 오류:', error);
+    document.getElementById('points-table-body').innerHTML = '<tr><td colspan="6" class="error">오류가 발생했습니다.</td></tr>';
+  }
+}
+
+function renderPointHistory(typeFilter = '', searchTerm = '') {
+  const tbody = document.getElementById('points-table-body');
+  let filtered = allPointHistoryData;
+  
+  if (typeFilter) {
+    filtered = filtered.filter(h => h.type === typeFilter);
+  }
+  
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filtered = filtered.filter(h => 
+      (h.userName && h.userName.toLowerCase().includes(term)) ||
+      (h.phone && h.phone.includes(term))
+    );
+  }
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">내역이 없습니다.</td></tr>';
+    document.getElementById('points-count').textContent = '';
+    return;
+  }
+  
+  const typeText = {
+    'earn': '적립',
+    'use': '사용',
+    'refund': '환불'
+  };
+  
+  const typeColor = {
+    'earn': '#27ae60',
+    'use': '#e74c3c',
+    'refund': '#3498db'
+  };
+  
+  tbody.innerHTML = filtered.map(h => `
+    <tr>
+      <td>${new Date(h.createdAt).toLocaleString('ko-KR')}</td>
+      <td>${h.userName || '-'}</td>
+      <td>${h.phone || '-'}</td>
+      <td>${h.orderId || '-'}</td>
+      <td style="color: ${typeColor[h.type] || '#666'}; font-weight: 600;">${typeText[h.type] || h.type}</td>
+      <td style="font-weight: 600; color: ${h.amount > 0 ? '#27ae60' : '#e74c3c'};">
+        ${h.amount > 0 ? '+' : ''}${h.amount.toLocaleString()}P
+      </td>
+    </tr>
+  `).join('');
+  
+  document.getElementById('points-count').textContent = `총 ${filtered.length}건 (전체 ${allPointHistoryData.length}건)`;
+}
+
+function filterPointHistory() {
+  const typeFilter = document.getElementById('point-type-filter').value;
+  const searchTerm = document.getElementById('point-search').value;
+  renderPointHistory(typeFilter, searchTerm);
+}
+
+// ========== 쿠폰 사용 내역 탭 ==========
+let allCouponUsageData = [];
+
+async function loadCouponUsage() {
+  try {
+    const res = await fetch('/api/coupons/usage/all');
+    const data = await res.json();
+    if (data.success) {
+      allCouponUsageData = data.usage;
+      renderCouponUsage();
+    } else {
+      document.getElementById('coupons-table-body').innerHTML = '<tr><td colspan="8" class="error">데이터를 불러올 수 없습니다.</td></tr>';
+    }
+  } catch (error) {
+    console.error('쿠폰 사용 내역 로드 오류:', error);
+    document.getElementById('coupons-table-body').innerHTML = '<tr><td colspan="8" class="error">오류가 발생했습니다.</td></tr>';
+  }
+}
+
+function renderCouponUsage(searchTerm = '') {
+  const tbody = document.getElementById('coupons-table-body');
+  let filtered = allCouponUsageData;
+  
+  if (searchTerm) {
+    const term = searchTerm.toLowerCase();
+    filtered = allCouponUsageData.filter(u => 
+      (u.couponName && u.couponName.toLowerCase().includes(term)) ||
+      (u.code && u.code.toLowerCase().includes(term)) ||
+      (u.userName && u.userName.toLowerCase().includes(term)) ||
+      (u.phone && u.phone.includes(term))
+    );
+  }
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #999;">사용 내역이 없습니다.</td></tr>';
+    document.getElementById('coupons-count').textContent = '';
+    return;
+  }
+  
+  tbody.innerHTML = filtered.map(u => {
+    const discountText = u.discountType === 'fixed' 
+      ? `${u.discountValue.toLocaleString()}원`
+      : `${u.discountValue}%`;
+    return `
+      <tr>
+        <td>${new Date(u.usedAt).toLocaleString('ko-KR')}</td>
+        <td>${u.couponName || '-'}</td>
+        <td style="font-family: monospace; font-weight: 600;">${u.code || '-'}</td>
+        <td>${u.discountType === 'fixed' ? '정액' : '정률'}</td>
+        <td style="font-weight: 600; color: #27ae60;">${discountText}</td>
+        <td>${u.userName || '-'}</td>
+        <td>${u.phone || '-'}</td>
+        <td>${u.orderId || '-'}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  document.getElementById('coupons-count').textContent = `총 ${filtered.length}건 (전체 ${allCouponUsageData.length}건)`;
+}
+
+function filterCouponUsage() {
+  const searchTerm = document.getElementById('coupon-search').value;
+  renderCouponUsage(searchTerm);
 }
 
 // ========== 아파트 단지 통계 탭 ==========

@@ -974,6 +974,16 @@ async function renderCart() {
     totalPriceEl.textContent = finalAmount.toLocaleString() + '원';
   }
   
+  // 쿠폰 섹션 표시/숨김 (회원일 때만)
+  const couponSection = document.getElementById('coupon-section');
+  if (couponSection) {
+    if (currentUser && !isGuest) {
+      couponSection.style.display = 'block';
+    } else {
+      couponSection.style.display = 'none';
+    }
+  }
+  
   // 쿠폰 할인 행 추가/제거
   const existingCouponRow = document.getElementById('coupon-discount-row');
   if (couponDiscount > 0) {
@@ -1008,7 +1018,8 @@ async function renderCart() {
       existingCouponRow.remove();
     }
   }
-
+  
+  // 포인트 섹션 표시/숨김
   const pointSection = document.getElementById('point-section');
   const earnPointsInfo = document.getElementById('earn-points-info');
   
@@ -1024,8 +1035,8 @@ async function renderCart() {
       usePointsInput.value = usedPoints;
     }
     
-    const finalAmount = itemsTotal - usedPoints + deliveryFee;
-    const earnPoints = Math.floor((itemsTotal - usedPoints) * 0.10);
+    const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
+    const earnPoints = Math.floor((itemsTotal - usedPoints - couponDiscount) * 0.10);
     
     // 보유 포인트 표시
     const userPointsDisplay = document.getElementById('user-points-display');
@@ -1423,8 +1434,9 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
 
   const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
 
-  // 카드 결제인 경우 PG 결제 진행
-  if (paymentMethod === 'card' && typeof IMP !== 'undefined') {
+  // 선결제인 경우 PG 결제 진행 (카드, 카카오페이, 네이버페이)
+  const prepaidMethods = ['card_prepaid', 'kakao_pay', 'naver_pay'];
+  if (prepaidMethods.includes(paymentMethod) && typeof IMP !== 'undefined') {
     // IMP_KEY는 서버에서 전달받음
     const IMP_KEY = window.APP_CONFIG?.IMP_KEY || 'imp12345678';
     
@@ -1436,9 +1448,24 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     
     IMP.init(IMP_KEY);
     
+    // PG사 및 결제 방법 설정
+    let pg = 'inicis'; // 기본값: 이니시스
+    let pay_method = 'card';
+    
+    if (paymentMethod === 'kakao_pay') {
+      pg = 'kakaopay';
+      pay_method = 'card';
+    } else if (paymentMethod === 'naver_pay') {
+      pg = 'naverpay';
+      pay_method = 'card';
+    } else if (paymentMethod === 'card_prepaid') {
+      pg = 'inicis';
+      pay_method = 'card';
+    }
+    
     IMP.request_pay({
-      pg: 'inicis', // 이니시스
-      pay_method: 'card',
+      pg: pg,
+      pay_method: pay_method,
       merchant_uid: merchantUid,
       name: `시티반점 주문 (${cart.length}개 메뉴)`,
       amount: finalAmount,
@@ -1474,7 +1501,7 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
     return; // PG 결제 진행 중이므로 여기서 종료
   }
 
-  // 현금 결제 또는 PG 미설정 시 바로 주문 생성
+  // 만나서 결제 (현금/카드) 또는 PG 미설정 시 바로 주문 생성
   await createOrder(orderData, null, null);
 });
 
