@@ -704,7 +704,9 @@ app.post('/api/orders', async (req, res) => {
     const finalAmount = totalAmount - (usedPoints || 0) - (couponDiscount || 0) + finalDeliveryFee;
     const earnedPoints = userId && !isGuest ? Math.floor((totalAmount - (usedPoints || 0) - (couponDiscount || 0)) * 0.10) : 0;
     
-    const orderId = 'ORD-' + Date.now();
+    // 주문번호를 1번부터 순차적으로 생성
+    const orderNumber = db.getNextOrderNumber();
+    const orderId = orderNumber.toString();
     const orderData = {
       orderId,
       userId: userId || null,
@@ -815,7 +817,14 @@ app.post('/api/orders/:orderId/status', (req, res) => {
     
     // 주문 수락 시 프린터에서 자동 인쇄
     if (status === 'accepted') {
+      console.log('✅ 주문 수락 상태 변경:', orderId);
       if (order) {
+        console.log('📋 주문 데이터 확인:', {
+          orderId: order.orderId || order.orderid,
+          customerName: order.customerName || order.customername,
+          items: typeof order.items === 'string' ? 'string' : 'array'
+        });
+        
         // 프린터 출력용 주문 데이터 준비
         const orderForPrint = {
           orderId: order.orderId || order.orderid,
@@ -833,6 +842,7 @@ app.post('/api/orders/:orderId/status', (req, res) => {
           createdAt: order.createdAt || order.createdat
         };
         
+        console.log('🖨️ 프린터 출력 함수 호출 시작');
         // 프린터 출력
         // 프린터 서버 URL이 있으면 원격 호출, 없으면 로컬 프린터 사용
         const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
@@ -841,9 +851,12 @@ app.post('/api/orders/:orderId/status', (req, res) => {
             .then(() => console.log('✅ 원격 프린터 출력 완료:', orderId))
             .catch(err => console.error('❌ 원격 프린터 출력 실패:', err.message));
         } else {
-          printer.printOrder(orderForPrint);
+          const printResult = printer.printOrder(orderForPrint);
+          console.log('🖨️ 주문 수락 - 프린터 출력 결과:', printResult, '주문번호:', orderId);
         }
         console.log('🖨️ 주문 수락 - 프린터 출력:', orderId);
+      } else {
+        console.error('❌ 주문 데이터가 없습니다:', orderId);
       }
     }
     
