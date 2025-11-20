@@ -1434,6 +1434,25 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
 
   const finalAmount = itemsTotal - usedPoints - couponDiscount + deliveryFee;
 
+  // 주문 데이터 준비
+  const orderData = {
+    userId: currentUser ? currentUser.userid : null,
+    customerName,
+    phone,
+    address,
+    items: cart,
+    totalAmount: itemsTotal,
+    usedPoints: usedPoints || 0,
+    couponCode: couponCode || null,
+    couponDiscount: couponDiscount || 0,
+    orderType: orderType || 'delivery',
+    deliveryFee: deliveryFee || 0,
+    paymentMethod: paymentMethod,
+    isGuest: !currentUser,
+    phoneVerified: currentUser ? true : (guestPhone === phone),
+    specialRequest: specialRequest || ''
+  };
+
   // 선결제인 경우 PG 결제 진행 (카드, 카카오페이, 네이버페이)
   const prepaidMethods = ['card_prepaid', 'kakao_pay', 'naver_pay'];
   if (prepaidMethods.includes(paymentMethod) && typeof IMP !== 'undefined') {
