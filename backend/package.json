@@ -2,9 +2,9 @@
   "name": "city-restaurant-backend",
   "version": "1.0.0",
   "description": "시티반점 주문 서버",
-  "main": "server-simple.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server-simple.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18.x"
@@ -19,10 +19,12 @@
     "better-sqlite3": "^9.2.0",
     "bcrypt": "^5.1.1",
     "multer": "^1.4.5-lts.1",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "crypto": "^1.0.1"
   },
   "optionalDependencies": {
     "escpos": "^3.0.0-alpha.6",
-    "escpos-usb": "^3.0.0-alpha.4"
+    "escpos-usb": "^3.0.0-alpha.4",
+    "serialport": "^12.0.0"
   }
 }

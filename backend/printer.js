@@ -1,50 +1,103 @@
 // 프린터 모듈
 // 프린터 라이브러리는 선택적 로드 (설치되지 않아도 서버는 동작)
-let escpos, escposUSB;
+let escpos, escposUSB, SerialPort;
 try {
   escpos = require('escpos');
   escposUSB = require('escpos-usb');
+  SerialPort = require('serialport');
 } catch (error) {
   console.log('⚠️ 프린터 라이브러리가 설치되지 않았습니다. 프린터 기능을 사용할 수 없습니다.');
-  console.log('설치: npm install escpos escpos-usb');
+  console.log('설치: npm install escpos escpos-usb serialport');
   // 프린터 기능 비활성화
   escpos = null;
   escposUSB = null;
+  SerialPort = null;
 }
 
 // 프린터 설정 (환경 변수 또는 기본값)
 const PRINTER_VENDOR_ID = process.env.PRINTER_VENDOR_ID || null;
 const PRINTER_PRODUCT_ID = process.env.PRINTER_PRODUCT_ID || null;
 
+// 시리얼 포트 프린터 설정 (LKT-20)
+const PRINTER_SERIAL_PORT = process.env.PRINTER_SERIAL_PORT || 'COM2';
+const PRINTER_BAUD_RATE = parseInt(process.env.PRINTER_BAUD_RATE || '9600', 10);
+
 let printer = null;
+let printerDevice = null;
 
 // 프린터 초기화
 function initPrinter() {
   // 프린터 라이브러리가 없으면 초기화하지 않음
-  if (!escpos || !escposUSB) {
+  if (!escpos) {
     console.log('⚠️ 프린터 라이브러리가 없어 프린터 기능을 사용할 수 없습니다.');
     return false;
   }
   
   try {
-    // USB 프린터 연결 시도
-    if (PRINTER_VENDOR_ID && PRINTER_PRODUCT_ID) {
-      const device = escposUSB.findPrinter(PRINTER_VENDOR_ID, PRINTER_PRODUCT_ID);
-      if (device) {
-        printer = new escpos.Printer(device);
-        console.log('✅ 프린터 연결 성공');
+    // 1순위: 시리얼 포트 프린터 (LKT-20 등)
+    if (SerialPort && PRINTER_SERIAL_PORT) {
+      try {
+        const serialPort = new SerialPort({
+          path: PRINTER_SERIAL_PORT,
+          baudRate: PRINTER_BAUD_RATE,
+          autoOpen: false
+        });
+        
+        printerDevice = serialPort;
+        printer = new escpos.Printer(serialPort);
+        
+        serialPort.open((err) => {
+          if (err) {
+            console.error(`❌ 시리얼 포트 ${PRINTER_SERIAL_PORT} 열기 실패:`, err.message);
+            printer = null;
+            printerDevice = null;
+          } else {
+            console.log(`✅ 시리얼 포트 프린터 연결 성공: ${PRINTER_SERIAL_PORT} (${PRINTER_BAUD_RATE} baud)`);
+          }
+        });
+        
         return true;
+      } catch (error) {
+        console.log(`⚠️ 시리얼 포트 ${PRINTER_SERIAL_PORT} 연결 실패:`, error.message);
       }
     }
     
-    // 네트워크 프린터 (IP 주소)
-    const PRINTER_IP = process.env.PRINTER_IP || '192.168.0.100';
+    // 2순위: USB 프린터 연결 시도
+    if (escposUSB && PRINTER_VENDOR_ID && PRINTER_PRODUCT_ID) {
+      try {
+        const device = escposUSB.findPrinter(PRINTER_VENDOR_ID, PRINTER_PRODUCT_ID);
+        if (device) {
+          printerDevice = device;
+          printer = new escpos.Printer(device);
+          console.log('✅ USB 프린터 연결 성공');
+          return true;
+        }
+      } catch (error) {
+        console.log('⚠️ USB 프린터 연결 실패:', error.message);
+      }
+    }
+    
+    // 3순위: 네트워크 프린터 (IP 주소)
+    const PRINTER_IP = process.env.PRINTER_IP || null;
     const PRINTER_PORT = process.env.PRINTER_PORT || 9100;
     
-    // 네트워크 프린터는 escpos-network 사용 필요
-    // 일단 USB만 지원
+    if (PRINTER_IP) {
+      try {
+        const escposNetwork = require('escpos-network');
+        const device = new escposNetwork(PRINTER_IP, PRINTER_PORT);
+        printerDevice = device;
+        printer = new escpos.Printer(device);
+        console.log(`✅ 네트워크 프린터 연결 성공: ${PRINTER_IP}:${PRINTER_PORT}`);
+        return true;
+      } catch (error) {
+        console.log('⚠️ 네트워크 프린터 연결 실패:', error.message);
+      }
+    }
     
     console.log('⚠️ 프린터를 찾을 수 없습니다. 환경 변수를 확인하세요.');
+    console.log('시리얼 포트: PRINTER_SERIAL_PORT, PRINTER_BAUD_RATE');
+    console.log('USB: PRINTER_VENDOR_ID, PRINTER_PRODUCT_ID');
+    console.log('네트워크: PRINTER_IP, PRINTER_PORT');
     return false;
   } catch (error) {
     console.error('❌ 프린터 초기화 오류:', error.message);
@@ -54,10 +107,24 @@ function initPrinter() {
 
 // 주문서 출력
 function printOrder(order) {
-  if (!printer) {
+  if (!printer || !printerDevice) {
     console.log('⚠️ 프린터가 연결되지 않았습니다. 주문 정보만 출력합니다.');
     console.log('📄 주문서:', JSON.stringify(order, null, 2));
     return false;
+  }
+  
+  // 시리얼 포트가 닫혀있으면 다시 열기
+  if (printerDevice && printerDevice.isOpen === false) {
+    try {
+      printerDevice.open((err) => {
+        if (err) {
+          console.error('❌ 프린터 포트 열기 실패:', err.message);
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('❌ 프린터 포트 열기 오류:', error.message);
+    }
   }
   
   try {

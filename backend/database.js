@@ -30,9 +30,17 @@ class DB {
         category TEXT NOT NULL,
         price INTEGER NOT NULL,
         emoji TEXT,
-        bestseller INTEGER DEFAULT 0
+        bestseller INTEGER DEFAULT 0,
+        isAvailable INTEGER DEFAULT 1
       )
     `);
+    
+    // 기존 메뉴 테이블에 isAvailable 컬럼 추가 (없으면)
+    try {
+      this.db.exec('ALTER TABLE menu ADD COLUMN isAvailable INTEGER DEFAULT 1');
+    } catch (err) {
+      // 컬럼이 이미 있으면 무시
+    }
 
     // 회원 테이블
     this.db.exec(`
@@ -371,6 +379,67 @@ class DB {
 
   updateOrderStatus(orderId, status) {
     return this.db.prepare('UPDATE orders SET status = ? WHERE orderId = ?').run(status, orderId);
+  }
+
+  // 주문 수정 (접수 전에만 가능)
+  updateOrder(orderId, updates) {
+    const order = this.getOrderById(orderId);
+    if (!order) {
+      return { success: false, error: '주문을 찾을 수 없습니다.' };
+    }
+
+    // 접수 전 상태가 아니면 수정 불가
+    if (order.status !== 'pending') {
+      return { success: false, error: '접수 전 주문만 수정할 수 있습니다.' };
+    }
+
+    const updatesList = [];
+    const values = [];
+
+    if (updates.items !== undefined) {
+      updatesList.push('items = ?');
+      values.push(JSON.stringify(updates.items));
+    }
+
+    if (updates.address !== undefined) {
+      updatesList.push('address = ?');
+      values.push(updates.address);
+    }
+
+    if (updates.totalAmount !== undefined) {
+      updatesList.push('totalAmount = ?');
+      values.push(updates.totalAmount);
+    }
+
+    if (updates.finalAmount !== undefined) {
+      updatesList.push('finalAmount = ?');
+      values.push(updates.finalAmount);
+    }
+
+    if (updates.usedPoints !== undefined) {
+      updatesList.push('usedPoints = ?');
+      values.push(updates.usedPoints);
+    }
+
+    if (updates.couponCode !== undefined) {
+      updatesList.push('couponCode = ?');
+      values.push(updates.couponCode);
+    }
+
+    if (updates.couponDiscount !== undefined) {
+      updatesList.push('couponDiscount = ?');
+      values.push(updates.couponDiscount);
+    }
+
+    if (updatesList.length === 0) {
+      return { success: false, error: '수정할 내용이 없습니다.' };
+    }
+
+    values.push(orderId);
+    const sql = `UPDATE orders SET ${updatesList.join(', ')} WHERE orderId = ?`;
+    this.db.prepare(sql).run(...values);
+
+    return { success: true, order: this.getOrderById(orderId) };
   }
 
   // 포인트 내역

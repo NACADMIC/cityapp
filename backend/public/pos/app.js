@@ -453,12 +453,17 @@ function updateStats() {
 }
 
 // Update order status
-async function updateStatus(orderId, newStatus) {
+async function updateStatus(orderId, newStatus, estimatedTime = null) {
   try {
+    const body = { status: newStatus };
+    if (estimatedTime !== null) {
+      body.estimatedTime = estimatedTime;
+    }
+    
     const res = await fetch(`/api/orders/${orderId}/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
+      body: JSON.stringify(body)
     });
     
     const data = await res.json();
@@ -536,6 +541,13 @@ function showOrderPopup(orderData) {
     <h3 style="margin-top: 25px;">🍜 주문 메뉴</h3>
     ${itemsHTML || '<p>메뉴 정보 없음</p>'}
     <div class="popup-total">합계: ${(orderData.totalAmount || 0).toLocaleString()}원</div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+      <label style="display: block; margin-bottom: 8px; font-weight: 600;">⏱️ 예상 배달 시간 (분)</label>
+      <input type="number" id="estimated-time-input" min="10" max="120" value="${orderData.estimatedTime || 35}" 
+             style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px;">
+      <p style="margin-top: 5px; font-size: 12px; color: #666;">기본값: 35분 (10-120분 사이 입력)</p>
+    </div>
   `;
   
   console.log('📝 팝업 내용 설정 완료');
@@ -545,9 +557,18 @@ function showOrderPopup(orderData) {
   popup.classList.add('show');
   console.log('✅ 팝업 표시됨! display:', popup.style.display, 'classList:', popup.classList);
   
-  // 버튼 확인
+  // 수락 버튼에 예상 시간 포함하도록 수정
   const acceptBtn = popup.querySelector('.btn-accept');
   const rejectBtn = popup.querySelector('.btn-reject');
+  
+  if (acceptBtn && orderData.orderId) {
+    // 기존 onclick 제거하고 새로 설정
+    acceptBtn.onclick = () => {
+      const estimatedTime = parseInt(document.getElementById('estimated-time-input')?.value || 35);
+      updateStatus(orderData.orderId, 'accepted', estimatedTime);
+    };
+  }
+  
   console.log('  - 수락 버튼:', acceptBtn);
   console.log('  - 거절 버튼:', rejectBtn);
   

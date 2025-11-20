@@ -413,8 +413,10 @@ function renderMenuItems(filtered) {
 
   menuList.innerHTML = filtered.map(item => {
     const isFavorite = favoriteMenuIds.includes(item.id);
+    const isAvailable = item.isAvailable !== 0 && item.isAvailable !== false;
     return `
-    <div class="menu-item" onclick="showMenuDetail(${item.id})">
+    <div class="menu-item" ${!isAvailable ? 'style="opacity: 0.5; position: relative;"' : ''} onclick="${isAvailable ? `showMenuDetail(${item.id})` : 'alert(\'품절된 메뉴입니다.\')'}">
+      ${!isAvailable ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 16px; border-radius: 8px; font-weight: 700; z-index: 100;">품절</div>' : ''}
       ${item.image 
         ? `<img src="${item.image}" alt="${item.name}" class="menu-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
            <div class="emoji" style="display:none;">${item.emoji || '🍜'}</div>`
@@ -489,36 +491,132 @@ async function toggleFavorite(menuId) {
 }
 
 // 주소록 모달
-function showAddressModal() {
+async function showAddressModal() {
   if (!currentUser) {
     alert('로그인이 필요합니다.');
     return;
   }
   
-  // 간단한 주소록 표시
-  loadSavedAddresses().then(addresses => {
-    if (addresses.length === 0) {
-      const addressName = prompt('주소 이름을 입력하세요 (예: 집, 회사):');
-      if (addressName) {
-        const address = document.getElementById('checkout-address').value.trim();
-        if (address) {
-          saveAddress(address, addressName);
-        }
-      }
-    } else {
-      const addressList = addresses.map((addr, idx) => 
-        `${idx + 1}. ${addr.addressName}: ${addr.address}`
-      ).join('\n');
-      const selected = prompt(`저장된 주소:\n${addressList}\n\n번호를 선택하세요 (또는 새 주소 입력):`);
-      
-      if (selected) {
-        const num = parseInt(selected);
-        if (!isNaN(num) && num > 0 && num <= addresses.length) {
-          document.getElementById('checkout-address').value = addresses[num - 1].address;
-        }
-      }
+  const modal = document.getElementById('address-modal');
+  if (!modal) {
+    alert('주소록 모달을 찾을 수 없습니다.');
+    return;
+  }
+  
+  modal.style.display = 'flex';
+  
+  try {
+    const res = await fetch(`/api/addresses/${currentUser.userId || currentUser.userid}`);
+    const data = await res.json();
+    
+    if (data.success) {
+      displayAddressList(data.addresses || []);
     }
-  });
+  } catch (error) {
+    console.error('주소록 로드 오류:', error);
+    document.getElementById('address-list').innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">주소록을 불러올 수 없습니다.</p>';
+  }
+}
+
+// 주소록 목록 표시
+function displayAddressList(addresses) {
+  const addressList = document.getElementById('address-list');
+  if (!addressList) return;
+  
+  if (addresses.length === 0) {
+    addressList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">저장된 주소가 없습니다.</p>';
+    return;
+  }
+  
+  addressList.innerHTML = addresses.map(addr => `
+    <div class="address-item" onclick="selectAddress('${addr.address.replace(/'/g, "\\'")}', ${addr.id})" style="padding: 15px; border: 2px solid ${addr.isDefault ? '#ff9800' : '#ddd'}; border-radius: 10px; margin-bottom: 10px; cursor: pointer; background: ${addr.isDefault ? '#fff3cd' : 'white'};">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="flex: 1;">
+          <div style="font-weight: 600; margin-bottom: 5px;">
+            ${addr.addressName || '주소'} ${addr.isDefault ? '<span style="background: #ff9800; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px;">기본</span>' : ''}
+          </div>
+          <div style="color: #666; font-size: 14px;">${addr.address}</div>
+        </div>
+        <button onclick="event.stopPropagation(); deleteAddress(${addr.id})" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-left: 10px;">
+          삭제
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 주소 선택
+function selectAddress(address, addressId) {
+  document.getElementById('checkout-address').value = address;
+  document.getElementById('address-modal').style.display = 'none';
+}
+
+// 주소 삭제
+async function deleteAddress(addressId) {
+  if (!confirm('이 주소를 삭제하시겠습니까?')) return;
+  
+  if (!currentUser) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`/api/addresses/${currentUser.userId || currentUser.userid}/${addressId}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      alert('주소가 삭제되었습니다.');
+      showAddressModal(); // 목록 새로고침
+    } else {
+      alert('주소 삭제에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error('주소 삭제 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
+}
+
+// 주소 저장
+async function saveAddress() {
+  if (!currentUser) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  const address = document.getElementById('checkout-address').value.trim();
+  if (!address) {
+    alert('주소를 입력해주세요.');
+    return;
+  }
+  
+  const addressName = prompt('주소 이름을 입력해주세요 (예: 집, 회사)', '집');
+  if (!addressName) return;
+  
+  try {
+    const res = await fetch('/api/addresses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.userId || currentUser.userid,
+        address: address,
+        addressName: addressName,
+        isDefault: false
+      })
+    });
+    
+    const data = await res.json();
+    if (data.success) {
+      alert('주소가 저장되었습니다.');
+      showAddressModal(); // 목록 새로고침
+    } else {
+      alert('주소 저장에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error('주소 저장 오류:', error);
+    alert('오류가 발생했습니다.');
+  }
 }
 
 // 저장된 주소 로드
@@ -1134,6 +1232,97 @@ function applyPoints() {
   renderCart();
 }
 
+// 사용 가능한 쿠폰 자동 제안
+async function suggestAvailableCoupons() {
+  if (!currentUser || isGuest || cart.length === 0) {
+    return;
+  }
+
+  const itemsTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  try {
+    const res = await fetch(`/api/coupons/user/${currentUser.userid}`);
+    const data = await res.json();
+    
+    if (data.success && data.coupons && data.coupons.length > 0) {
+      // 사용 가능한 쿠폰 필터링 (최소 주문 금액 체크)
+      const availableCoupons = data.coupons.filter(coupon => {
+        if (coupon.usedCount >= coupon.maxUseCount) return false;
+        if (coupon.minAmount && itemsTotal < coupon.minAmount) return false;
+        return true;
+      });
+      
+      if (availableCoupons.length > 0) {
+        // 가장 할인액이 큰 쿠폰 추천
+        const bestCoupon = availableCoupons.reduce((best, current) => {
+          return current.discountAmount > best.discountAmount ? current : best;
+        });
+        
+        // 쿠폰 자동 제안 UI 표시
+        showCouponSuggestion(bestCoupon, availableCoupons.length);
+      }
+    }
+  } catch (error) {
+    console.error('쿠폰 제안 오류:', error);
+  }
+}
+
+// 쿠폰 제안 UI 표시
+function showCouponSuggestion(bestCoupon, totalCount) {
+  // 기존 제안 제거
+  const existingSuggestion = document.getElementById('coupon-suggestion');
+  if (existingSuggestion) {
+    existingSuggestion.remove();
+  }
+  
+  // 쿠폰 섹션 찾기
+  const couponSection = document.getElementById('coupon-section');
+  if (!couponSection) return;
+  
+  // 제안 UI 생성
+  const suggestionDiv = document.createElement('div');
+  suggestionDiv.id = 'coupon-suggestion';
+  suggestionDiv.style.cssText = 'background: #e8f5e9; border: 2px solid #4caf50; border-radius: 10px; padding: 15px; margin-bottom: 15px;';
+  suggestionDiv.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div>
+        <div style="font-weight: 700; color: #2e7d32; font-size: 16px; margin-bottom: 5px;">
+          🎁 사용 가능한 쿠폰이 ${totalCount}개 있어요!
+        </div>
+        <div style="color: #555; font-size: 14px;">
+          <strong>${bestCoupon.name}</strong> - ${bestCoupon.discountAmount.toLocaleString()}원 할인
+        </div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button onclick="autoApplyCoupon('${bestCoupon.code}')" style="flex: 1; padding: 10px; background: #4caf50; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+        자동 적용
+      </button>
+      <button onclick="showCouponList()" style="flex: 1; padding: 10px; background: white; color: #4caf50; border: 2px solid #4caf50; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;">
+        전체 보기
+      </button>
+    </div>
+  `;
+  
+  // 쿠폰 섹션 맨 위에 삽입
+  couponSection.insertBefore(suggestionDiv, couponSection.firstChild);
+}
+
+// 쿠폰 자동 적용
+async function autoApplyCoupon(code) {
+  const couponCodeInput = document.getElementById('coupon-code');
+  if (couponCodeInput) {
+    couponCodeInput.value = code;
+  }
+  await applyCoupon();
+  
+  // 제안 UI 제거
+  const suggestion = document.getElementById('coupon-suggestion');
+  if (suggestion) {
+    suggestion.remove();
+  }
+}
+
 // 쿠폰 적용
 async function applyCoupon() {
   if (!currentUser || isGuest) {
@@ -1526,6 +1715,50 @@ document.getElementById('checkout-form').addEventListener('submit', async (e) =>
 
 // 주문 생성 함수 (외부에서 호출 가능)
 async function createOrder(orderData, merchantUid, impUid) {
+  // 주문 수정 모드인지 확인
+  if (window.editingOrderId) {
+    // 주문 수정
+    try {
+      const res = await fetch(`/api/orders/${window.editingOrderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: orderData.items,
+          address: orderData.address,
+          totalAmount: orderData.totalAmount,
+          finalAmount: orderData.totalAmount - orderData.usedPoints - orderData.couponDiscount + orderData.deliveryFee,
+          usedPoints: orderData.usedPoints,
+          couponCode: orderData.couponCode,
+          couponDiscount: orderData.couponDiscount
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert('주문이 수정되었습니다!');
+        window.editingOrderId = null;
+        // 장바구니 초기화
+        cart = [];
+        usedPoints = 0;
+        couponCode = null;
+        couponDiscount = 0;
+        updateCartCount();
+        // 마이페이지로 이동
+        window.location.href = '/mypage';
+        return;
+      } else {
+        alert('주문 수정 실패: ' + (data.error || '알 수 없는 오류'));
+        return;
+      }
+    } catch (error) {
+      console.error('주문 수정 오류:', error);
+      alert('주문 수정 중 오류가 발생했습니다.');
+      return;
+    }
+  }
+
+  // 새 주문 생성
   const orderPayload = {
     ...orderData,
     orderId: merchantUid || ('ORD-' + Date.now()),
@@ -1573,6 +1806,15 @@ async function createOrder(orderData, merchantUid, impUid) {
       document.getElementById('checkout-address').value = '';
       
       updateCartCount();
+
+      // 주문 완료 후 리뷰 작성 버튼 표시 (회원만)
+      if (currentUser && currentUser.userId) {
+        document.getElementById('review-section').style.display = 'block';
+        // 리뷰 작성용 orderId 저장
+        window.currentOrderId = data.orderId;
+      } else {
+        document.getElementById('review-section').style.display = 'none';
+      }
 
       showScreen('complete-screen');
     } else {
@@ -1713,6 +1955,132 @@ function goToOrderHistory() {
   } catch (e) {
     console.error('세션 파싱 오류:', e);
     alert('로그인이 필요합니다.');
+  }
+}
+
+// 리뷰 작성 모달 표시
+function showReviewModal() {
+  document.getElementById('review-modal').style.display = 'flex';
+  // 별점 초기화
+  document.querySelectorAll('.star').forEach(star => {
+    star.textContent = '☆';
+    star.style.color = '#ddd';
+  });
+  document.getElementById('review-comment').value = '';
+  document.getElementById('submit-review-btn').disabled = true;
+  window.currentRating = 0;
+}
+
+// 리뷰 작성 모달 닫기
+function closeReviewModal() {
+  document.getElementById('review-modal').style.display = 'none';
+}
+
+// 별점 선택
+document.addEventListener('DOMContentLoaded', () => {
+  const stars = document.querySelectorAll('.star');
+  const ratingText = document.getElementById('rating-text');
+  const submitBtn = document.getElementById('submit-review-btn');
+  
+  if (stars.length > 0) {
+    stars.forEach(star => {
+      star.addEventListener('click', () => {
+        const rating = parseInt(star.dataset.rating);
+        window.currentRating = rating;
+        
+        // 별점 표시 업데이트
+        stars.forEach((s, index) => {
+          if (index < rating) {
+            s.textContent = '★';
+            s.style.color = '#ffd700';
+          } else {
+            s.textContent = '☆';
+            s.style.color = '#ddd';
+          }
+        });
+        
+        // 별점 텍스트 업데이트
+        const texts = ['', '별로예요', '보통이에요', '좋아요', '매우 좋아요', '최고예요'];
+        ratingText.textContent = texts[rating] || '';
+        ratingText.style.color = '#333';
+        
+        // 제출 버튼 활성화
+        submitBtn.disabled = false;
+      });
+      
+      // 호버 효과
+      star.addEventListener('mouseenter', () => {
+        const rating = parseInt(star.dataset.rating);
+        stars.forEach((s, index) => {
+          if (index < rating) {
+            s.style.color = '#ffd700';
+          }
+        });
+      });
+    });
+    
+    // 별점 영역에서 마우스 나갈 때
+    document.getElementById('star-rating').addEventListener('mouseleave', () => {
+      if (window.currentRating) {
+        const rating = window.currentRating;
+        stars.forEach((s, index) => {
+          if (index < rating) {
+            s.textContent = '★';
+            s.style.color = '#ffd700';
+          } else {
+            s.textContent = '☆';
+            s.style.color = '#ddd';
+          }
+        });
+      }
+    });
+  }
+});
+
+// 리뷰 제출
+async function submitReview() {
+  if (!window.currentRating || window.currentRating < 1) {
+    alert('별점을 선택해주세요.');
+    return;
+  }
+  
+  if (!window.currentOrderId) {
+    alert('주문 정보를 찾을 수 없습니다.');
+    return;
+  }
+  
+  if (!currentUser || !currentUser.userId) {
+    alert('로그인이 필요합니다.');
+    return;
+  }
+  
+  const comment = document.getElementById('review-comment').value.trim();
+  const rating = window.currentRating;
+  
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: window.currentOrderId,
+        userId: currentUser.userId,
+        rating: rating,
+        comment: comment || null
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      alert('리뷰가 등록되었습니다. 감사합니다!');
+      closeReviewModal();
+      document.getElementById('review-section').style.display = 'none';
+    } else {
+      alert(data.error || '리뷰 등록에 실패했습니다.');
+    }
+  } catch (error) {
+    console.error('리뷰 제출 오류:', error);
+    alert('리뷰 등록 중 오류가 발생했습니다.');
   }
 }
 
@@ -2141,6 +2509,7 @@ function updateSideCartCount() {
     }
     
     // 재주문 체크
+    // 재주문 처리 (mypage에서 온 경우)
     const reorderItems = localStorage.getItem('reorder-items');
     const quickCheckout = localStorage.getItem('quick-checkout');
     
@@ -2179,6 +2548,81 @@ function updateSideCartCount() {
       }
     } else {
       showAuthSelect();
+    }
+  }
+  
+  // 재주문 처리
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('reorder') === 'true') {
+    const reorderData = sessionStorage.getItem('reorderData');
+    if (reorderData) {
+      try {
+        const data = JSON.parse(reorderData);
+        // 장바구니에 추가
+        if (data.items && Array.isArray(data.items)) {
+          cart = data.items;
+          updateCartCount();
+          // 주소 자동 입력
+          if (data.address) {
+            document.getElementById('checkout-address').value = data.address;
+          }
+          // 장바구니 화면으로 이동
+          showCart();
+          sessionStorage.removeItem('reorderData');
+        }
+      } catch (e) {
+        console.error('재주문 데이터 파싱 오류:', e);
+      }
+    }
+  }
+  
+  // 주문 수정 처리
+  if (urlParams.get('edit') === 'true') {
+    const editOrderData = sessionStorage.getItem('editOrderData');
+    if (editOrderData) {
+      try {
+        const data = JSON.parse(editOrderData);
+        window.editingOrderId = data.orderId;
+        
+        // 장바구니에 기존 주문 메뉴 추가
+        if (data.items && Array.isArray(data.items)) {
+          cart = data.items;
+          updateCartCount();
+        }
+        
+        // 주소 자동 입력
+        if (data.address) {
+          document.getElementById('checkout-address').value = data.address;
+        }
+        
+        // 사용한 포인트 복원
+        if (data.usedPoints > 0) {
+          usedPoints = data.usedPoints;
+        }
+        
+        // 쿠폰 복원
+        if (data.couponCode) {
+          couponCode = data.couponCode;
+          couponDiscount = data.couponDiscount || 0;
+        }
+        
+        // 장바구니 화면으로 이동
+        showCart();
+        
+        // 수정 모드 표시
+        const checkoutForm = document.getElementById('checkout-form');
+        if (checkoutForm) {
+          const submitBtn = checkoutForm.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.textContent = '주문 수정하기';
+            submitBtn.style.background = '#3498db';
+          }
+        }
+        
+        sessionStorage.removeItem('editOrderData');
+      } catch (e) {
+        console.error('주문 수정 데이터 파싱 오류:', e);
+      }
     }
   }
 })();

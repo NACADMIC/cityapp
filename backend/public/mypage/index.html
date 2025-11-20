@@ -946,6 +946,65 @@
       }).join('');
     }
     
+    // 재주문 기능
+    async function quickReorder(orderId) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (!data.success || !data.order) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const order = data.order;
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        
+        // 주문 확인
+        if (!confirm(`이전 주문과 동일하게 주문하시겠습니까?\n\n메뉴: ${items.map(i => `${i.name} x${i.quantity}`).join(', ')}\n주소: ${order.address}`)) {
+          return;
+        }
+        
+        // 주문 페이지로 이동하면서 주문 정보 전달
+        const orderData = {
+          items: items,
+          address: order.address,
+          phone: order.phone || order.customerphone,
+          customerName: order.customerName || order.customername
+        };
+        
+        sessionStorage.setItem('reorderData', JSON.stringify(orderData));
+        window.location.href = '/order-new?reorder=true';
+      } catch (error) {
+        console.error('재주문 오류:', error);
+        alert('재주문 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 같은 메뉴만 장바구니에 담기
+    async function reorderSameMenu(orderId) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (!data.success || !data.order) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const order = data.order;
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        
+        // 장바구니에 추가
+        sessionStorage.setItem('cartItems', JSON.stringify(items));
+        alert('장바구니에 추가되었습니다!');
+        window.location.href = '/order-new';
+      } catch (error) {
+        console.error('메뉴 담기 오류:', error);
+        alert('오류가 발생했습니다.');
+      }
+    }
+    
     function logout() {
       if (!confirm('로그아웃 하시겠습니까?')) return;
       
@@ -1055,7 +1114,45 @@
     }
     
     // 주문 수정
-    function editOrder(orderId) {
+    async function editOrder(orderId) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (!data.success || !data.order) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const order = data.order;
+        
+        // 접수 전 상태가 아니면 수정 불가
+        if (order.status !== 'pending') {
+          alert('주문 수정은 주문 접수 전에만 가능합니다.');
+          return;
+        }
+        
+        // 주문 수정 페이지로 이동 (주문 정보 전달)
+        sessionStorage.setItem('editOrderData', JSON.stringify({
+          orderId: order.orderId,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          address: order.address,
+          totalAmount: order.totalAmount,
+          finalAmount: order.finalAmount,
+          usedPoints: order.usedPoints || 0,
+          couponCode: order.couponCode || null,
+          couponDiscount: order.couponDiscount || 0
+        }));
+        
+        window.location.href = '/order-new?edit=true';
+      } catch (error) {
+        console.error('주문 수정 오류:', error);
+        alert('주문 수정 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 기존 editOrder 함수 (하위 호환성)
+    window.editOrder = editOrder;
       const order = ordersData.orders.find(o => o.orderId === orderId);
       if (!order) {
         alert('주문 정보를 찾을 수 없습니다.');

@@ -619,6 +619,10 @@
               <button class="btn-edit" onclick="editMenu(${menu.id})">수정</button>
               <button class="btn-options" onclick="openOptionsPopup(${menu.id})">옵션</button>
               <button class="btn-discount" onclick="openDiscountPopup(${menu.id})">할인</button>
+              <button class="${menu.isAvailable === 0 || menu.isAvailable === false ? 'btn-available' : 'btn-soldout'}" 
+                      onclick="toggleMenuAvailability(${menu.id}, ${menu.isAvailable === 0 || menu.isAvailable === false ? 1 : 0})">
+                ${menu.isAvailable === 0 || menu.isAvailable === false ? '판매 가능' : '품절'}
+              </button>
               <button class="btn-delete" onclick="deleteMenu(${menu.id})">삭제</button>
             </div>
           </div>

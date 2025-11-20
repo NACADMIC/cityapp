@@ -590,7 +590,15 @@
         <div class="form-group" id="address-group">
           <label>배달 주소</label>
           <div id="saved-addresses" style="margin-bottom: 10px; display: none;"></div>
-          <textarea id="checkout-address" required></textarea>
+          <div style="display: flex; gap: 8px;">
+            <textarea id="checkout-address" required style="flex: 1;"></textarea>
+            <button type="button" onclick="showAddressModal()" style="padding: 12px 16px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 600;">
+              📍 주소록
+            </button>
+            <button type="button" onclick="saveAddress()" style="padding: 12px 16px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 600;">
+              💾 저장
+            </button>
+          </div>
           <button type="button" onclick="showAddressModal()" style="margin-top: 8px; padding: 8px 16px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; width: 100%;">
             📍 주소록에서 선택
           </button>
@@ -713,6 +721,45 @@
 
       <button class="btn btn-primary" onclick="window.location.href='/track'">🔍 배달 현황 보기</button>
       <button class="btn btn-secondary" onclick="location.reload()">🏠 홈으로 가기</button>
+      
+      <!-- 리뷰 작성 버튼 (주문 완료 후 표시) -->
+      <div id="review-section" style="margin-top: 30px; display: none;">
+        <button class="btn btn-primary" onclick="showReviewModal()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);">
+          ⭐ 리뷰 작성하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 리뷰 작성 모달 -->
+  <div id="review-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>리뷰 작성</h2>
+        <button class="close-btn" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <p style="font-size: 16px; color: #666; margin-bottom: 15px;">음식은 어떠셨나요?</p>
+          <div id="star-rating" style="font-size: 40px; letter-spacing: 10px; cursor: pointer;">
+            <span class="star" data-rating="1">☆</span>
+            <span class="star" data-rating="2">☆</span>
+            <span class="star" data-rating="3">☆</span>
+            <span class="star" data-rating="4">☆</span>
+            <span class="star" data-rating="5">☆</span>
+          </div>
+          <p id="rating-text" style="margin-top: 10px; color: #999; font-size: 14px;">별점을 선택해주세요</p>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">리뷰 내용</label>
+          <textarea id="review-comment" placeholder="음식이 맛있었나요? 배달은 빠르게 왔나요? 리뷰를 작성해주세요!" rows="5" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+        
+        <button class="btn btn-primary" onclick="submitReview()" style="width: 100%;" id="submit-review-btn" disabled>
+          리뷰 등록하기
+        </button>
+      </div>
     </div>
   </div>
 

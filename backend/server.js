@@ -28,6 +28,18 @@ const printer = require('./printer');
 // PG 결제 모듈
 const payment = require('./payment');
 
+// 카카오 알림톡 모듈
+let sms;
+try {
+  sms = require('./sms');
+} catch (error) {
+  console.log('⚠️ 알림톡 모듈 로드 실패:', error.message);
+  sms = null;
+}
+
+// HTTP 요청용 (원격 프린터 서버 호출)
+const axios = require('axios');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -216,6 +228,26 @@ app.get('/api/menu', (req, res) => {
   try {
     const menu = db.getAllMenu();
     res.json({ success: true, menu });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API: 메뉴 품절 처리
+app.put('/api/menu/:menuId/availability', (req, res) => {
+  try {
+    const { menuId } = req.params;
+    const { isAvailable } = req.body;
+    
+    const menu = db.db.prepare('SELECT * FROM menu WHERE id = ?').get(menuId);
+    if (!menu) {
+      return res.status(404).json({ success: false, error: '메뉴를 찾을 수 없습니다.' });
+    }
+    
+    db.db.prepare('UPDATE menu SET isAvailable = ? WHERE id = ?').run(isAvailable ? 1 : 0, menuId);
+    
+    console.log(`✅ 메뉴 품절 상태 변경: ${menu.name} - ${isAvailable ? '판매 가능' : '품절'}`);
+    res.json({ success: true, message: isAvailable ? '판매 가능으로 변경되었습니다.' : '품절로 변경되었습니다.' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -719,7 +751,18 @@ app.post('/api/orders', async (req, res) => {
       orderType: orderType || 'delivery',
       createdAt: orderData.createdAt
     };
-    printer.printOrder(orderForPrint);
+    
+    // 프린터 서버 URL이 있으면 원격 호출, 없으면 로컬 프린터 사용
+    const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
+    if (PRINTER_SERVER_URL) {
+      // 원격 프린터 서버 호출 (로컬 PC에서 실행 중)
+      axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint)
+        .then(() => console.log('✅ 원격 프린터 출력 완료:', orderId))
+        .catch(err => console.error('❌ 원격 프린터 출력 실패:', err.message));
+    } else {
+      // 로컬 프린터 사용
+      printer.printOrder(orderForPrint);
+    }
     
     // POS에 주문 전송
     io.emit('new-order', {
@@ -751,7 +794,7 @@ app.post('/api/orders', async (req, res) => {
 app.post('/api/orders/:orderId/status', (req, res) => {
   try {
     const { orderId } = req.params;
-    let { status } = req.body;
+    let { status, estimatedTime } = req.body;
     
     const order = db.getOrderById(orderId);
     if (!order) {
@@ -791,7 +834,15 @@ app.post('/api/orders/:orderId/status', (req, res) => {
         };
         
         // 프린터 출력
-        printer.printOrder(orderForPrint);
+        // 프린터 서버 URL이 있으면 원격 호출, 없으면 로컬 프린터 사용
+        const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
+        if (PRINTER_SERVER_URL) {
+          axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint)
+            .then(() => console.log('✅ 원격 프린터 출력 완료:', orderId))
+            .catch(err => console.error('❌ 원격 프린터 출력 실패:', err.message));
+        } else {
+          printer.printOrder(orderForPrint);
+        }
         console.log('🖨️ 주문 수락 - 프린터 출력:', orderId);
       }
     }
@@ -831,6 +882,49 @@ app.post('/api/orders/:orderId/status', (req, res) => {
   }
 });
 
+// API: 주문 수정 (접수 전에만 가능)
+app.put('/api/orders/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { items, address, totalAmount, finalAmount, usedPoints, couponCode, couponDiscount } = req.body;
+
+    const order = db.getOrderById(orderId);
+    if (!order) {
+      return res.json({ success: false, error: '주문을 찾을 수 없습니다.' });
+    }
+
+    // 접수 전 상태가 아니면 수정 불가
+    if (order.status !== 'pending') {
+      return res.json({ success: false, error: '접수 전 주문만 수정할 수 있습니다.' });
+    }
+
+    // 수정할 내용 준비
+    const updates = {};
+    if (items) updates.items = items;
+    if (address) updates.address = address;
+    if (totalAmount !== undefined) updates.totalAmount = totalAmount;
+    if (finalAmount !== undefined) updates.finalAmount = finalAmount;
+    if (usedPoints !== undefined) updates.usedPoints = usedPoints;
+    if (couponCode !== undefined) updates.couponCode = couponCode;
+    if (couponDiscount !== undefined) updates.couponDiscount = couponDiscount;
+
+    const result = db.updateOrder(orderId, updates);
+    
+    if (!result.success) {
+      return res.json({ success: false, error: result.error });
+    }
+
+    // POS에 주문 수정 알림
+    io.emit('order-updated', { orderId, order: result.order });
+    
+    console.log('✏️ 주문 수정:', orderId);
+    res.json({ success: true, order: result.order });
+  } catch (error) {
+    console.error('❌ 주문 수정 오류:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // API: 주문 취소 요청
 app.post('/api/orders/:orderId/cancel', async (req, res) => {
   try {
@@ -863,6 +957,30 @@ app.post('/api/orders/:orderId/cancel', async (req, res) => {
     if (order.userId && order.usedPoints > 0) {
       db.addPoints(order.userId, order.usedPoints);
       db.addPointHistory(order.userId, orderId, order.usedPoints, 'refund');
+      console.log(`✅ 포인트 복구: ${order.usedPoints}P (userId: ${order.userId})`);
+    }
+    
+    // 쿠폰 복구 (쿠폰 사용 내역 확인 및 복구)
+    if (order.userId) {
+      try {
+        // 쿠폰 사용 내역 조회
+        const couponUsage = db.db.prepare(`
+          SELECT cu.*, c.code, c.name 
+          FROM coupon_usage cu
+          INNER JOIN coupons c ON cu.couponId = c.id
+          WHERE cu.userId = ? AND cu.orderId = ?
+        `).get(order.userId, orderId);
+        
+        if (couponUsage) {
+          // 쿠폰 사용 내역 삭제 (복구)
+          db.db.prepare('DELETE FROM coupon_usage WHERE id = ?').run(couponUsage.id);
+          // 쿠폰 사용 횟수 감소
+          db.db.prepare('UPDATE coupons SET usedCount = usedCount - 1 WHERE id = ?').run(couponUsage.couponId);
+          console.log(`✅ 쿠폰 복구: ${couponUsage.code} (${couponUsage.name})`);
+        }
+      } catch (err) {
+        console.error('쿠폰 복구 오류:', err.message);
+      }
     }
     
     io.emit('order-status-changed', { orderId, status: 'cancelled' });
@@ -897,10 +1015,25 @@ app.post('/api/payment/verify', async (req, res) => {
 });
 
 // API: 프린터 테스트
-app.post('/api/printer/test', (req, res) => {
+app.post('/api/printer/test', async (req, res) => {
   try {
-    const result = printer.printTest();
-    res.json({ success: result, message: result ? '프린터 테스트 완료' : '프린터 연결 실패' });
+    const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
+    if (PRINTER_SERVER_URL) {
+      // 원격 프린터 서버 호출
+      try {
+        const response = await axios.get(`${PRINTER_SERVER_URL}/test`);
+        res.json(response.data);
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: `원격 프린터 서버 연결 실패: ${error.message}` 
+        });
+      }
+    } else {
+      // 로컬 프린터 사용
+      const result = printer.printTest();
+      res.json({ success: result, message: result ? '프린터 테스트 완료' : '프린터 연결 실패' });
+    }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
