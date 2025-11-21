@@ -918,7 +918,7 @@ h2 {
   }
 
   .logo-image {
-    max-width: 750px !important;
+    max-width: 1125px !important;
     width: auto !important;
     height: auto !important;
     margin: 0 auto !important;
@@ -1126,7 +1126,7 @@ h2 {
   }
 
   .logo-image {
-    max-width: 750px !important;
+    max-width: 1125px !important;
     width: auto !important;
     margin: 0 auto !important;
   }
@@ -1309,8 +1309,8 @@ h2 {
 }
 
 .logo-image {
-  max-width: 750px !important;
-  max-height: 750px !important;
+  max-width: 1125px !important;
+  max-height: 1125px !important;
   width: 100% !important;
   height: auto !important;
   border-radius: 0;
@@ -1513,14 +1513,37 @@ h2 {
   -moz-osx-font-smoothing: grayscale;
 }
 
+#login-screen .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
 #login-screen .form {
   width: 75%;
   max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 #login-screen .form-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#login-screen .form-group label {
+  width: 100%;
+  text-align: left;
+}
+
+#login-screen .form-group input {
   width: 100%;
 }
 
