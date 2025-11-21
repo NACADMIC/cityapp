@@ -33,8 +33,20 @@ let escposPrinter = null;
 // 프린터 초기화 (LKT-20 시리얼 프린터 전용)
 function initPrinter() {
   if (!escpos || !SerialPort) {
-    console.error('❌ 프린터 라이브러리가 없어 LKT-20 시리얼 프린터를 사용할 수 없습니다.');
-    console.error('   설치: npm install escpos serialport@9.2.8');
+    console.error('');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('⚠️  프린터 라이브러리 없음');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ serialport 패키지가 설치되지 않았습니다.');
+    console.error('');
+    console.error('📝 해결 방법:');
+    console.error('   1. Python 설치 (https://www.python.org/downloads/)');
+    console.error('   2. 설치 시 "Add Python to PATH" 체크');
+    console.error('   3. npm install serialport@8.0.9');
+    console.error('');
+    console.error('💡 서버는 실행되지만 프린터는 작동하지 않습니다.');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('');
     return false;
   }
   
@@ -295,9 +307,19 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`  PORT: ${PORT}`);
   console.log(`  프린터: LKT-20 (${PRINTER_SERIAL_PORT})`);
   console.log(`  통신속도: ${PRINTER_BAUD_RATE} baud`);
+  if (!escposPrinter || !printerDevice) {
+    console.log(`  상태: ⚠️  프린터 미연결 (serialport 패키지 필요)`);
+  } else {
+    console.log(`  상태: ✅ 프린터 연결됨`);
+  }
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
   console.log('📡 Railway 서버에서 프린터 요청을 받을 준비 완료!');
+  if (!escposPrinter || !printerDevice) {
+    console.log('');
+    console.log('⚠️  주의: 프린터가 연결되지 않았습니다!');
+    console.log('   인쇄 요청은 실패할 수 있습니다.');
+  }
   console.log('');
   console.log('⚠️  이 창을 닫지 마세요!');
   console.log('');

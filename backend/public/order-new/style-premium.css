@@ -37,7 +37,7 @@ body {
   width: 100%;
 }
 
-/* 메인 페이지(auth-select-screen)만 패딩 제거 */
+/* 메인 페이지(auth-select-screen)는 패딩 제거 유지 */
 #auth-select-screen.screen,
 #auth-select-screen.screen.active {
   padding: 0;
@@ -71,6 +71,33 @@ body {
 
 /* 메뉴 화면의 컨테이너는 기본 패딩 유지 (메뉴 아이템들이 적절한 간격 유지) */
 #menu-screen .container {
+  padding: 20px;
+}
+
+/* 장바구니, 주문, 결제 등 모든 화면의 헤더는 화면 끝까지 */
+#cart-screen .header,
+#order-screen .header,
+#payment-screen .header,
+#address-screen .header,
+#point-screen .header,
+#coupon-screen .header,
+#order-history-screen .header,
+#profile-screen .header {
+  width: 100vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+  box-sizing: border-box;
+  margin-right: 0 !important;
+}
+
+/* 모든 화면의 컨테이너는 적절한 패딩 유지 */
+#cart-screen .container,
+#order-screen .container,
+#payment-screen .container,
+#address-screen .container,
+#point-screen .container,
+#coupon-screen .container,
+#order-history-screen .container,
+#profile-screen .container {
   padding: 20px;
 }
 
@@ -960,6 +987,26 @@ h2 {
     margin: 0 auto;
   }
   
+  /* 모든 화면 정상 패딩 유지 */
+  .screen {
+    padding: 16px;
+  }
+  
+  .screen.active {
+    padding: 16px;
+  }
+  
+  /* 메인 페이지와 메뉴 화면은 패딩 제거 유지 */
+  #auth-select-screen.screen,
+  #auth-select-screen.screen.active {
+    padding: 0;
+  }
+  
+  #menu-screen.screen,
+  #menu-screen.screen.active {
+    padding: 0;
+  }
+  
   /* 로고 이미지에만 패딩 제거 */
   .logo-image {
     margin: 0 !important;
@@ -1116,10 +1163,6 @@ h2 {
   .price {
     font-size: 1.1em;
     margin-bottom: 12px;
-  }
-
-  .container {
-    padding: 0;
   }
 
   .btn {
