@@ -918,10 +918,10 @@ h2 {
   }
 
   .logo-image {
-    max-width: 900px !important;
-    max-height: 900px !important;
-    width: 900px !important;
-    min-width: 900px !important;
+    max-width: 540px !important;
+    max-height: 540px !important;
+    width: 540px !important;
+    min-width: 540px !important;
     height: auto !important;
     margin: 0 auto !important;
     display: block !important;
@@ -1128,10 +1128,10 @@ h2 {
   }
 
   .logo-image {
-    max-width: 900px !important;
-    max-height: 900px !important;
-    width: 900px !important;
-    min-width: 900px !important;
+    max-width: 540px !important;
+    max-height: 540px !important;
+    width: 540px !important;
+    min-width: 540px !important;
     height: auto !important;
     margin: 0 auto !important;
   }
@@ -1300,11 +1300,15 @@ h2 {
   align-items: center !important;
   width: 100%;
   position: relative;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .logo-container {
   position: relative;
-  display: block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   text-align: center;
   width: 100%;
   max-width: 100%;
@@ -1314,10 +1318,10 @@ h2 {
 }
 
 .logo-image {
-  max-width: 900px !important;
-  max-height: 900px !important;
-  width: 900px !important;
-  min-width: 900px !important;
+  max-width: 540px !important;
+  max-height: 540px !important;
+  width: 540px !important;
+  min-width: 540px !important;
   height: auto !important;
   border-radius: 0;
   object-fit: contain;

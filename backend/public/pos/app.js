@@ -455,11 +455,12 @@ function updateStats() {
 // Update order status
 async function updateStatus(orderId, newStatus, estimatedTime = null) {
   try {
-    console.log('📝 주문 상태 업데이트 시작:', orderId, '→', newStatus);
+    console.log('📝 주문 상태 업데이트 시작:', { orderId, newStatus, estimatedTime });
     
     const body = { status: newStatus };
-    if (estimatedTime !== null) {
-      body.estimatedTime = estimatedTime;
+    if (estimatedTime !== null && estimatedTime !== undefined) {
+      body.estimatedTime = parseInt(estimatedTime);
+      console.log('⏱️ 예상 시간 포함:', body.estimatedTime, '분');
     }
     
     console.log('📤 서버에 요청 전송:', body);
@@ -471,7 +472,9 @@ async function updateStatus(orderId, newStatus, estimatedTime = null) {
     });
     
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error('❌ 서버 응답 오류:', res.status, errorText);
+      throw new Error(`HTTP ${res.status}: ${res.statusText} - ${errorText}`);
     }
     
     const data = await res.json();
@@ -482,8 +485,8 @@ async function updateStatus(orderId, newStatus, estimatedTime = null) {
       const order = orders.find(o => o.orderId === orderId);
       if (order) {
         order.status = newStatus;
-        if (estimatedTime !== null) {
-          order.estimatedTime = estimatedTime;
+        if (estimatedTime !== null && estimatedTime !== undefined) {
+          order.estimatedTime = parseInt(estimatedTime);
         }
       }
       
@@ -494,13 +497,16 @@ async function updateStatus(orderId, newStatus, estimatedTime = null) {
         'completed': '배달 완료'
       };
       
-      console.log(`✅ ${statusText[newStatus]} 완료!`);
+      console.log(`✅ ${statusText[newStatus] || newStatus} 완료!`);
       
       // 화면 업데이트
       renderOrders();
       updateStats();
       
-      alert(`✅ ${statusText[newStatus]}!`);
+      // accepted 상태일 때는 alert 제거 (팝업이 이미 닫혔으므로)
+      if (newStatus !== 'accepted') {
+        alert(`✅ ${statusText[newStatus] || newStatus}!`);
+      }
       return true;
     } else {
       throw new Error(data.error || '상태 업데이트 실패');
@@ -714,12 +720,18 @@ function acceptOrder() {
       console.log('  - 새 주문 추가됨');
     }
     
+    // 서버에 수락 상태 업데이트 (estimatedTime 포함) - 먼저 서버 업데이트
+    const success = await updateStatus(currentPendingOrder.orderId, 'accepted', parseInt(prepTime));
+    
+    if (!success) {
+      console.error('❌ 서버 상태 업데이트 실패');
+      alert('주문 수락 중 오류가 발생했습니다. 다시 시도해주세요.');
+      return;
+    }
+    
     // 화면 업데이트
     renderOrders();
     updateStats();
-    
-    // 서버에 수락 상태 업데이트
-    updateStatus(currentPendingOrder.orderId, 'accepted');
     
     hideOrderPopup();
     
