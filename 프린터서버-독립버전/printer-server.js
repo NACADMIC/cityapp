@@ -83,50 +83,33 @@ function initPrinter() {
 // 프린터 테스트
 function printTest() {
   try {
-    if (escposPrinter && printerDevice) {
-      escposPrinter
-        .font('A')
-        .align('CT')
-        .style('BU')
-        .size(1, 1)
-        .text('시티반점 프린터 테스트')
-        .text('')
-        .text('이 메시지가 보이면 프린터가 정상 작동합니다!')
-        .text('')
-        .text('─────────────────────')
-        .text('테스트 시간: ' + new Date().toLocaleString('ko-KR'))
-        .text('─────────────────────')
-        .cut()
-        .close();
-      
-      return true;
-    } else if (nodePrinter && os.platform() === 'win32') {
-      // Windows 기본 프린터 사용
-      const testContent = `
-시티반점 프린터 테스트
-
-이 메시지가 보이면 프린터가 정상 작동합니다!
-
-─────────────────────
-테스트 시간: ${new Date().toLocaleString('ko-KR')}
-─────────────────────
-`;
-      
-      const printer = nodePrinter.getDefaultPrinterName();
-      if (printer) {
-        exec(`echo ${testContent} > PRN`, (error) => {
-          if (error) {
-            console.error('프린터 오류:', error);
-            return false;
-          }
-        });
-        return true;
-      }
+    if (!escposPrinter || !printerDevice) {
+      console.error('❌ LKT-20 시리얼 프린터에 연결되지 않았습니다!');
+      console.error(`   프린터 포트: ${PRINTER_SERIAL_PORT}`);
+      console.error('   프린터가 COM2에 연결되어 있는지 확인하세요.');
+      return false;
     }
     
-    return false;
+    console.log('🖨️ LKT-20 프린터 테스트 인쇄 시작...');
+    escposPrinter
+      .font('A')
+      .align('CT')
+      .style('BU')
+      .size(1, 1)
+      .text('시티반점 프린터 테스트')
+      .text('')
+      .text('이 메시지가 보이면 프린터가 정상 작동합니다!')
+      .text('')
+      .text('─────────────────────')
+      .text('테스트 시간: ' + new Date().toLocaleString('ko-KR'))
+      .text('─────────────────────')
+      .cut()
+      .close();
+    
+    console.log('✅ 프린터 테스트 인쇄 완료!');
+    return true;
   } catch (error) {
-    console.error('프린터 테스트 오류:', error);
+    console.error('❌ 프린터 테스트 오류:', error);
     return false;
   }
 }
@@ -134,122 +117,77 @@ function printTest() {
 // 주문서 출력
 function printOrder(order) {
   try {
-    if (escposPrinter && printerDevice) {
-      const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-      
-      escposPrinter
-        .font('A')
-        .align('CT')
-        .style('BU')
-        .size(2, 2)
-        .text('시티반점')
-        .text('')
-        .size(1, 1)
-        .style('NORMAL')
-        .text('─────────────────────')
-        .text(`주문번호: ${order.orderId}`)
-        .text(`주문시간: ${new Date(order.createdAt || new Date()).toLocaleString('ko-KR')}`)
-        .text('─────────────────────')
-        .text('')
-        .text(`고객명: ${order.customerName}`)
-        .text(`전화: ${order.phone}`)
-        if (order.address) {
-          escposPrinter.text(`주소: ${order.address}`);
-        }
-        escposPrinter
-          .text(`주문형태: ${order.orderType === 'takeout' ? '포장' : '배달'}`)
-          .text('')
-          .text('─────────────────────')
-          .text('주문 내역')
-          .text('─────────────────────');
-      
-      items.forEach(item => {
-        escposPrinter
-          .text(`${item.name} x${item.quantity}`)
-          .text(`  ${(item.price * item.quantity).toLocaleString()}원`);
-      });
-      
-      escposPrinter
-        .text('─────────────────────');
-      
-      if (order.deliveryFee > 0) {
-        escposPrinter.text(`배달비: ${order.deliveryFee.toLocaleString()}원`);
-      }
-      if (order.usedPoints > 0) {
-        escposPrinter.text(`포인트 사용: -${order.usedPoints.toLocaleString()}원`);
-      }
-      if (order.couponDiscount > 0) {
-        escposPrinter.text(`쿠폰 할인: -${order.couponDiscount.toLocaleString()}원`);
-      }
-      
-      escposPrinter
-        .text('─────────────────────')
-        .style('BU')
-        .text(`총 결제금액: ${order.finalAmount.toLocaleString()}원`)
-        .style('NORMAL')
-        .text(`결제수단: ${order.paymentMethod === 'card' ? '카드' : '현금'}`)
-        .text('')
-        .text('─────────────────────')
-        .text('')
-        .cut()
-        .close();
-      
-      return true;
-    } else if (nodePrinter && os.platform() === 'win32') {
-      // Windows 기본 프린터 사용
-      const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-      let content = `
-시티반점 주문서
-
-─────────────────────
-주문번호: ${order.orderId}
-주문시간: ${new Date(order.createdAt || new Date()).toLocaleString('ko-KR')}
-─────────────────────
-
-고객명: ${order.customerName}
-전화: ${order.phone}
-${order.address ? `주소: ${order.address}` : ''}
-주문형태: ${order.orderType === 'takeout' ? '포장' : '배달'}
-
-─────────────────────
-주문 내역
-─────────────────────
-`;
-      
-      items.forEach(item => {
-        content += `${item.name} x${item.quantity}\n`;
-        content += `  ${(item.price * item.quantity).toLocaleString()}원\n`;
-      });
-      
-      content += `─────────────────────\n`;
-      if (order.deliveryFee > 0) {
-        content += `배달비: ${order.deliveryFee.toLocaleString()}원\n`;
-      }
-      if (order.usedPoints > 0) {
-        content += `포인트 사용: -${order.usedPoints.toLocaleString()}원\n`;
-      }
-      if (order.couponDiscount > 0) {
-        content += `쿠폰 할인: -${order.couponDiscount.toLocaleString()}원\n`;
-      }
-      content += `─────────────────────\n`;
-      content += `총 결제금액: ${order.finalAmount.toLocaleString()}원\n`;
-      content += `결제수단: ${order.paymentMethod === 'card' ? '카드' : '현금'}\n`;
-      
-      const printer = nodePrinter.getDefaultPrinterName();
-      if (printer) {
-        exec(`echo ${content} > PRN`, (error) => {
-          if (error) {
-            console.error('프린터 오류:', error);
-            return false;
-          }
-        });
-        return true;
-      }
+    if (!escposPrinter || !printerDevice) {
+      console.error('❌ LKT-20 시리얼 프린터에 연결되지 않았습니다!');
+      console.error(`   프린터 포트: ${PRINTER_SERIAL_PORT}`);
+      console.error('   주문번호:', order.orderId);
+      return false;
     }
     
-    return false;
+    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+    console.log('🖨️ 주문서 인쇄 시작:', order.orderId);
+    
+    escposPrinter
+      .font('A')
+      .align('CT')
+      .style('BU')
+      .size(2, 2)
+      .text('시티반점')
+      .text('')
+      .size(1, 1)
+      .style('NORMAL')
+      .text('─────────────────────')
+      .text(`주문번호: ${order.orderId}`)
+      .text(`주문시간: ${new Date(order.createdAt || new Date()).toLocaleString('ko-KR')}`)
+      .text('─────────────────────')
+      .text('')
+      .text(`고객명: ${order.customerName}`)
+      .text(`전화: ${order.phone}`)
+      if (order.address) {
+        escposPrinter.text(`주소: ${order.address}`);
+      }
+      escposPrinter
+        .text(`주문형태: ${order.orderType === 'takeout' ? '포장' : '배달'}`)
+        .text('')
+        .text('─────────────────────')
+        .text('주문 내역')
+        .text('─────────────────────');
+    
+    items.forEach(item => {
+      escposPrinter
+        .text(`${item.name} x${item.quantity}`)
+        .text(`  ${(item.price * item.quantity).toLocaleString()}원`);
+    });
+    
+    escposPrinter
+      .text('─────────────────────');
+    
+    if (order.deliveryFee > 0) {
+      escposPrinter.text(`배달비: ${order.deliveryFee.toLocaleString()}원`);
+    }
+    if (order.usedPoints > 0) {
+      escposPrinter.text(`포인트 사용: -${order.usedPoints.toLocaleString()}원`);
+    }
+    if (order.couponDiscount > 0) {
+      escposPrinter.text(`쿠폰 할인: -${order.couponDiscount.toLocaleString()}원`);
+    }
+    
+    escposPrinter
+      .text('─────────────────────')
+      .style('BU')
+      .text(`총 결제금액: ${order.finalAmount.toLocaleString()}원`)
+      .style('NORMAL')
+      .text(`결제수단: ${order.paymentMethod === 'card' ? '카드' : '현금'}`)
+      .text('')
+      .text('─────────────────────')
+      .text('')
+      .cut()
+      .close();
+    
+    console.log('✅ 주문서 인쇄 완료:', order.orderId);
+    return true;
   } catch (error) {
-    console.error('주문서 출력 오류:', error);
+    console.error('❌ 주문서 출력 오류:', error);
     return false;
   }
 }

@@ -455,10 +455,14 @@ function updateStats() {
 // Update order status
 async function updateStatus(orderId, newStatus, estimatedTime = null) {
   try {
+    console.log('📝 주문 상태 업데이트 시작:', orderId, '→', newStatus);
+    
     const body = { status: newStatus };
     if (estimatedTime !== null) {
       body.estimatedTime = estimatedTime;
     }
+    
+    console.log('📤 서버에 요청 전송:', body);
     
     const res = await fetch(`/api/orders/${orderId}/status`, {
       method: 'POST',
@@ -466,14 +470,21 @@ async function updateStatus(orderId, newStatus, estimatedTime = null) {
       body: JSON.stringify(body)
     });
     
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
+    console.log('📥 서버 응답:', data);
     
     if (data.success) {
       // Update local order
       const order = orders.find(o => o.orderId === orderId);
       if (order) {
         order.status = newStatus;
-        renderOrders();
+        if (estimatedTime !== null) {
+          order.estimatedTime = estimatedTime;
+        }
       }
       
       const statusText = {
@@ -483,10 +494,21 @@ async function updateStatus(orderId, newStatus, estimatedTime = null) {
         'completed': '배달 완료'
       };
       
+      console.log(`✅ ${statusText[newStatus]} 완료!`);
+      
+      // 화면 업데이트
+      renderOrders();
+      updateStats();
+      
       alert(`✅ ${statusText[newStatus]}!`);
+      return true;
+    } else {
+      throw new Error(data.error || '상태 업데이트 실패');
     }
   } catch (err) {
+    console.error('❌ 상태 업데이트 오류:', err);
     alert('상태 업데이트 오류: ' + err.message);
+    throw err;
   }
 }
 
@@ -563,10 +585,34 @@ function showOrderPopup(orderData) {
   
   if (acceptBtn && orderData.orderId) {
     // 기존 onclick 제거하고 새로 설정
-    acceptBtn.onclick = () => {
-      const estimatedTime = parseInt(document.getElementById('estimated-time-input')?.value || 35);
-      updateStatus(orderData.orderId, 'accepted', estimatedTime);
+    acceptBtn.onclick = async () => {
+      try {
+        console.log('🔘 수락 버튼 클릭됨:', orderData.orderId);
+        const estimatedTime = parseInt(document.getElementById('estimated-time-input')?.value || 35);
+        console.log('⏱️ 예상 시간:', estimatedTime, '분');
+        
+        // 팝업 먼저 닫기
+        hideOrderPopup();
+        
+        // 주문 상태 업데이트
+        await updateStatus(orderData.orderId, 'accepted', estimatedTime);
+        
+        // 주문 목록 새로고침
+        await loadOrders();
+        renderOrders();
+        updateStats();
+      } catch (error) {
+        console.error('❌ 주문 수락 오류:', error);
+        alert('주문 수락 중 오류가 발생했습니다: ' + error.message);
+      }
     };
+    
+    // 수락 버튼이 제대로 설정되었는지 확인
+    console.log('✅ 수락 버튼 설정 완료:', acceptBtn);
+  } else {
+    console.error('❌ 수락 버튼을 찾을 수 없습니다!');
+    console.error('  - acceptBtn:', acceptBtn);
+    console.error('  - orderData.orderId:', orderData.orderId);
   }
   
   console.log('  - 수락 버튼:', acceptBtn);
