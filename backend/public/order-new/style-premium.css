@@ -1179,12 +1179,17 @@ h2 {
   width: 100%;
   height: auto;
   border-radius: 0;
-  object-fit: cover;
+  object-fit: contain;
   box-shadow: none;
   background: transparent;
   padding: 0;
   display: block;
   border: none;
+}
+
+/* 이미지 로드 실패 시 숨김 (연등 이모지 표시 안함) */
+.logo-image[style*="display: none"] {
+  display: none !important;
 }
 
 .subtitle {
