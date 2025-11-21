@@ -26,18 +26,53 @@ body {
 
 .screen {
   display: none;
-  padding: 16px;
+  padding: 20px;
   width: 100%;
 }
 
 .screen.active {
   display: block;
   animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 16px;
+  padding: 20px;
   width: 100%;
 }
 
-/* 로고 화면은 정상 패딩 유지 */
+/* 메인 페이지(auth-select-screen)만 패딩 제거 */
+#auth-select-screen.screen,
+#auth-select-screen.screen.active {
+  padding: 0;
+}
+
+/* 메뉴 화면도 패딩 제거 (배경 UI가 화면 끝까지) */
+#menu-screen.screen,
+#menu-screen.screen.active {
+  padding: 0;
+}
+
+/* 메뉴 화면의 헤더, 사용자 정보, 카테고리 섹션은 화면 끝까지 */
+#menu-screen .header {
+  width: 100vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+  box-sizing: border-box;
+}
+
+#menu-screen .user-info {
+  width: 100vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+  box-sizing: border-box;
+  border-radius: 0 !important;
+}
+
+#menu-screen .category-section {
+  width: 100vw !important;
+  margin-left: calc(-50vw + 50%) !important;
+  box-sizing: border-box;
+}
+
+/* 메뉴 화면의 컨테이너는 패딩 제거 (내용은 내부 요소에 패딩 적용) */
+#menu-screen .container {
+  padding: 0;
+}
 
 @keyframes fadeInUp {
   from {
@@ -53,9 +88,14 @@ body {
 .container {
   max-width: 600px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 20px;
   overflow: visible;
   width: 100%;
+}
+
+/* 메인 페이지(auth-select-screen)의 컨테이너만 패딩 제거 */
+#auth-select-screen .container {
+  padding: 0;
 }
 
 /* 로고 이미지에만 패딩 제거 */
@@ -75,7 +115,7 @@ h2 {
 /* ===== HEADER ===== */
 .header {
   background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
-  padding: 24px 24px; /* 기본 패딩 */
+  padding: 20px 24px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -89,27 +129,6 @@ h2 {
   min-height: 70px;
 }
 
-/* 메뉴 화면의 헤더만 패딩 제거 (화면 끝까지) */
-#menu-screen .header {
-  padding: 20px 0 !important; /* 좌우 패딩 제거 */
-  width: 100vw !important;
-  margin-left: calc(-50vw + 50%) !important;
-  box-sizing: border-box;
-  justify-content: space-between;
-}
-
-/* 메뉴 화면 헤더 내부 요소 좌우 패딩 */
-#menu-screen .header > div:first-child {
-  padding-left: 24px;
-}
-
-#menu-screen .header h1 {
-  padding: 0 24px;
-}
-
-#menu-screen #busy-status-banner {
-  right: 24px !important;
-}
 
 .header h1 {
   color: #FFFFFF;
@@ -230,12 +249,6 @@ h2 {
   box-shadow: none;
 }
 
-/* 메뉴 화면의 카테고리 섹션만 패딩 제거 */
-#menu-screen .category-section {
-  width: 100vw !important;
-  margin-left: calc(-50vw + 50%) !important;
-  box-sizing: border-box;
-}
 
 /* ===== SPECIAL MENU TABS ===== */
 .special-menu-tabs {
@@ -248,10 +261,6 @@ h2 {
   border-bottom: 1px solid rgba(255, 215, 0, 0.2);
 }
 
-/* 메뉴 화면의 특별 메뉴 탭만 패딩 제거 */
-#menu-screen .special-menu-tabs {
-  padding: 12px 0 8px 0 !important;
-}
 
 .special-tab {
   position: relative;
@@ -385,10 +394,6 @@ h2 {
   scrollbar-width: none;
 }
 
-/* 메뉴 화면의 카테고리 탭만 패딩 제거 */
-#menu-screen .category-tabs {
-  padding: 12px 0 15px 0 !important;
-}
 
 .category-tabs::-webkit-scrollbar {
   display: none;
@@ -1315,13 +1320,6 @@ h2 {
   backdrop-filter: blur(10px);
 }
 
-/* 메뉴 화면의 사용자 정보만 패딩 제거 */
-#menu-screen .user-info {
-  margin: 0 !important;
-  width: 100vw !important;
-  margin-left: calc(-50vw + 50%) !important;
-  box-sizing: border-box;
-}
 
 .user-info-content {
   display: flex;
