@@ -209,6 +209,23 @@ socket.on('restore-orders', (restoredOrders) => {
   console.log('✅ 주문 복원 완료');
 });
 
+// 주문 상태 변경 이벤트 리스너
+socket.on('order-status-changed', (data) => {
+  console.log('📝 주문 상태 변경 이벤트 수신:', data);
+  const { orderId, status } = data;
+  
+  // 주문 목록에서 해당 주문 찾아서 상태 업데이트
+  const orderIndex = orders.findIndex(o => o.orderId === orderId);
+  if (orderIndex !== -1) {
+    orders[orderIndex].status = status;
+    renderOrders();
+    updateStats();
+    console.log('✅ 주문 상태 업데이트 완료:', orderId, '→', status);
+  } else {
+    console.log('⚠️ 주문을 찾을 수 없음:', orderId);
+  }
+});
+
 // Voice toggle
 document.getElementById('voice-toggle').addEventListener('change', (e) => {
   voiceEnabled = e.target.checked;
@@ -685,7 +702,7 @@ function hideOrderPopup() {
 }
 
 // 주문 수락
-function acceptOrder() {
+async function acceptOrder() {
   console.log('🔘 acceptOrder() 호출됨');
   console.log('  - currentPendingOrder:', currentPendingOrder);
   
@@ -1163,9 +1180,66 @@ async function saveBusinessHours() {
   }
 }
 
+// 주문 로드 함수
+async function loadOrders() {
+  try {
+    console.log('📥 주문 목록 로드 시작...');
+    const res = await fetch('/api/orders');
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    const data = await res.json();
+    console.log('📥 주문 목록 응답:', data);
+    
+    if (data.success && data.orders) {
+      // 기존 주문 목록 초기화
+      orders = [];
+      processedOrders.clear();
+      
+      // 주문 데이터 변환 및 추가
+      data.orders.forEach(order => {
+        const orderId = order.orderId || order.orderid;
+        if (orderId && !processedOrders.has(orderId)) {
+          processedOrders.add(orderId);
+          
+          const orderData = {
+            orderId: orderId,
+            customerName: order.customerName || order.customername,
+            phone: order.phone || order.customerphone,
+            address: order.address,
+            items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+            totalAmount: order.totalAmount || order.totalprice,
+            paymentMethod: order.paymentMethod || order.paymentmethod || 'cash',
+            status: order.status || 'pending',
+            prepTime: order.prepTime || order.preptime,
+            estimatedTime: order.estimatedTime || order.estimatedtime,
+            riderId: order.riderId || order.riderid,
+            createdAt: order.createdAt || order.createdat
+          };
+          
+          orders.push(orderData);
+        }
+      });
+      
+      console.log('✅ 주문 목록 로드 완료:', orders.length, '개');
+      renderOrders();
+      updateStats();
+    } else {
+      console.error('❌ 주문 목록 로드 실패:', data.error || '알 수 없는 오류');
+    }
+  } catch (error) {
+    console.error('❌ 주문 목록 로드 오류:', error);
+    alert('주문 목록을 불러올 수 없습니다: ' + error.message);
+  }
+}
+
 // Initial render
-renderOrders();
-updateStats();
+// loadOrders() 내부에서 이미 renderOrders()와 updateStats()를 호출하므로 중복 호출 제거
+loadOrders().catch(err => {
+  console.error('❌ 초기 주문 로드 실패:', err);
+  renderOrders(); // 빈 목록이라도 렌더링
+  updateStats();
+});
 updateBusinessStatus();
 // 임시휴업 토글
 async function toggleTemporaryClosed() {
@@ -1443,6 +1517,23 @@ window.closeRiderPopup = closeRiderPopup;
 window.handleUpdateStatus = handleUpdateStatus;
 window.handleAssignRider = handleAssignRider;
 window.handleShowPendingOrderPopup = handleShowPendingOrderPopup;
+
+// HTML onclick에서 사용하는 모든 함수 노출
+window.toggleMenu = toggleMenu;
+window.openBusinessHoursSettings = openBusinessHoursSettings;
+window.toggleTemporaryClosed = toggleTemporaryClosed;
+window.openBreakTimeSettings = openBreakTimeSettings;
+window.setBusyStatus = setBusyStatus;
+window.rejectOrder = rejectOrder;
+window.saveBreakTime = saveBreakTime;
+window.closeBreakTimeSettings = closeBreakTimeSettings;
+window.saveBusinessHours = saveBusinessHours;
+window.closeBusinessHoursSettings = closeBusinessHoursSettings;
+window.testPrinter = testPrinter;
+window.openSiteEditor = openSiteEditor;
+window.openVolumeSettings = openVolumeSettings;
+window.closeVolumeSettings = closeVolumeSettings;
+window.acceptOrder = acceptOrder;
 
 console.log('🏮 POS 시스템 준비 완료!');
 

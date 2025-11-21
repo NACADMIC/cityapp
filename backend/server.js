@@ -182,34 +182,54 @@ async function isBusinessHours() {
 }
 
 // Socket.io 연결
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
   console.log('🔌 클라이언트 연결:', socket.id);
   
   // POS 연결 시 accepted 이상인 주문만 복원 (pending은 팝업으로 처리)
-  const activeOrders = db.getAllOrders().filter(o => 
-    o.status === 'accepted' || 
-    o.status === 'preparing' || 
-    o.status === 'delivering'
-  );
+  let allOrders;
+  if (process.env.DATABASE_URL) {
+    // PostgreSQL
+    allOrders = await db.getAllOrders();
+  } else {
+    // SQLite
+    allOrders = db.getAllOrders();
+  }
+  
+  const activeOrders = allOrders.filter(o => {
+    const status = o.status || o.Status;
+    return status === 'accepted' || status === 'preparing' || status === 'delivering';
+  });
+  
   if (activeOrders.length > 0) {
     socket.emit('restore-orders', activeOrders);
     console.log('📦 진행 중인 주문 복원:', activeOrders.length, '개');
   }
   
   // pending 주문은 new-order로 다시 전송 (팝업 띄우기 위해)
-  const pendingOrders = db.getAllOrders().filter(o => o.status === 'pending');
+  const pendingOrders = allOrders.filter(o => {
+    const status = o.status || o.Status;
+    return status === 'pending';
+  });
+  
   if (pendingOrders.length > 0) {
     console.log('⏳ Pending 주문 재전송:', pendingOrders.length, '개');
     pendingOrders.forEach(order => {
       setTimeout(() => {
+        const orderId = order.orderId || order.orderid;
+        const customerName = order.customerName || order.customername;
+        const phone = order.phone || order.customerphone;
+        const items = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : order.items;
+        const totalAmount = order.totalAmount || order.totalprice;
+        const paymentMethod = order.paymentMethod || order.paymentmethod || 'cash';
+        
         socket.emit('new-order', {
-          orderId: order.orderid,
-          customerName: order.customername,
-          phone: order.customerphone,
+          orderId,
+          customerName,
+          phone,
           address: order.address,
-          items: JSON.parse(order.items || '[]'),
-          totalAmount: order.totalprice,
-          paymentMethod: order.paymentmethod || 'cash'
+          items,
+          totalAmount,
+          paymentMethod
         });
       }, 500); // 약간의 딜레이를 주어 복원 후 팝업 표시
     });
