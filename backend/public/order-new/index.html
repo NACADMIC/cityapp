@@ -53,17 +53,19 @@
   <!-- Auth Select Screen -->
   <div id="auth-select-screen" class="screen active">
     <div class="container">
-      <div class="logo">
-        <div class="logo-container">
-          <img src="logo2.png" alt="시티반점 로고" class="logo-image" style="max-width: 500px; width: auto; height: auto; display: block; margin: 0 auto;" onerror="console.error('이미지 로드 실패:', this.src);">
-          <div class="logo-text-overlay">
-            <h1 class="logo-text" data-store-name>시티반점</h1>
-            <p class="logo-subtitle">맛있는 중국요리 배달</p>
-          </div>
-        </div>
+      <!-- 최상단 텍스트 -->
+      <div class="logo-text-top">
+        <h1 class="logo-text" data-store-name>시티반점</h1>
+        <p class="logo-subtitle">맛있는 중국요리 배달</p>
       </div>
 
-      <div class="auth-buttons">
+      <!-- 로고 이미지 -->
+      <div class="logo">
+        <div class="logo-container">
+          <img src="logo2.png" alt="시티반점 로고" class="logo-image" style="max-width: 750px; width: auto; height: auto; display: block; margin: 0 auto;" onerror="console.error('이미지 로드 실패:', this.src);">
+          
+          <!-- 로고 중앙 버튼들 -->
+          <div class="auth-buttons">
         <button class="btn btn-primary" onclick="showLogin()">
           회원 로그인
           <small>10% 페이벡</small>
@@ -73,24 +75,26 @@
           비회원 주문
           <small>휴대폰 인증 필요</small>
         </button>
-        
-        <!-- 작은 링크 -->
-        <div class="auth-small-links">
-          <a href="#" onclick="showRegister(); return false;">회원가입</a>
-          <span class="divider">/</span>
-          <a href="#" onclick="showFindPassword(); return false;">비밀번호 찾기</a>
+          </div>
         </div>
-        
-        <!-- 회원가입 혜택 안내 -->
-        <div class="signup-benefit">
-          🎁 회원가입 시 10,000원 쿠폰 증정!
-        </div>
-        
-        <!-- 개발자 테스트 버튼 -->
-        <button onclick="testLogin()" class="btn-test" style="margin-top: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
-          🚀 개발자 테스트 로그인 (바로 시작)
-        </button>
       </div>
+
+      <!-- 작은 링크 -->
+      <div class="auth-small-links">
+        <a href="#" onclick="showRegister(); return false;">회원가입</a>
+        <span class="divider">/</span>
+        <a href="#" onclick="showFindPassword(); return false;">비밀번호 찾기</a>
+      </div>
+      
+      <!-- 회원가입 혜택 안내 -->
+      <div class="signup-benefit">
+        🎁 회원가입 시 10,000원 쿠폰 증정!
+      </div>
+      
+      <!-- 개발자 테스트 버튼 -->
+      <button onclick="testLogin()" class="btn-test" style="margin-top: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+        🚀 개발자 테스트 로그인 (바로 시작)
+      </button>
     </div>
   </div>
 
