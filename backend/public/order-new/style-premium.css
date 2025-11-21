@@ -1171,6 +1171,9 @@ h2 {
   justify-content: center;
   align-items: center;
   min-height: 150px;
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFE082 100%);
+  padding: 20px;
+  border-radius: 12px;
 }
 
 .logo-image {
@@ -1181,11 +1184,12 @@ h2 {
   border-radius: 0;
   object-fit: contain;
   box-shadow: none;
-  background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFE082 100%);
-  padding: 20px;
+  background: transparent;
+  padding: 0;
   display: block;
   border: none;
-  mix-blend-mode: multiply;
+  mix-blend-mode: darken;
+  filter: contrast(1.1) brightness(1.05);
 }
 
 /* 이미지 로드 실패 시 숨김 (연등 이모지 표시 안함) */
