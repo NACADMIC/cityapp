@@ -1372,6 +1372,51 @@ h2 {
   margin: 0 2px;
 }
 
+/* Login Screen - 모든 박스 75% 너비로 최적화 */
+#login-screen h2 {
+  font-family: 'Gowun Batang', 'Noto Serif KR', 'Nanum Brush Script', '나눔손글씨', serif;
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#login-screen .form {
+  width: 75%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#login-screen .form-group {
+  width: 100%;
+}
+
+#login-screen .form-group input,
+#login-screen .form-group textarea {
+  width: 100%;
+}
+
+#login-screen .btn,
+#login-screen .btn-primary {
+  width: 100%;
+  max-width: 100%;
+}
+
+#login-screen .btn-test {
+  width: 75%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#login-screen .auth-links {
+  width: 75%;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* Signup Benefit */
 .signup-benefit {
   text-align: center;
