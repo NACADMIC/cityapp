@@ -906,8 +906,8 @@ h2 {
   }
 
   .logo-container {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: auto !important;
+    max-width: none !important;
     margin: 0 auto !important;
     padding: 0 !important;
     display: flex !important;
@@ -919,7 +919,9 @@ h2 {
 
   .logo-image {
     max-width: 1125px !important;
-    width: auto !important;
+    max-height: 1125px !important;
+    width: 1125px !important;
+    min-width: 1125px !important;
     height: auto !important;
     margin: 0 auto !important;
     display: block !important;
@@ -1119,15 +1121,18 @@ h2 {
   }
 
   .logo-container {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: auto !important;
+    max-width: none !important;
     margin: 0 auto !important;
     padding: 0 !important;
   }
 
   .logo-image {
     max-width: 1125px !important;
-    width: auto !important;
+    max-height: 1125px !important;
+    width: 1125px !important;
+    min-width: 1125px !important;
+    height: auto !important;
     margin: 0 auto !important;
   }
 
@@ -1311,7 +1316,8 @@ h2 {
 .logo-image {
   max-width: 1125px !important;
   max-height: 1125px !important;
-  width: 100% !important;
+  width: 1125px !important;
+  min-width: 1125px !important;
   height: auto !important;
   border-radius: 0;
   object-fit: contain;
