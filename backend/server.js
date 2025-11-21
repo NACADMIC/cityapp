@@ -1591,13 +1591,36 @@ app.post('/api/orders', async (req, res) => {
     // 프린터 서버 URL이 있으면 원격 호출, 없으면 로컬 프린터 사용
     const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
     if (PRINTER_SERVER_URL) {
-      // 원격 프린터 서버 호출 (로컬 PC에서 실행 중)
-      axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint)
-        .then(() => console.log('✅ 원격 프린터 출력 완료:', orderId))
-        .catch(err => console.error('❌ 원격 프린터 출력 실패:', err.message));
+      // 원격 프린터 서버 호출 (LKT-20 등)
+      console.log('🖨️ 주문 생성 - 원격 프린터 서버 호출:', PRINTER_SERVER_URL);
+      axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint, {
+        timeout: 5000,
+        headers: { 'Content-Type': 'application/json' }
+      })
+        .then((response) => {
+          console.log('✅ 원격 프린터 출력 완료:', orderId);
+          console.log('프린터 서버 응답:', response.data);
+        })
+        .catch(err => {
+          console.error('❌ 원격 프린터 출력 실패:', orderId);
+          console.error('에러 상세:', err.message);
+          if (err.code === 'ECONNREFUSED') {
+            console.error('⚠️ 프린터 서버에 연결할 수 없습니다. 프린터 서버가 실행 중인지 확인하세요.');
+          }
+        });
     } else {
-      // 로컬 프린터 사용
-      printer.printOrder(orderForPrint);
+      // 로컬 Windows 프린터 사용
+      console.log('🖨️ 주문 생성 - Windows 기본 프린터로 출력:', orderId);
+      try {
+        const printResult = printer.printOrder(orderForPrint);
+        if (printResult) {
+          console.log('✅ Windows 프린터 출력 완료:', orderId);
+        } else {
+          console.error('❌ Windows 프린터 출력 실패:', orderId);
+        }
+      } catch (printError) {
+        console.error('❌ Windows 프린터 출력 오류:', printError.message);
+      }
     }
     
     // POS에 주문 전송

@@ -10,16 +10,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const os = require('os');
 
-// Windows 프린터 라이브러리 (선택적)
-let nodePrinter = null;
-try {
-  nodePrinter = require('printer');
-  console.log('✅ printer 패키지 로드 성공');
-} catch (error) {
-  console.log('⚠️ printer 패키지가 설치되지 않았습니다. Windows 기본 명령어를 사용합니다.');
-}
-
-// ESC/POS 프린터 (선택적)
+// ESC/POS 프린터 (LKT-20 시리얼 프린터 전용)
 let escpos, escposUSB, SerialPort;
 try {
   escpos = require('escpos');
@@ -39,14 +30,11 @@ const PRINTER_BAUD_RATE = parseInt(process.env.PRINTER_BAUD_RATE || '9600', 10);
 let printerDevice = null;
 let escposPrinter = null;
 
-// 프린터 초기화
+// 프린터 초기화 (LKT-20 시리얼 프린터 전용)
 function initPrinter() {
-  if (os.platform() === 'win32') {
-    console.log('✅ Windows 기본 프린터 사용 준비 완료');
-  }
-  
   if (!escpos || !SerialPort) {
-    console.log('⚠️ 프린터 라이브러리가 없어 시리얼 포트 프린터를 사용할 수 없습니다.');
+    console.error('❌ 프린터 라이브러리가 없어 LKT-20 시리얼 프린터를 사용할 수 없습니다.');
+    console.error('   설치: npm install escpos serialport');
     return false;
   }
   
@@ -68,6 +56,20 @@ function initPrinter() {
           escposPrinter = null;
         } else {
           console.log(`✅ 시리얼 포트 프린터 연결 성공: ${PRINTER_SERIAL_PORT} (${PRINTER_BAUD_RATE} baud)`);
+          
+          // 일반 전표용지(80mm) 사이즈 설정
+          // GS w n: 폭 설정 (n = 0~255, 단위는 dot)
+          // 80mm = 약 576 dots (203 DPI 기준) = 0x0240 (576 in hex)
+          // 하지만 일반적으로 48-58 문자 폭으로 설정
+          try {
+            // ESC @ - 초기화
+            serialPort.write(Buffer.from([0x1B, 0x40]));
+            // GS w n - 폭 설정 (n = 48 = 0x30, 80mm 전표용지)
+            serialPort.write(Buffer.from([0x1D, 0x77, 0x30]));
+            console.log('✅ 전표용지(80mm) 사이즈 설정 완료');
+          } catch (widthError) {
+            console.log('⚠️ 폭 설정 오류 (무시됨):', widthError.message);
+          }
         }
       });
       
@@ -91,6 +93,15 @@ function printTest() {
     }
     
     console.log('🖨️ LKT-20 프린터 테스트 인쇄 시작...');
+    
+    // 전표용지(80mm) 사이즈 설정
+    try {
+      printerDevice.write(Buffer.from([0x1B, 0x40])); // 초기화
+      printerDevice.write(Buffer.from([0x1D, 0x77, 0x30])); // 80mm 폭 설정
+    } catch (e) {
+      // 무시
+    }
+    
     escposPrinter
       .font('A')
       .align('CT')
@@ -126,6 +137,14 @@ function printOrder(order) {
     
     const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
     console.log('🖨️ 주문서 인쇄 시작:', order.orderId);
+    
+    // 전표용지(80mm) 사이즈 설정
+    try {
+      printerDevice.write(Buffer.from([0x1B, 0x40])); // 초기화
+      printerDevice.write(Buffer.from([0x1D, 0x77, 0x30])); // 80mm 폭 설정
+    } catch (e) {
+      // 무시
+    }
     
     escposPrinter
       .font('A')
@@ -263,7 +282,7 @@ app.get('/status', (req, res) => {
     printer: 'LKT-20',
     port: PRINTER_SERIAL_PORT,
     baudRate: PRINTER_BAUD_RATE,
-    connected: escposPrinter !== null || nodePrinter !== null
+    connected: escposPrinter !== null && printerDevice !== null
   });
 });
 
