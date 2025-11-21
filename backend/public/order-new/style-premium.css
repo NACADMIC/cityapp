@@ -10,10 +10,7 @@
 
 body {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #e8e8e8;
-  background-image: 
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px),
-    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFE082 100%);
   color: #1a1a1a;
   letter-spacing: -0.3px;
   min-height: 100vh;
@@ -1184,10 +1181,11 @@ h2 {
   border-radius: 0;
   object-fit: contain;
   box-shadow: none;
-  background: transparent;
-  padding: 0;
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFE082 100%);
+  padding: 20px;
   display: block;
   border: none;
+  mix-blend-mode: multiply;
 }
 
 /* 이미지 로드 실패 시 숨김 (연등 이모지 표시 안함) */
