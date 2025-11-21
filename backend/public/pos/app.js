@@ -356,16 +356,16 @@ function formatPayment(method) {
 // Get status buttons
 function getStatusButtons(orderId, status, riderId) {
   let buttons = {
-    'pending': `<button class="btn btn-info" style="background: #ffc107; color: #000;" onclick="showPendingOrderPopup('${orderId}')">⏳ 수락 대기 중 (클릭)</button>`,
-    'accepted': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'preparing')">✓ 조리 시작</button>`,
-    'preparing': `<button class="btn btn-accept" onclick="assignRider('${orderId}')">🛵 라이더 배정</button>`,
-    'delivering': `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'completed')">✅ 배달 완료</button>`,
+    'pending': `<button class="btn btn-info" style="background: #ffc107; color: #000;" onclick="handleShowPendingOrderPopup('${orderId}')">⏳ 수락 대기 중 (클릭)</button>`,
+    'accepted': `<button class="btn btn-accept" onclick="handleUpdateStatus('${orderId}', 'preparing')">✓ 조리 시작</button>`,
+    'preparing': `<button class="btn btn-accept" onclick="handleAssignRider('${orderId}')">🛵 라이더 배정</button>`,
+    'delivering': `<button class="btn btn-accept" onclick="handleUpdateStatus('${orderId}', 'completed')">✅ 배달 완료</button>`,
     'completed': `<button class="btn" style="background: #9e9e9e; cursor: not-allowed;" disabled>완료됨</button>`
   };
   
   // preparing 상태에서 라이더가 배정되어 있으면 배달 출발 버튼 표시
   if (status === 'preparing' && riderId) {
-    buttons['preparing'] = `<button class="btn btn-accept" onclick="updateStatus('${orderId}', 'delivering')">🚚 배달 출발</button>`;
+    buttons['preparing'] = `<button class="btn btn-accept" onclick="handleUpdateStatus('${orderId}', 'delivering')">🚚 배달 출발</button>`;
   }
   
   return buttons[status] || buttons['pending'];
@@ -1410,6 +1410,39 @@ function testPrinter() {
     alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
   }
 }
+
+// onclick 핸들러 래퍼 함수 (async 함수를 안전하게 호출)
+function handleUpdateStatus(orderId, newStatus, estimatedTime = null) {
+  updateStatus(orderId, newStatus, estimatedTime).catch(err => {
+    console.error('상태 업데이트 오류:', err);
+  });
+}
+
+function handleAssignRider(orderId) {
+  assignRider(orderId).catch(err => {
+    console.error('라이더 배정 오류:', err);
+  });
+}
+
+function handleShowPendingOrderPopup(orderId) {
+  try {
+    showPendingOrderPopup(orderId);
+  } catch (err) {
+    console.error('주문 팝업 오류:', err);
+    alert('주문 팝업을 열 수 없습니다: ' + err.message);
+  }
+}
+
+// 전역 함수로 노출 (onclick에서 사용하기 위해)
+window.updateStatus = updateStatus;
+window.assignRider = assignRider;
+window.printOrder = printOrder;
+window.showPendingOrderPopup = showPendingOrderPopup;
+window.confirmAssignRider = confirmAssignRider;
+window.closeRiderPopup = closeRiderPopup;
+window.handleUpdateStatus = handleUpdateStatus;
+window.handleAssignRider = handleAssignRider;
+window.handleShowPendingOrderPopup = handleShowPendingOrderPopup;
 
 console.log('🏮 POS 시스템 준비 완료!');
 
