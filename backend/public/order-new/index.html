@@ -51,10 +51,14 @@
   <div id="auth-select-screen" class="screen active">
     <div class="container">
       <div class="logo">
-        <img src="logo2.png" alt="시티반점 로고" class="logo-image" style="max-width: 250px; width: auto; height: auto;" onerror="console.error('이미지 로드 실패:', this.src);">
+        <div class="logo-container">
+          <img src="logo2.png" alt="시티반점 로고" class="logo-image" style="max-width: 500px; width: auto; height: auto; display: block; margin: 0 auto;" onerror="console.error('이미지 로드 실패:', this.src);">
+          <div class="logo-text-overlay">
+            <h1 class="logo-text" data-store-name>시티반점</h1>
+            <p class="logo-subtitle">맛있는 중국요리 배달</p>
+          </div>
+        </div>
       </div>
-      <h1 style="text-align: center; font-size: 48px; font-weight: 900; margin-bottom: 12px; color: #1a1a1a;" data-store-name>시티반점</h1>
-      <p class="subtitle">맛있는 중국요리 배달</p>
 
       <div class="auth-buttons">
         <button class="btn btn-primary" onclick="showLogin()">
