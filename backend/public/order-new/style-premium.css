@@ -10,7 +10,10 @@
 
 body {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFE082 100%);
+  background: #e8e8e8;
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.02) 2px, rgba(0,0,0,0.02) 4px);
   color: #1a1a1a;
   letter-spacing: -0.3px;
   min-height: 100vh;
