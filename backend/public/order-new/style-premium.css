@@ -1167,29 +1167,16 @@ h2 {
   margin-bottom: 24px;
   filter: drop-shadow(0 8px 20px rgba(255, 215, 0, 0.3));
   animation: float 3s ease-in-out infinite;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 150px;
-  background: linear-gradient(135deg, #FFD700 0%, #FFC107 50%, #FFE082 100%);
-  padding: 20px;
-  border-radius: 12px;
 }
 
 .logo-image {
-  max-width: 300px !important;
-  max-height: 300px !important;
-  width: auto !important;
-  height: auto !important;
-  border-radius: 0;
+  max-width: 200px;
+  max-height: 200px;
+  width: auto;
+  height: auto;
+  border-radius: 20px;
   object-fit: contain;
-  box-shadow: none;
-  background: transparent;
-  padding: 0;
-  display: block;
-  border: none;
-  mix-blend-mode: darken;
-  filter: contrast(1.1) brightness(1.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 /* 이미지 로드 실패 시 숨김 (연등 이모지 표시 안함) */
