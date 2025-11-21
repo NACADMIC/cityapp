@@ -564,6 +564,29 @@
       <button class="btn btn-primary" onclick="showCheckout()">주문하기</button>
       <button class="btn btn-secondary" onclick="showMenu()">메뉴로 돌아가기</button>
     </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn" onclick="goHome()">
+        <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+        <span class="nav-label">홈</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToOrderHistory()">
+        <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span class="nav-label">주문내역</span>
+      </button>
+      <button type="button" class="nav-btn active" onclick="goToCart()">
+        <span class="nav-icon">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span id="nav-cart-count-cart" class="nav-cart-badge" style="display: none;">0</span>
+        </span>
+        <span class="nav-label">장바구니</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToMyPage()">
+        <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+        <span class="nav-label">마이시티</span>
+      </button>
+    </nav>
   </div>
 
   <!-- Checkout Screen -->

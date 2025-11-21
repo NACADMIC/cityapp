@@ -965,11 +965,18 @@ function addToCart(itemId) {
 function updateCartCount() {
   const count = cart.reduce((sum, item) => sum + item.quantity, 0);
   
-  // 하단 네비게이션 장바구니 뱃지 업데이트
+  // 하단 네비게이션 장바구니 뱃지 업데이트 (메뉴 화면)
   const navCartBadge = document.getElementById('nav-cart-count');
   if (navCartBadge) {
     navCartBadge.textContent = count;
     navCartBadge.style.display = count > 0 ? 'block' : 'none';
+  }
+  
+  // 하단 네비게이션 장바구니 뱃지 업데이트 (장바구니 화면)
+  const navCartBadgeCart = document.getElementById('nav-cart-count-cart');
+  if (navCartBadgeCart) {
+    navCartBadgeCart.textContent = count;
+    navCartBadgeCart.style.display = count > 0 ? 'block' : 'none';
   }
   
   // 사이드 메뉴 장바구니 뱃지 업데이트
