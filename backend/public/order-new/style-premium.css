@@ -918,10 +918,10 @@ h2 {
   }
 
   .logo-image {
-    max-width: 1125px !important;
-    max-height: 1125px !important;
-    width: 1125px !important;
-    min-width: 1125px !important;
+    max-width: 900px !important;
+    max-height: 900px !important;
+    width: 900px !important;
+    min-width: 900px !important;
     height: auto !important;
     margin: 0 auto !important;
     display: block !important;
@@ -1128,10 +1128,10 @@ h2 {
   }
 
   .logo-image {
-    max-width: 1125px !important;
-    max-height: 1125px !important;
-    width: 1125px !important;
-    min-width: 1125px !important;
+    max-width: 900px !important;
+    max-height: 900px !important;
+    width: 900px !important;
+    min-width: 900px !important;
     height: auto !important;
     margin: 0 auto !important;
   }
@@ -1314,10 +1314,10 @@ h2 {
 }
 
 .logo-image {
-  max-width: 1125px !important;
-  max-height: 1125px !important;
-  width: 1125px !important;
-  min-width: 1125px !important;
+  max-width: 900px !important;
+  max-height: 900px !important;
+  width: 900px !important;
+  min-width: 900px !important;
   height: auto !important;
   border-radius: 0;
   object-fit: contain;
