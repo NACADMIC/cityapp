@@ -1169,6 +1169,10 @@ h2 {
   background: transparent;
   padding: 0;
   border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .logo-image {
@@ -1184,6 +1188,7 @@ h2 {
   display: block;
   filter: none;
   border: none;
+  margin: 0 auto;
 }
 
 /* 이미지 로드 실패 시 숨김 (연등 이모지 표시 안함) */
