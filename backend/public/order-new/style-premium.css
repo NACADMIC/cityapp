@@ -1170,34 +1170,21 @@ h2 {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 150px;
 }
 
 .logo-image {
-  max-width: 200px;
-  max-height: 200px;
-  width: auto;
+  max-width: 180px;
+  max-height: 180px;
+  width: 100%;
   height: auto;
-  border-radius: 20px;
-  object-fit: contain;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  background: white;
-  padding: 10px;
-}
-
-/* 이미지 로드 실패 시 fallback */
-.logo-image:not([src]),
-.logo-image[src=""],
-.logo-image[src*="undefined"],
-.logo-image[src*="null"] {
-  display: none;
-}
-
-.logo:has(.logo-image:not([src]))::before,
-.logo:has(.logo-image[src=""])::before,
-.logo:has(.logo-image[src*="undefined"])::before,
-.logo:has(.logo-image[src*="null"])::before {
-  content: "🏮";
-  font-size: 100px;
+  border-radius: 0;
+  object-fit: cover;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+  display: block;
+  border: none;
 }
 
 .subtitle {
