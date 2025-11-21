@@ -2425,8 +2425,8 @@ function updateStoreNameInUI() {
     if (el.closest('#auth-select-screen') || el.closest('#login-screen') || el.closest('#register-screen')) {
       el.textContent = storeName;
     } else {
-      // 메뉴 화면 등 다른 곳은 연등 포함
-      el.textContent = `🏮 ${storeName}`;
+      // 메뉴 화면 등 다른 곳은 가게명만 표시 (로고는 이미지로 표시됨)
+      el.textContent = storeName;
     }
   });
   // title 태그 업데이트
@@ -2439,7 +2439,7 @@ function updateStoreNameInUI() {
       return;
     }
     if (h1.textContent.includes('시티반점') || h1.textContent.includes('🏮')) {
-      h1.textContent = `🏮 ${storeName}`;
+      h1.textContent = storeName;
     }
   });
 }

@@ -479,6 +479,10 @@ class DB {
     await this.query('UPDATE orders SET status = $1 WHERE "orderId" = $2', [status, orderId]);
   }
 
+  async updateOrderEstimatedTime(orderId, minutes) {
+    await this.query('UPDATE orders SET "estimatedTime" = $1 WHERE "orderId" = $2', [minutes, orderId]);
+  }
+
   // ========== 전화번호 인증 ==========
   async createVerification(phone, code) {
     const result = await this.query(

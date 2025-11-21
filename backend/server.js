@@ -1612,6 +1612,8 @@ app.post('/api/orders/:orderId/status', async (req, res) => {
     const { orderId } = req.params;
     let { status, estimatedTime } = req.body;
     
+    console.log('📝 주문 상태 업데이트 요청:', { orderId, status, estimatedTime });
+    
     let order;
     if (process.env.DATABASE_URL) {
       order = await db.getOrderById(orderId);
@@ -1620,8 +1622,11 @@ app.post('/api/orders/:orderId/status', async (req, res) => {
     }
     
     if (!order) {
+      console.error('❌ 주문을 찾을 수 없음:', orderId);
       return res.status(404).json({ success: false, error: '주문을 찾을 수 없습니다.' });
     }
+    
+    console.log('✅ 주문 찾음:', orderId);
     
     // 현금 주문이고 배달 완료 상태로 변경 시 자동으로 완료 상태로 변경
     const paymentMethod = order.paymentMethod || order.paymentmethod || 'cash';
@@ -1633,10 +1638,37 @@ app.post('/api/orders/:orderId/status', async (req, res) => {
       console.log('💰 현금 주문 - 배달 완료 시 자동 완료 처리:', orderId);
     }
     
+    // 주문 상태 업데이트
+    console.log('💾 데이터베이스에 상태 업데이트 중:', { orderId, status, estimatedTime });
+    
     if (process.env.DATABASE_URL) {
+      // PostgreSQL
       await db.updateOrderStatus(orderId, status);
+      console.log('✅ PostgreSQL 상태 업데이트 완료');
+      
+      // 예상 시간이 있으면 저장
+      if (estimatedTime !== null && estimatedTime !== undefined) {
+        try {
+          await db.query('UPDATE orders SET "estimatedTime" = $1 WHERE "orderId" = $2', [estimatedTime, orderId]);
+          console.log('✅ 예상 시간 업데이트 완료:', estimatedTime, '분');
+        } catch (timeError) {
+          console.error('⚠️ 예상 시간 업데이트 실패 (무시됨):', timeError.message);
+        }
+      }
     } else {
+      // SQLite
       db.updateOrderStatus(orderId, status);
+      console.log('✅ SQLite 상태 업데이트 완료');
+      
+      // 예상 시간이 있으면 저장
+      if (estimatedTime !== null && estimatedTime !== undefined) {
+        try {
+          db.updateOrderEstimatedTime(orderId, estimatedTime);
+          console.log('✅ 예상 시간 업데이트 완료:', estimatedTime, '분');
+        } catch (timeError) {
+          console.error('⚠️ 예상 시간 업데이트 실패 (무시됨):', timeError.message);
+        }
+      }
     }
     
     // 주문 수락 시 프린터에서 자동 인쇄
@@ -1667,36 +1699,45 @@ app.post('/api/orders/:orderId/status', async (req, res) => {
         };
         
         console.log('🖨️ 프린터 출력 함수 호출 시작');
-        // 프린터 출력
-        // 프린터 서버 URL이 있으면 원격 호출, 없으면 로컬 프린터 사용
-        const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
-        if (PRINTER_SERVER_URL) {
-          console.log('🖨️ 원격 프린터 서버 호출:', PRINTER_SERVER_URL);
-          axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint, {
-            timeout: 5000,
-            headers: { 'Content-Type': 'application/json' }
-          })
-            .then((response) => {
-              console.log('✅ 원격 프린터 출력 완료:', orderId);
-              console.log('프린터 서버 응답:', response.data);
+        // 프린터 출력 (비동기로 처리, 실패해도 주문 상태 업데이트는 성공)
+        try {
+          const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
+          if (PRINTER_SERVER_URL) {
+            console.log('🖨️ 원격 프린터 서버 호출:', PRINTER_SERVER_URL);
+            // 프린터 출력은 비동기로 처리 (실패해도 주문 상태 업데이트는 성공)
+            axios.post(`${PRINTER_SERVER_URL}/print`, orderForPrint, {
+              timeout: 5000,
+              headers: { 'Content-Type': 'application/json' }
             })
-            .catch(err => {
-              console.error('❌ 원격 프린터 출력 실패:', orderId);
-              console.error('에러 상세:', err.message);
-              if (err.response) {
-                console.error('응답 상태:', err.response.status);
-                console.error('응답 데이터:', err.response.data);
-              }
-              if (err.code === 'ECONNREFUSED') {
-                console.error('⚠️ 프린터 서버에 연결할 수 없습니다. 프린터 서버가 실행 중인지 확인하세요.');
-              }
-            });
-        } else {
-          console.log('🖨️ 로컬 프린터 사용');
-          const printResult = printer.printOrder(orderForPrint);
-          console.log('🖨️ 주문 수락 - 프린터 출력 결과:', printResult, '주문번호:', orderId);
+              .then((response) => {
+                console.log('✅ 원격 프린터 출력 완료:', orderId);
+                console.log('프린터 서버 응답:', response.data);
+              })
+              .catch(err => {
+                console.error('❌ 원격 프린터 출력 실패:', orderId);
+                console.error('에러 상세:', err.message);
+                if (err.response) {
+                  console.error('응답 상태:', err.response.status);
+                  console.error('응답 데이터:', err.response.data);
+                }
+                if (err.code === 'ECONNREFUSED') {
+                  console.error('⚠️ 프린터 서버에 연결할 수 없습니다. 프린터 서버가 실행 중인지 확인하세요.');
+                }
+              });
+          } else {
+            console.log('🖨️ 로컬 프린터 사용');
+            try {
+              const printResult = printer.printOrder(orderForPrint);
+              console.log('🖨️ 주문 수락 - 프린터 출력 결과:', printResult, '주문번호:', orderId);
+            } catch (printError) {
+              console.error('⚠️ 로컬 프린터 출력 오류 (무시됨):', printError.message);
+            }
+          }
+          console.log('🖨️ 주문 수락 - 프린터 출력 요청 완료:', orderId);
+        } catch (printError) {
+          console.error('⚠️ 프린터 출력 오류 (무시됨):', printError.message);
+          // 프린터 출력 실패해도 주문 상태 업데이트는 계속 진행
         }
-        console.log('🖨️ 주문 수락 - 프린터 출력:', orderId);
       } else {
         console.error('❌ 주문 데이터가 없습니다:', orderId);
       }
@@ -1727,13 +1768,19 @@ app.post('/api/orders/:orderId/status', async (req, res) => {
       }
     }
     
+    // Socket.io로 상태 변경 알림
     io.emit('order-status-changed', { orderId, status });
     
-    console.log('📝 주문 상태 변경:', orderId, '→', status, `(결제: ${paymentMethod})`);
-    res.json({ success: true, status });
+    console.log('✅ 주문 상태 변경 완료:', orderId, '→', status, `(결제: ${paymentMethod})`);
+    res.json({ success: true, status, message: '주문 상태가 업데이트되었습니다.' });
   } catch (error) {
     console.error('❌ 주문 상태 변경 오류:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('에러 스택:', error.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || '주문 상태 변경 중 오류가 발생했습니다.',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

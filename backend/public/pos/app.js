@@ -580,12 +580,25 @@ function showOrderPopup(orderData) {
   console.log('✅ 팝업 표시됨! display:', popup.style.display, 'classList:', popup.classList);
   
   // 수락 버튼에 예상 시간 포함하도록 수정
-  const acceptBtn = popup.querySelector('.btn-accept');
-  const rejectBtn = popup.querySelector('.btn-reject');
+  const acceptBtn = document.getElementById('popup-accept-btn') || popup.querySelector('.btn-accept');
+  const rejectBtn = document.getElementById('popup-reject-btn') || popup.querySelector('.btn-reject');
+  
+  if (!acceptBtn) {
+    console.error('❌ 수락 버튼을 찾을 수 없습니다!');
+    console.error('  - popup:', popup);
+    console.error('  - orderData.orderId:', orderData.orderId);
+  }
   
   if (acceptBtn && orderData.orderId) {
-    // 기존 onclick 제거하고 새로 설정
-    acceptBtn.onclick = async () => {
+    // 기존 이벤트 리스너 제거
+    const newAcceptBtn = acceptBtn.cloneNode(true);
+    acceptBtn.parentNode.replaceChild(newAcceptBtn, acceptBtn);
+    
+    // 새 이벤트 리스너 설정
+    newAcceptBtn.onclick = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
       try {
         console.log('🔘 수락 버튼 클릭됨:', orderData.orderId);
         const estimatedTime = parseInt(document.getElementById('estimated-time-input')?.value || 35);
@@ -595,24 +608,23 @@ function showOrderPopup(orderData) {
         hideOrderPopup();
         
         // 주문 상태 업데이트
-        await updateStatus(orderData.orderId, 'accepted', estimatedTime);
+        const success = await updateStatus(orderData.orderId, 'accepted', estimatedTime);
         
-        // 주문 목록 새로고침
-        await loadOrders();
-        renderOrders();
-        updateStats();
+        if (success) {
+          // 주문 목록 새로고침
+          await loadOrders();
+          renderOrders();
+          updateStats();
+          console.log('✅ 주문 수락 완료:', orderData.orderId);
+        }
       } catch (error) {
         console.error('❌ 주문 수락 오류:', error);
-        alert('주문 수락 중 오류가 발생했습니다: ' + error.message);
+        alert('주문 수락 중 오류가 발생했습니다: ' + (error.message || '알 수 없는 오류'));
       }
     };
     
     // 수락 버튼이 제대로 설정되었는지 확인
-    console.log('✅ 수락 버튼 설정 완료:', acceptBtn);
-  } else {
-    console.error('❌ 수락 버튼을 찾을 수 없습니다!');
-    console.error('  - acceptBtn:', acceptBtn);
-    console.error('  - orderData.orderId:', orderData.orderId);
+    console.log('✅ 수락 버튼 설정 완료:', newAcceptBtn);
   }
   
   console.log('  - 수락 버튼:', acceptBtn);
