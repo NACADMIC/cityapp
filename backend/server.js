@@ -2005,22 +2005,31 @@ app.post('/api/printer/test', async (req, res) => {
   try {
     const PRINTER_SERVER_URL = process.env.PRINTER_SERVER_URL;
     if (PRINTER_SERVER_URL) {
-      // 원격 프린터 서버 호출
+      // 원격 프린터 서버 호출 (LKT-20 전용)
       try {
-        const response = await axios.get(`${PRINTER_SERVER_URL}/test`);
+        console.log('🖨️ LKT-20 프린터 테스트 요청:', PRINTER_SERVER_URL);
+        const response = await axios.get(`${PRINTER_SERVER_URL}/test`, {
+          timeout: 5000,
+          headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('✅ LKT-20 프린터 테스트 응답:', response.data);
         res.json(response.data);
       } catch (error) {
+        console.error('❌ LKT-20 프린터 서버 연결 실패:', error.message);
         res.status(500).json({ 
           success: false, 
-          error: `원격 프린터 서버 연결 실패: ${error.message}` 
+          error: `LKT-20 프린터 서버 연결 실패: ${error.message}\n\n프린터 서버가 POS PC에서 실행 중인지 확인해주세요.` 
         });
       }
     } else {
-      // 로컬 프린터 사용
-      const result = printer.printTest();
-      res.json({ success: result, message: result ? '프린터 테스트 완료' : '프린터 연결 실패' });
+      // PRINTER_SERVER_URL이 설정되지 않음
+      res.status(400).json({ 
+        success: false, 
+        error: 'LKT-20 프린터 서버 URL이 설정되지 않았습니다.\n\nRailway 환경 변수에 PRINTER_SERVER_URL을 설정해주세요.\n예: http://172.30.1.61:3001' 
+      });
     }
   } catch (error) {
+    console.error('❌ 프린터 테스트 오류:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

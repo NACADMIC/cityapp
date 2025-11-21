@@ -1477,11 +1477,21 @@ async function saveBreakTime() {
 setInterval(updateBusinessStatus, 60000); // 1분마다 영업시간 상태 업데이트
 
 // 프린터 테스트 함수
-function testPrinter() {
-  // 일반 프린터 테스트 페이지 열기
-  const testWindow = window.open('/api/printer/test-general', '_blank', 'width=400,height=600');
-  if (!testWindow) {
-    alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+async function testPrinter() {
+  try {
+    const res = await fetch('/api/printer/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    
+    if (data.success) {
+      alert('✅ 프린터 테스트 완료!\n\n프린터에서 테스트 페이지가 인쇄되었는지 확인해주세요.');
+    } else {
+      alert('❌ 프린터 테스트 실패\n\n오류: ' + (data.error || data.message || '프린터 연결 실패'));
+    }
+  } catch (error) {
+    alert('❌ 프린터 테스트 오류\n\n' + error.message + '\n\n프린터 서버가 실행 중인지 확인해주세요.');
   }
 }
 

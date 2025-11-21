@@ -69,9 +69,9 @@ body {
   box-sizing: border-box;
 }
 
-/* 메뉴 화면의 컨테이너는 패딩 제거 (내용은 내부 요소에 패딩 적용) */
+/* 메뉴 화면의 컨테이너는 기본 패딩 유지 (메뉴 아이템들이 적절한 간격 유지) */
 #menu-screen .container {
-  padding: 0;
+  padding: 20px;
 }
 
 @keyframes fadeInUp {
@@ -457,7 +457,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 20px;
-  padding: 20px 0;
+  padding: 20px;
 }
 
 /* ===== MODAL ===== */
@@ -1097,7 +1097,7 @@ h2 {
   .menu-list {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    padding: 15px 0;
+    padding: 15px;
   }
 
   .menu-item {

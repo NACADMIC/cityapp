@@ -34,12 +34,13 @@ let escposPrinter = null;
 function initPrinter() {
   if (!escpos || !SerialPort) {
     console.error('❌ 프린터 라이브러리가 없어 LKT-20 시리얼 프린터를 사용할 수 없습니다.');
-    console.error('   설치: npm install escpos serialport');
+    console.error('   설치: npm install escpos serialport@9.2.8');
     return false;
   }
   
   try {
     if (SerialPort && PRINTER_SERIAL_PORT) {
+      // serialport v9.x API 사용
       const serialPort = new SerialPort({
         path: PRINTER_SERIAL_PORT,
         baudRate: PRINTER_BAUD_RATE,
