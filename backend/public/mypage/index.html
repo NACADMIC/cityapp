@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>마이배민 - 시티반점</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #000000;
+      min-height: 100vh;
+      padding: 20px 20px 80px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 32px;
+      font-weight: 900;
+      color: #FFD700;
+      text-align: center;
+      margin: 20px 0 30px 0;
+      letter-spacing: -1px;
+    }
+
+    .back-btn, .home-btn {
+      position: fixed;
+      top: 20px;
+      background: rgba(255, 215, 0, 0.2);
+      backdrop-filter: blur(10px);
+      color: #FFD700;
+      border: 2px solid #FFD700;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s;
+    }
+
+    .back-btn {
+      left: 20px;
+    }
+
+    .home-btn {
+      right: 20px;
+    }
+
+    .back-btn:hover, .home-btn:hover {
+      background: #FFD700;
+      color: #000000;
+      transform: translateY(-2px);
+    }
+    
+    /* 포인트 카드 */
+    .point-card {
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      border-radius: 24px;
+      padding: 30px;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(255, 215, 0, 0.4);
+      animation: slideIn 0.5s ease;
+    }
+    
+    .point-icon {
+      font-size: 48px;
+      animation: bounce 2s infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .point-info {
+      flex: 1;
+    }
+    
+    .point-label {
+      font-size: 14px;
+      color: rgba(0, 0, 0, 0.7);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .point-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: -1px;
+    }
+
+    .user-info {
+      margin-bottom: 30px;
+      background: rgba(255, 215, 0, 0.1);
+      padding: 20px;
+      border-radius: 16px;
+      border: 2px solid #FFD700;
+    }
+    
+    /* 섹션 헤더 */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 40px 0 20px 0;
+    }
+    
+    .section-header h3 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFD700;
+    }
+    
+    .order-count {
+      font-size: 14px;
+      font-weight: 600;
+      color: #000000;
+      background: #FFD700;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .order-item {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      border: 3px solid #FFD700;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      animation: slideIn 0.3s ease;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .order-id {
+      font-weight: 700;
+      color: #667eea;
+      font-size: 14px;
+    }
+
+    .order-date {
+      font-size: 13px;
+      color: #999;
+    }
+
+    .order-status {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-accepted {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-preparing {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-delivering {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-completed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-rejected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .order-items {
+      margin-bottom: 15px;
+    }
+
+    .order-item-detail {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .item-name {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .item-quantity {
+      color: #666;
+      margin-right: 15px;
+    }
+
+    .item-price {
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .order-total {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 0;
+      border-top: 2px solid #eee;
+      font-size: 18px;
+      font-weight: 800;
+      color: #1a1a1a;
+    }
+
+    .order-actions {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .order-actions button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 14px;
+    }
+
+    .btn-track {
+      background: #000000;
+      color: #FFD700;
+      border: 2px solid #000000;
+    }
+
+    .btn-track:hover {
+      background: #FFD700;
+      color: #000000;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+    }
+    
+    .btn-reorder {
+      background: #FFD700;
+      color: #000000;
+      font-weight: 800;
+      border: none;
+    }
+    
+    .btn-reorder:hover {
+      background: #FFC107;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+    }
+    
+    .btn-same-menu {
+      background: transparent;
+      color: #FFD700;
+      border: 2px solid #FFD700;
+      font-weight: 700;
+    }
+    
+    .btn-same-menu:hover {
+      background: #FFD700;
+      color: #000000;
+      transform: translateY(-2px);
+    }
+
+    .no-orders {
+      text-align: center;
+      padding: 60px 20px;
+      color: #FFD700;
+      font-size: 16px;
+      background: rgba(255, 215, 0, 0.1);
+      border-radius: 16px;
+      border: 2px solid #FFD700;
+    }
+    
+    /* 포인트 내역 */
+    .point-history-item {
+      background: white;
+      padding: 18px;
+      border-radius: 14px;
+      border: 2px solid #FFD700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .point-history-left {
+      flex: 1;
+    }
+    
+    .point-history-type {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 6px;
+    }
+    
+    .point-history-date {
+      font-size: 12px;
+      color: #999;
+    }
+    
+    .point-history-amount {
+      font-size: 20px;
+      font-weight: 800;
+      text-align: right;
+    }
+    
+    .point-history-amount.plus {
+      color: #00C851;
+    }
+    
+    .point-history-amount.minus {
+      color: #FF4444;
+    }
+    
+    /* 로그아웃 버튼 */
+    .btn-logout {
+      width: 100%;
+      padding: 18px;
+      margin: 40px 0 60px 0;
+      background: transparent;
+      color: #999;
+      border: 2px solid #666;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .btn-logout:hover {
+      background: #FF4444;
+      color: white;
+      border-color: #FF4444;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 68, 68, 0.4);
+    }
+    
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1a1a1a;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 0 env(safe-area-inset-bottom);
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      border-top: 2px solid #FFD700;
+    }
+    
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #FFD700;
+      opacity: 0.6;
+    }
+    
+    .nav-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .nav-btn.active {
+      color: #FFD700;
+      opacity: 1;
+    }
+    
+    .nav-btn.active .nav-icon {
+      transform: scale(1.2);
+      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
+    }
+    
+    .nav-icon {
+      font-size: 22px;
+      transition: all 0.3s;
+      display: block;
+      font-style: normal;
+    }
+    
+    .nav-icon i {
+      font-size: 22px;
+    }
+    
+    .nav-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="back-btn" onclick="history.back()">← 뒤로</button>
+    <button class="home-btn" onclick="window.location.href='/order-new'">🏠 홈</button>
+    
+    <h2>마이시티</h2>
+    
+    <!-- 포인트 카드 -->
+    <div class="point-card" id="point-card" onclick="scrollToPointHistory()" style="cursor: pointer;">
+      <div class="point-icon">💰</div>
+      <div class="point-info">
+        <div class="point-label">보유 포인트</div>
+        <div class="point-value" id="user-points">0원</div>
+      </div>
+    </div>
+    
+    <!-- 사용자 정보 -->
+    <div id="user-info" class="user-info"></div>
+    
+    <!-- 주문 내역 섹션 -->
+    <div class="section-header">
+      <h3>주문 내역</h3>
+      <span class="order-count" id="order-count">0건</span>
+    </div>
+    <div id="orders-list" class="orders-list"></div>
+    
+    <!-- 쿠폰 섹션 -->
+    <div class="section-header" style="margin-top: 50px;">
+      <h3>🎫 보유 쿠폰</h3>
+      <span class="order-count" id="coupon-count">0개</span>
+    </div>
+    <div id="coupons-list" class="orders-list"></div>
+    
+    <!-- 포인트 내역 섹션 -->
+    <div class="section-header" style="margin-top: 50px;">
+      <h3>포인트 내역</h3>
+      <span class="order-count" id="point-history-count">0건</span>
+    </div>
+    <div id="point-history-list" class="orders-list"></div>
+    
+    <!-- 로그아웃 버튼 -->
+    <button class="btn-logout" onclick="logout()">🚪 로그아웃</button>
+  </div>
+  
+  <!-- 리뷰 작성 모달 -->
+  <div id="review-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 20px; padding: 30px; max-width: 400px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <h3 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 800; color: #1a1a1a;">리뷰 작성</h3>
+      
+      <input type="hidden" id="review-order-id">
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">별점</label>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="5" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="4" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="3" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="2" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+          <label style="cursor: pointer; font-size: 32px;">
+            <input type="radio" name="rating" value="1" style="display: none;">
+            <span style="color: #ddd;" onmouseover="this.style.color='#FFD700';" onmouseout="if(!this.previousElementSibling.checked) this.style.color='#ddd';" onclick="this.style.color='#FFD700'; document.querySelectorAll('input[name=rating]').forEach(r => r.checked = false); this.previousElementSibling.checked = true;">⭐</span>
+          </label>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">리뷰 내용 (선택)</label>
+        <textarea id="review-comment" placeholder="음식이 맛있었나요? 배달은 빠르게 왔나요? 리뷰를 작성해주세요!" rows="5" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button onclick="document.getElementById('review-modal').style.display='none';" style="flex: 1; padding: 12px; background: #f5f5f5; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+          취소
+        </button>
+        <button onclick="submitReview()" style="flex: 1; padding: 12px; background: #FFD700; color: #000; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
+          작성하기
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button type="button" class="nav-btn" onclick="window.location.href='/order-new'">
+      <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+      <span class="nav-label">홈</span>
+    </button>
+    <button type="button" class="nav-btn" id="nav-orders" onclick="scrollToOrders()">
+      <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+      <span class="nav-label">주문내역</span>
+    </button>
+    <button type="button" class="nav-btn" onclick="window.location.href='/order-new'">
+      <span class="nav-icon"><i class="fa-solid fa-cart-shopping"></i></span>
+      <span class="nav-label">장바구니</span>
+    </button>
+    <button type="button" class="nav-btn active" id="nav-profile" onclick="scrollToTop()">
+      <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+      <span class="nav-label">마이시티</span>
+    </button>
+  </nav>
+
+  <script>
+    const statusText = {
+      cancelled: '취소됨',
+      'pending': '주문 대기',
+      'accepted': '주문 수락',
+      'preparing': '조리 중',
+      'delivering': '배달 중',
+      'completed': '배달 완료',
+      'rejected': '주문 거절'
+    };
+
+    async function fetchUserData() {
+      // sessionStorage에서 currentUser 객체 가져오기
+      const currentUserData = sessionStorage.getItem('currentUser');
+      
+      console.log('🔍 세션 데이터 확인:', currentUserData);
+      
+      if (!currentUserData) {
+        console.log('❌ 세션 데이터 없음');
+        alert('로그인이 필요합니다.');
+        window.location.href = '/order-new';
+        return;
+      }
+      
+      let userId;
+      try {
+        const user = JSON.parse(currentUserData);
+        console.log('📦 파싱된 사용자 데이터:', user);
+        
+        // userId 또는 userid 모두 확인 (대소문자 구분 없이)
+        userId = user.userId || user.userid || user.id;
+        
+        console.log('🔑 추출된 userId:', userId);
+        
+        if (!userId) {
+          console.error('❌ userId를 찾을 수 없음. 사용자 데이터:', user);
+          alert('로그인 정보가 올바르지 않습니다. 다시 로그인해주세요.');
+          sessionStorage.removeItem('currentUser');
+          window.location.href = '/order-new';
+          return;
+        }
+      } catch (e) {
+        console.error('❌ 세션 데이터 파싱 오류:', e);
+        console.error('원본 데이터:', currentUserData);
+        alert('로그인 정보를 불러올 수 없습니다. 다시 로그인해주세요.');
+        sessionStorage.removeItem('currentUser');
+        window.location.href = '/order-new';
+        return;
+      }
+
+      try {
+        // 사용자 정보 가져오기
+        console.log('📡 API 호출:', `/api/auth/me/${userId}`);
+        const userRes = await fetch(`/api/auth/me/${userId}`);
+        
+        console.log('📥 응답 상태:', userRes.status, userRes.statusText);
+        
+        // 응답이 JSON인지 확인
+        const contentType = userRes.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await userRes.text();
+          console.error('❌ JSON이 아닌 응답:', text.substring(0, 200));
+          alert('서버 응답 오류: JSON이 아닌 응답을 받았습니다.');
+          return;
+        }
+        
+        const userData = await userRes.json();
+        console.log('📦 받은 사용자 데이터:', userData);
+        
+        if (!userData.success) {
+          console.error('❌ API 오류:', userData.error);
+          console.error('❌ 전체 응답:', userData);
+          alert(`사용자 정보를 불러올 수 없습니다.\n${userData.error || '알 수 없는 오류'}`);
+          return;
+        }
+        
+        const user = userData.user;
+        console.log('✅ 사용자 정보 로드 성공:', user);
+        
+        // 포인트 표시
+        document.getElementById('user-points').textContent = 
+          `${(user.points || 0).toLocaleString()}원`;
+        
+        const userInfo = document.getElementById('user-info');
+        userInfo.innerHTML = `
+          <div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 16px;">
+            <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 10px;">
+              ${user.name}님 👋
+            </div>
+            <div style="font-size: 16px; color: rgba(255,255,255,0.9);">
+              📱 ${user.phone}
+            </div>
+          </div>
+        `;
+
+        // 주문 내역 가져오기
+        const ordersRes = await fetch(`/api/orders/user/${userId}`);
+        
+        // 응답이 JSON인지 확인
+        const ordersContentType = ordersRes.headers.get('content-type');
+        if (!ordersContentType || !ordersContentType.includes('application/json')) {
+          const text = await ordersRes.text();
+          console.error('❌ 주문 내역 JSON이 아닌 응답:', text.substring(0, 200));
+          document.getElementById('orders-list').innerHTML = '<div class="no-orders">주문 내역을 불러올 수 없습니다.</div>';
+        } else {
+          const ordersData = await ordersRes.json();
+          
+          if (!ordersData.success) {
+            document.getElementById('orders-list').innerHTML = '<div class="no-orders">주문 내역을 불러올 수 없습니다.</div>';
+          } else {
+            displayOrders(ordersData.orders);
+          }
+        }
+        
+        // 쿠폰 목록 가져오기
+        try {
+          const couponsRes = await fetch(`/api/coupons/user/${userId}`);
+          const couponsContentType = couponsRes.headers.get('content-type');
+          if (couponsContentType && couponsContentType.includes('application/json')) {
+            const couponsData = await couponsRes.json();
+            if (couponsData.success) {
+              displayCoupons(couponsData.coupons || []);
+            } else {
+              document.getElementById('coupons-list').innerHTML = '<div class="no-orders">쿠폰을 불러올 수 없습니다.</div>';
+            }
+          } else {
+            document.getElementById('coupons-list').innerHTML = '<div class="no-orders">쿠폰을 불러올 수 없습니다.</div>';
+          }
+        } catch (couponErr) {
+          console.error('쿠폰 로드 오류:', couponErr);
+          document.getElementById('coupons-list').innerHTML = '<div class="no-orders">쿠폰을 불러올 수 없습니다.</div>';
+        }
+        
+        // 포인트 내역 가져오기
+        try {
+          const pointHistoryRes = await fetch(`/api/points/history/${userId}`);
+          
+          // 응답이 JSON인지 확인
+          const pointContentType = pointHistoryRes.headers.get('content-type');
+          if (!pointContentType || !pointContentType.includes('application/json')) {
+            const text = await pointHistoryRes.text();
+            console.error('❌ 포인트 내역 JSON이 아닌 응답:', text.substring(0, 200));
+            document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
+          } else {
+            const pointHistoryData = await pointHistoryRes.json();
+            
+            if (pointHistoryData.success) {
+              displayPointHistory(pointHistoryData.history);
+            } else {
+              document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
+            }
+          }
+        } catch (pointErr) {
+          console.error('포인트 내역 오류:', pointErr);
+          document.getElementById('point-history-list').innerHTML = '<div class="no-orders">포인트 내역을 불러올 수 없습니다.</div>';
+        }
+      } catch (err) {
+        console.error('전체 오류:', err);
+        alert('오류: ' + err.message);
+      }
+    }
+
+    function displayOrders(orders) {
+      const ordersList = document.getElementById('orders-list');
+      document.getElementById('order-count').textContent = `${orders.length}건`;
+      
+      if (orders.length === 0) {
+        ordersList.innerHTML = '<div class="no-orders">아직 주문 내역이 없습니다</div>';
+        return;
+      }
+
+      ordersList.innerHTML = orders.map(order => {
+        const statusClass = `status-${order.status}`;
+        const date = new Date(order.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        return `
+          <div class="order-item">
+            <div class="order-header">
+              <div>
+                <div class="order-id">주문번호: ${order.orderId}</div>
+                <div class="order-date">${date}</div>
+              </div>
+              <span class="order-status ${statusClass}">${statusText[order.status] || order.status}</span>
+            </div>
+            
+            <div class="order-items">
+              ${order.items.map(item => `
+                <div class="order-item-detail">
+                  <span class="item-name">${item.name}</span>
+                  <div>
+                    <span class="item-quantity">x${item.quantity}</span>
+                    <span class="item-price">${(item.price * item.quantity).toLocaleString()}원</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="order-total">
+              <span>총 결제금액</span>
+              <span>${order.totalAmount.toLocaleString()}원</span>
+            </div>
+            
+            <div class="order-actions">
+              ${order.status === 'pending' ? `
+                <button class="btn-cancel" onclick="cancelOrder('${order.orderId}')" style="background: #e74c3c; color: white;">
+                  주문 취소
+                </button>
+                <button class="btn-edit" onclick="editOrder('${order.orderId}')" style="background: #3498db; color: white;">
+                  주문 수정
+                </button>
+              ` : ''}
+              ${order.status === 'accepted' ? `
+                <button class="btn-cancel" onclick="cancelOrder('${order.orderId}')" style="background: #e74c3c; color: white;">
+                  주문 취소
+                </button>
+              ` : ''}
+              ${order.status === 'completed' ? `
+                <button class="btn-review" onclick="showReviewModal('${order.orderId}')" style="background: #27ae60; color: white;">
+                  리뷰 작성
+                </button>
+              ` : ''}
+              <button class="btn-same-menu" onclick="reorderSameMenu('${order.orderId}')">
+                같은 메뉴 담기
+              </button>
+              <button class="btn-reorder" onclick="quickReorder('${order.orderId}')">
+                바로 주문
+              </button>
+            </div>
+            <div class="order-actions" style="margin-top: 8px;">
+              <button class="btn-track" onclick="window.location.href='/track?orderId=${order.orderId}'">
+                배달 현황 보기
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function displayCoupons(coupons) {
+      const container = document.getElementById('coupons-list');
+      const countEl = document.getElementById('coupon-count');
+      
+      if (!coupons || coupons.length === 0) {
+        container.innerHTML = `
+          <div class="no-orders" style="text-align: center; padding: 40px 20px; color: #999;">
+            <div style="font-size: 48px; margin-bottom: 15px;">🎫</div>
+            <p style="font-size: 16px; margin-bottom: 5px;">보유한 쿠폰이 없습니다</p>
+            <p style="font-size: 13px; color: #666;">회원가입 시 자동으로 쿠폰이 발급됩니다!</p>
+          </div>
+        `;
+        countEl.textContent = '0개';
+        return;
+      }
+      
+      const now = new Date();
+      const validCoupons = [];
+      const expiredCoupons = [];
+      
+      coupons.forEach(coupon => {
+        const validTo = new Date(coupon.validTo);
+        const validFrom = new Date(coupon.validFrom);
+        const isExpired = validTo < now || validFrom > now || !coupon.isActive;
+        
+        if (isExpired) {
+          expiredCoupons.push(coupon);
+        } else {
+          validCoupons.push(coupon);
+        }
+      });
+      
+      let html = '';
+      
+      // 사용 가능한 쿠폰
+      if (validCoupons.length > 0) {
+        validCoupons.forEach(coupon => {
+          const discountText = coupon.discountType === 'fixed' 
+            ? `${coupon.discountValue.toLocaleString()}원`
+            : `${coupon.discountValue}%`;
+          const minAmountText = coupon.minAmount > 0 
+            ? `${coupon.minAmount.toLocaleString()}원 이상 주문 시 사용 가능`
+            : '사용 가능';
+          const validToDate = new Date(coupon.validTo).toLocaleDateString('ko-KR');
+          
+          html += `
+            <div class="coupon-card">
+              <div class="coupon-header">
+                <div>
+                  <div class="coupon-name">${coupon.name}</div>
+                  <div class="coupon-code">${coupon.code}</div>
+                </div>
+                <div class="coupon-discount">${discountText}</div>
+              </div>
+              <div class="coupon-info">
+                <div class="coupon-info-item">
+                  <span>최소 주문금액</span>
+                  <span>${coupon.minAmount > 0 ? coupon.minAmount.toLocaleString() + '원' : '없음'}</span>
+                </div>
+                <div class="coupon-info-item">
+                  <span>유효기간</span>
+                  <span>${validToDate}까지</span>
+                </div>
+                <div class="coupon-status status-valid">사용 가능</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      // 만료된 쿠폰
+      if (expiredCoupons.length > 0) {
+        expiredCoupons.forEach(coupon => {
+          const discountText = coupon.discountType === 'fixed' 
+            ? `${coupon.discountValue.toLocaleString()}원`
+            : `${coupon.discountValue}%`;
+          const validToDate = new Date(coupon.validTo).toLocaleDateString('ko-KR');
+          
+          html += `
+            <div class="coupon-card expired">
+              <div class="coupon-header">
+                <div>
+                  <div class="coupon-name">${coupon.name}</div>
+                  <div class="coupon-code">${coupon.code}</div>
+                </div>
+                <div class="coupon-discount">${discountText}</div>
+              </div>
+              <div class="coupon-info">
+                <div class="coupon-info-item">
+                  <span>유효기간</span>
+                  <span>${validToDate}까지</span>
+                </div>
+                <div class="coupon-status status-expired">만료됨</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      container.innerHTML = html;
+      countEl.textContent = `${validCoupons.length}개${expiredCoupons.length > 0 ? ' (만료 ' + expiredCoupons.length + '개)' : ''}`;
+    }
+    
+    function displayPointHistory(history) {
+      const pointHistoryList = document.getElementById('point-history-list');
+      document.getElementById('point-history-count').textContent = `${history.length}건`;
+      
+      if (history.length === 0) {
+        pointHistoryList.innerHTML = '<div class="no-orders">아직 포인트 내역이 없습니다</div>';
+        return;
+      }
+      
+      pointHistoryList.innerHTML = history.map(item => {
+        const date = new Date(item.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const isPlus = item.amount > 0;
+        const amountClass = isPlus ? 'plus' : 'minus';
+        const amountPrefix = isPlus ? '+' : '';
+        
+        return `
+          <div class="point-history-item">
+            <div class="point-history-left">
+              <div class="point-history-type">${item.type}</div>
+              <div class="point-history-date">${date}</div>
+            </div>
+            <div class="point-history-amount ${amountClass}">
+              ${amountPrefix}${item.amount.toLocaleString()}P
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // 재주문 기능
+    async function quickReorder(orderId) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (!data.success || !data.order) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const order = data.order;
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        
+        // 주문 확인
+        if (!confirm(`이전 주문과 동일하게 주문하시겠습니까?\n\n메뉴: ${items.map(i => `${i.name} x${i.quantity}`).join(', ')}\n주소: ${order.address}`)) {
+          return;
+        }
+        
+        // 주문 페이지로 이동하면서 주문 정보 전달
+        const orderData = {
+          items: items,
+          address: order.address,
+          phone: order.phone || order.customerphone,
+          customerName: order.customerName || order.customername
+        };
+        
+        sessionStorage.setItem('reorderData', JSON.stringify(orderData));
+        window.location.href = '/order-new?reorder=true';
+      } catch (error) {
+        console.error('재주문 오류:', error);
+        alert('재주문 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 같은 메뉴만 장바구니에 담기
+    async function reorderSameMenu(orderId) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (!data.success || !data.order) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const order = data.order;
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        
+        // 장바구니에 추가
+        sessionStorage.setItem('cartItems', JSON.stringify(items));
+        alert('장바구니에 추가되었습니다!');
+        window.location.href = '/order-new';
+      } catch (error) {
+        console.error('메뉴 담기 오류:', error);
+        alert('오류가 발생했습니다.');
+      }
+    }
+    
+    function logout() {
+      if (!confirm('로그아웃 하시겠습니까?')) return;
+      
+      // 세션 데이터 삭제
+      sessionStorage.removeItem('currentUser');
+      localStorage.clear();
+      
+      alert('로그아웃 되었습니다.');
+      window.location.href = '/order-new';
+    }
+    
+    function scrollToOrders() {
+      const ordersSection = document.querySelector('.section-header');
+      if (ordersSection) {
+        ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      updateNavActive('orders');
+    }
+    
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      updateNavActive('profile');
+    }
+    
+    function scrollToPointHistory() {
+      const pointHistorySection = document.querySelectorAll('.section-header')[1];
+      if (pointHistorySection) {
+        pointHistorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    
+    function updateNavActive(active) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      
+      if (active === 'orders') {
+        const ordersBtn = document.getElementById('nav-orders');
+        if (ordersBtn) {
+          ordersBtn.classList.add('active');
+        } else {
+          // 폴백: 인덱스로 찾기
+          const navBtns = document.querySelectorAll('.nav-btn');
+          if (navBtns[1]) navBtns[1].classList.add('active');
+        }
+      } else if (active === 'profile') {
+        const profileBtn = document.getElementById('nav-profile');
+        if (profileBtn) {
+          profileBtn.classList.add('active');
+        } else {
+          // 폴백: 인덱스로 찾기
+          const navBtns = document.querySelectorAll('.nav-btn');
+          if (navBtns[3]) navBtns[3].classList.add('active');
+        }
+      }
+    }
+
+    // 주문 취소
+    async function cancelOrder(orderId) {
+      if (!confirm('정말 주문을 취소하시겠습니까?\n취소된 주문은 복구할 수 없습니다.')) {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: '고객 요청' })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('주문이 취소되었습니다.\n사용한 포인트는 복구되었습니다.');
+          location.reload();
+        } else {
+          alert(data.error || '주문 취소에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('주문 취소 오류:', error);
+        alert('주문 취소 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 재주문 (같은 메뉴 담기)
+    function reorderSameMenu(orderId) {
+      const order = ordersData.orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert('주문 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 주문 정보를 sessionStorage에 저장하고 주문 페이지로 이동
+      sessionStorage.setItem('reorderItems', JSON.stringify(order.items));
+      window.location.href = '/order-new';
+    }
+    
+    // 바로 주문 (재주문)
+    async function quickReorder(orderId) {
+      const order = ordersData.orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert('주문 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 주문 정보를 sessionStorage에 저장하고 주문 페이지로 이동
+      sessionStorage.setItem('reorderItems', JSON.stringify(order.items));
+      sessionStorage.setItem('quickReorder', 'true');
+      window.location.href = '/order-new';
+    }
+    
+    // 주문 수정
+    async function editOrder(orderId) {
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (!data.success || !data.order) {
+          alert('주문 정보를 불러올 수 없습니다.');
+          return;
+        }
+        
+        const order = data.order;
+        
+        // 접수 전 상태가 아니면 수정 불가
+        if (order.status !== 'pending') {
+          alert('주문 수정은 주문 접수 전에만 가능합니다.');
+          return;
+        }
+        
+        // 주문 수정 페이지로 이동 (주문 정보 전달)
+        sessionStorage.setItem('editOrderData', JSON.stringify({
+          orderId: order.orderId,
+          items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
+          address: order.address,
+          totalAmount: order.totalAmount,
+          finalAmount: order.finalAmount,
+          usedPoints: order.usedPoints || 0,
+          couponCode: order.couponCode || null,
+          couponDiscount: order.couponDiscount || 0
+        }));
+        
+        window.location.href = '/order-new?edit=true';
+      } catch (error) {
+        console.error('주문 수정 오류:', error);
+        alert('주문 수정 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // 기존 editOrder 함수 (하위 호환성)
+    window.editOrder = editOrder;
+      const order = ordersData.orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert('주문 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      if (order.status !== 'pending') {
+        alert('주문 수정은 주문 접수 전에만 가능합니다.');
+        return;
+      }
+      
+      // 주문 정보를 저장하고 주문 페이지로 이동
+      sessionStorage.setItem('editOrderId', orderId);
+      sessionStorage.setItem('reorderItems', JSON.stringify(order.items));
+      window.location.href = '/order-new';
+    }
+    
+    // 리뷰 작성 모달 표시
+    function showReviewModal(orderId) {
+      const modal = document.getElementById('review-modal');
+      if (modal) {
+        document.getElementById('review-order-id').value = orderId;
+        modal.style.display = 'flex';
+      } else {
+        alert('리뷰 작성 기능을 준비 중입니다.');
+      }
+    }
+    
+    // 리뷰 작성
+    async function submitReview() {
+      const orderId = document.getElementById('review-order-id').value;
+      const rating = document.querySelector('input[name="rating"]:checked')?.value;
+      const comment = document.getElementById('review-comment').value.trim();
+      
+      if (!rating) {
+        alert('별점을 선택해주세요.');
+        return;
+      }
+      
+      try {
+        const user = JSON.parse(sessionStorage.getItem('currentUser'));
+        const userId = user.userId || user.userid;
+        const res = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId,
+            userId,
+            rating: parseInt(rating),
+            comment
+          })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('리뷰가 작성되었습니다. 감사합니다!');
+          document.getElementById('review-modal').style.display = 'none';
+          document.getElementById('review-comment').value = '';
+          document.querySelectorAll('input[name="rating"]').forEach(r => r.checked = false);
+        } else {
+          alert(data.error || '리뷰 작성에 실패했습니다.');
+        }
+      } catch (error) {
+        console.error('리뷰 작성 오류:', error);
+        alert('리뷰 작성 중 오류가 발생했습니다.');
+      }
+    }
+    
+    // URL 파라미터 확인 및 초기 탭 설정
+    function initTab() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      
+      console.log('🔍 URL 파라미터 tab:', tab);
+      
+      if (tab === 'orders') {
+        console.log('📦 주문내역 탭으로 이동');
+        updateNavActive('orders');
+        // 데이터 로드 후 스크롤
+        setTimeout(() => {
+          const ordersSection = document.querySelector('.section-header');
+          if (ordersSection) {
+            ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 1000);
+      } else if (tab === 'points') {
+        console.log('💰 포인트 내역 탭으로 이동');
+        updateNavActive('profile');
+        // 데이터 로드 후 스크롤
+        setTimeout(() => {
+          const pointHistorySection = document.querySelectorAll('.section-header')[1];
+          if (pointHistorySection) {
+            pointHistorySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 1000);
+      } else {
+        console.log('👤 프로필 탭 (기본)');
+        // tab=profile이면 기본 (맨 위)
+        updateNavActive('profile');
+      }
+    }
+    
+    fetchUserData();
+    
+    // 페이지 로드 시 탭 초기화
+    window.addEventListener('load', function() {
+      initTab();
+    });
+    
+    // fetchUserData 완료 후에도 탭 초기화 (데이터 로드 대기)
+    setTimeout(() => {
+      initTab();
+    }, 1200);
+    
+    // 같은 메뉴 담기
+    window.reorderSameMenu = async function(orderId) {
+      if (!confirm('같은 메뉴를 장바구니에 담으시겠습니까?')) return;
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          const order = data.order;
+          
+          // 장바구니에 아이템 추가
+          const items = order.items;
+          localStorage.setItem('reorder-items', JSON.stringify(items));
+          
+          alert('장바구니에 담았습니다!');
+          window.location.href = '/order-new';
+        } else {
+          alert('주문 정보를 불러올 수 없습니다.');
+        }
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    };
+    
+    // 바로 주문
+    window.quickReorder = async function(orderId) {
+      if (!confirm('이전 주문과 동일하게 바로 주문하시겠습니까?')) return;
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          const order = data.order;
+          
+          // 장바구니에 아이템 추가하고 체크아웃으로 이동
+          const items = order.items;
+          localStorage.setItem('reorder-items', JSON.stringify(items));
+          localStorage.setItem('quick-checkout', 'true');
+          
+          window.location.href = '/order-new';
+        } else {
+          alert('주문 정보를 불러올 수 없습니다.');
+        }
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    };
+  </script>
+</body>
+</html>
+

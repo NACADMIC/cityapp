@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사이트 편집 모드 - 시티반점 POS</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      overflow: hidden;
+    }
+    
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 250px 1fr 350px;
+      height: 100vh;
+    }
+    
+    /* 왼쪽 사이드바 - 블럭 라이브러리 */
+    .blocks-panel {
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .blocks-panel h3 {
+      margin-bottom: 15px;
+      color: #333;
+      font-size: 18px;
+    }
+    
+    .block-item {
+      background: #f5f5f5;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      cursor: move;
+      transition: all 0.3s;
+      border: 2px dashed transparent;
+    }
+    
+    .block-item:hover {
+      background: #e3f2fd;
+      border-color: #1976d2;
+    }
+    
+    .block-item-icon {
+      font-size: 24px;
+      margin-right: 10px;
+    }
+    
+    .block-item-name {
+      font-weight: 600;
+      color: #333;
+    }
+    
+    /* 중앙 - 캔버스 */
+    .canvas-area {
+      background: #fafafa;
+      padding: 20px;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .canvas-header {
+      background: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .canvas-header h2 {
+      font-size: 20px;
+      color: #1976d2;
+    }
+    
+    .canvas-controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1565c0;
+    }
+    
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #45a049;
+    }
+    
+    .btn-secondary {
+      background: #757575;
+      color: white;
+    }
+    
+    .canvas-container {
+      background: white;
+      min-height: 600px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 30px;
+      position: relative;
+    }
+    
+    .canvas-block {
+      position: relative;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 2px dashed transparent;
+      border-radius: 8px;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    
+    .canvas-block:hover {
+      border-color: #1976d2;
+      background: #f5f5f5;
+    }
+    
+    .canvas-block.selected {
+      border-color: #4caf50;
+      background: #e8f5e9;
+    }
+    
+    .canvas-block.dragging {
+      opacity: 0.5;
+    }
+    
+    .block-controls {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      display: none;
+      gap: 5px;
+    }
+    
+    .canvas-block.selected .block-controls {
+      display: flex;
+    }
+    
+    .btn-icon {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-edit-icon {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .btn-delete-icon {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-duplicate-icon {
+      background: #ff9800;
+      color: white;
+    }
+    
+    .drag-handle {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      cursor: move;
+      color: #999;
+      font-size: 18px;
+    }
+    
+    /* 오른쪽 사이드바 - 속성 편집 */
+    .properties-panel {
+      background: white;
+      border-left: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .properties-panel h3 {
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 18px;
+    }
+    
+    .property-group {
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .property-group:last-child {
+      border-bottom: none;
+    }
+    
+    .property-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+      font-size: 14px;
+    }
+    
+    .property-group input,
+    .property-group textarea,
+    .property-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .property-group textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    .color-input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .color-input-group input[type="color"] {
+      width: 50px;
+      height: 40px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    
+    .empty-canvas {
+      text-align: center;
+      padding: 100px 20px;
+      color: #999;
+    }
+    
+    .empty-canvas-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+    
+    .page-selector {
+      margin-bottom: 20px;
+    }
+    
+    .page-selector select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="editor-layout">
+    <!-- 왼쪽: 블럭 라이브러리 -->
+    <div class="blocks-panel">
+      <h3>📦 블럭 추가</h3>
+      <div class="block-item" draggable="true" data-block-type="heading">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">📝</span>
+          <span class="block-item-name">제목</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="text">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">📄</span>
+          <span class="block-item-name">텍스트</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="button">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">🔘</span>
+          <span class="block-item-name">버튼</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="image">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">🖼️</span>
+          <span class="block-item-name">이미지</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="logo">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">🎨</span>
+          <span class="block-item-name">로고</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="divider">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">➖</span>
+          <span class="block-item-name">구분선</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="spacer">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">⬜</span>
+          <span class="block-item-name">여백</span>
+        </div>
+      </div>
+      <div class="block-item" draggable="true" data-block-type="phone">
+        <div style="display: flex; align-items: center;">
+          <span class="block-item-icon">📞</span>
+          <span class="block-item-name">전화번호</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 중앙: 캔버스 -->
+    <div class="canvas-area">
+      <div class="canvas-header">
+        <h2>🎨 사이트 편집 모드</h2>
+        <div class="canvas-controls">
+          <button class="btn btn-secondary" onclick="previewSite()">👁️ 미리보기</button>
+          <button class="btn btn-success" onclick="saveSite()">💾 저장</button>
+          <button class="btn btn-secondary" onclick="window.close()">닫기</button>
+        </div>
+      </div>
+      
+      <div class="page-selector">
+        <select id="page-selector" onchange="switchPage()">
+          <option value="auth-select">로그인 화면</option>
+          <option value="menu">메뉴 화면</option>
+          <option value="cart">장바구니 화면</option>
+        </select>
+      </div>
+      
+      <div class="canvas-container" id="canvas-container">
+        <div class="empty-canvas">
+          <div class="empty-canvas-icon">📝</div>
+          <p>블럭을 드래그하여 추가하세요</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 오른쪽: 속성 편집 패널 -->
+    <div class="properties-panel">
+      <h3>⚙️ 속성 편집</h3>
+      <div id="properties-content">
+        <p style="color: #999; text-align: center; padding: 40px 20px;">
+          블럭을 선택하면<br>여기서 편집할 수 있습니다
+        </p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 편집 팝업 -->
+  <div id="edit-popup" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; padding: 30px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+      <h3 id="edit-popup-title" style="margin-bottom: 20px; color: #1976d2;">블럭 편집</h3>
+      <div id="edit-popup-content"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="closeEditPopup()">취소</button>
+        <button class="btn btn-primary" onclick="applyEdit()">적용</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let currentPage = 'auth-select';
+    let siteConfig = { pages: {}, globalStyles: {} };
+    let selectedBlock = null;
+    let blocks = [];
+    let blockIdCounter = 0;
+    
+    // 사이트 설정 로드
+    async function loadSiteConfig() {
+      try {
+        const res = await fetch('/api/site/config');
+        const data = await res.json();
+        if (data.success && data.siteConfig) {
+          siteConfig = data.siteConfig;
+          if (!siteConfig.pages) siteConfig.pages = {};
+          if (!siteConfig.pages[currentPage]) {
+            siteConfig.pages[currentPage] = { blocks: [] };
+          }
+          blocks = siteConfig.pages[currentPage].blocks || [];
+          renderCanvas();
+        }
+      } catch (error) {
+        console.error('사이트 설정 로드 오류:', error);
+        blocks = [];
+        renderCanvas();
+      }
+    }
+    
+    // 캔버스 렌더링
+    function renderCanvas() {
+      const container = document.getElementById('canvas-container');
+      
+      if (blocks.length === 0) {
+        container.innerHTML = `
+          <div class="empty-canvas">
+            <div class="empty-canvas-icon">📝</div>
+            <p>블럭을 드래그하여 추가하세요</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = blocks.map((block, index) => {
+        const blockStyle = Object.entries(block.style || {}).map(([key, value]) => {
+          const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+          return `${cssKey}: ${value}`;
+        }).join('; ');
+        
+        let blockContent = '';
+        switch(block.type) {
+          case 'heading':
+            blockContent = `<h1 style="${blockStyle}">${block.content || '제목'}</h1>`;
+            break;
+          case 'text':
+            blockContent = `<p style="${blockStyle}">${block.content || '텍스트'}</p>`;
+            break;
+          case 'button':
+            blockContent = `<button style="${blockStyle}">${block.content || '버튼'}</button>`;
+            break;
+          case 'image':
+            blockContent = `<img src="${block.content || 'https://via.placeholder.com/400x300'}" alt="이미지" style="${blockStyle}; max-width: 100%; height: auto;">`;
+            break;
+          case 'logo':
+            blockContent = `<div style="${blockStyle}">${block.content || '🏮'}</div>`;
+            break;
+          case 'divider':
+            blockContent = `<hr style="${blockStyle}">`;
+            break;
+          case 'spacer':
+            blockContent = `<div style="${blockStyle}; height: ${block.height || '40'}px;"></div>`;
+            break;
+          case 'phone':
+            blockContent = `<div style="${blockStyle}" onclick="alert('전화 연결')">📞 ${block.content || '전화번호'}</div>`;
+            break;
+          default:
+            blockContent = `<div style="${blockStyle}">${block.content || '블럭'}</div>`;
+        }
+        
+        return `
+          <div class="canvas-block ${selectedBlock === block.id ? 'selected' : ''}" 
+               data-block-id="${block.id}"
+               onclick="selectBlock('${block.id}')">
+            <span class="drag-handle">☰</span>
+            <div class="block-controls">
+              <button class="btn-icon btn-edit-icon" onclick="editBlock('${block.id}'); event.stopPropagation();" title="편집">✏️</button>
+              <button class="btn-icon btn-duplicate-icon" onclick="duplicateBlock('${block.id}'); event.stopPropagation();" title="복제">📋</button>
+              <button class="btn-icon btn-delete-icon" onclick="deleteBlock('${block.id}'); event.stopPropagation();" title="삭제">🗑️</button>
+            </div>
+            ${blockContent}
+          </div>
+        `;
+      }).join('');
+      
+      setupDragAndDrop();
+    }
+    
+    // 블럭 선택
+    function selectBlock(blockId) {
+      selectedBlock = blockId;
+      renderCanvas();
+      renderProperties();
+    }
+    
+    // 속성 패널 렌더링
+    function renderProperties() {
+      const panel = document.getElementById('properties-content');
+      
+      if (!selectedBlock) {
+        panel.innerHTML = `
+          <p style="color: #999; text-align: center; padding: 40px 20px;">
+            블럭을 선택하면<br>여기서 편집할 수 있습니다
+          </p>
+        `;
+        return;
+      }
+      
+      const block = blocks.find(b => b.id === selectedBlock);
+      if (!block) return;
+      
+      let html = `
+        <div class="property-group">
+          <label>블럭 타입</label>
+          <input type="text" value="${block.type}" disabled style="background: #f5f5f5;">
+        </div>
+        <div class="property-group">
+          <label>내용</label>
+          <textarea id="prop-content" onchange="updateBlockProperty('content', this.value)">${block.content || ''}</textarea>
+        </div>
+      `;
+      
+      // 스타일 속성들
+      const styleProps = [
+        { key: 'fontSize', label: '폰트 크기', type: 'text', placeholder: '예: 24px' },
+        { key: 'fontWeight', label: '폰트 굵기', type: 'select', options: ['normal', '400', '600', '700', '900'] },
+        { key: 'color', label: '텍스트 색상', type: 'color' },
+        { key: 'backgroundColor', label: '배경 색상', type: 'color' },
+        { key: 'textAlign', label: '정렬', type: 'select', options: ['left', 'center', 'right'] },
+        { key: 'padding', label: '안쪽 여백', type: 'text', placeholder: '예: 20px' },
+        { key: 'margin', label: '바깥 여백', type: 'text', placeholder: '예: 10px' },
+        { key: 'borderRadius', label: '모서리 둥글기', type: 'text', placeholder: '예: 8px' },
+        { key: 'width', label: '너비', type: 'text', placeholder: '예: 100% 또는 300px' },
+        { key: 'height', label: '높이', type: 'text', placeholder: '예: auto 또는 200px' }
+      ];
+      
+      styleProps.forEach(prop => {
+        const value = block.style?.[prop.key] || '';
+        html += `<div class="property-group">`;
+        html += `<label>${prop.label}</label>`;
+        
+        if (prop.type === 'color') {
+          html += `<div class="color-input-group">`;
+          html += `<input type="color" id="prop-${prop.key}" value="${value || '#000000'}" onchange="updateBlockProperty('style.${prop.key}', this.value)">`;
+          html += `<input type="text" value="${value || ''}" placeholder="#000000" onchange="updateBlockProperty('style.${prop.key}', this.value)" style="flex: 1;">`;
+          html += `</div>`;
+        } else if (prop.type === 'select') {
+          html += `<select id="prop-${prop.key}" onchange="updateBlockProperty('style.${prop.key}', this.value)">`;
+          prop.options.forEach(opt => {
+            html += `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`;
+          });
+          html += `</select>`;
+        } else {
+          html += `<input type="text" id="prop-${prop.key}" value="${value}" placeholder="${prop.placeholder || ''}" onchange="updateBlockProperty('style.${prop.key}', this.value)">`;
+        }
+        
+        html += `</div>`;
+      });
+      
+      panel.innerHTML = html;
+    }
+    
+    // 블럭 속성 업데이트
+    function updateBlockProperty(path, value) {
+      if (!selectedBlock) return;
+      
+      const block = blocks.find(b => b.id === selectedBlock);
+      if (!block) return;
+      
+      if (path.startsWith('style.')) {
+        const styleKey = path.replace('style.', '');
+        if (!block.style) block.style = {};
+        block.style[styleKey] = value;
+      } else {
+        block[path] = value;
+      }
+      
+      renderCanvas();
+      renderProperties();
+    }
+    
+    // 블럭 편집
+    function editBlock(blockId) {
+      const block = blocks.find(b => b.id === blockId);
+      if (!block) return;
+      
+      selectedBlock = blockId;
+      renderProperties();
+    }
+    
+    // 블럭 복제
+    function duplicateBlock(blockId) {
+      const block = blocks.find(b => b.id === blockId);
+      if (!block) return;
+      
+      const newBlock = {
+        ...JSON.parse(JSON.stringify(block)),
+        id: 'block-' + (++blockIdCounter)
+      };
+      
+      const index = blocks.findIndex(b => b.id === blockId);
+      blocks.splice(index + 1, 0, newBlock);
+      
+      selectedBlock = newBlock.id;
+      renderCanvas();
+      renderProperties();
+    }
+    
+    // 블럭 삭제
+    function deleteBlock(blockId) {
+      if (!confirm('이 블럭을 삭제하시겠습니까?')) return;
+      
+      blocks = blocks.filter(b => b.id !== blockId);
+      if (selectedBlock === blockId) selectedBlock = null;
+      
+      renderCanvas();
+      renderProperties();
+    }
+    
+    // 드래그 앤 드롭 설정
+    function setupDragAndDrop() {
+      // 블럭 라이브러리에서 드래그
+      document.querySelectorAll('.block-item').forEach(item => {
+        item.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('block-type', item.dataset.blockType);
+        });
+      });
+      
+      // 캔버스에 드롭
+      const canvas = document.getElementById('canvas-container');
+      canvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      
+      canvas.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const blockType = e.dataTransfer.getData('block-type');
+        if (blockType) {
+          addBlock(blockType);
+        }
+      });
+      
+      // 블럭 순서 변경 (드래그 앤 드롭)
+      document.querySelectorAll('.canvas-block').forEach(block => {
+        block.setAttribute('draggable', 'true');
+        block.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('block-id', block.dataset.blockId);
+          block.classList.add('dragging');
+        });
+        
+        block.addEventListener('dragend', () => {
+          block.classList.remove('dragging');
+        });
+      });
+      
+      canvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        const dragging = document.querySelector('.canvas-block.dragging');
+        if (!dragging) return;
+        
+        const afterElement = getDragAfterElement(canvas, e.clientY);
+        if (afterElement == null) {
+          canvas.appendChild(dragging);
+        } else {
+          canvas.insertBefore(dragging, afterElement);
+        }
+      });
+    }
+    
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('.canvas-block:not(.dragging)')];
+      
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+    
+    // 새 블럭 추가
+    function addBlock(type) {
+      const defaultBlocks = {
+        'heading': { content: '새 제목', style: { fontSize: '32px', fontWeight: '700', color: '#333', textAlign: 'center' } },
+        'text': { content: '새 텍스트', style: { fontSize: '16px', color: '#666', textAlign: 'left' } },
+        'button': { content: '버튼', style: { backgroundColor: '#1976d2', color: 'white', padding: '12px 24px', borderRadius: '8px', textAlign: 'center' } },
+        'image': { content: 'https://via.placeholder.com/400x300', style: { width: '100%', borderRadius: '8px' } },
+        'logo': { content: '🏮', style: { fontSize: '64px', textAlign: 'center' } },
+        'divider': { content: '', style: { border: '1px solid #e0e0e0', margin: '20px 0' } },
+        'spacer': { content: '', style: { height: '40px' }, height: '40' },
+        'phone': { content: '031-123-4567', style: { fontSize: '18px', color: '#1976d2', textAlign: 'center', padding: '10px' } }
+      };
+      
+      const newBlock = {
+        id: 'block-' + (++blockIdCounter),
+        type: type,
+        ...defaultBlocks[type] || { content: '', style: {} }
+      };
+      
+      blocks.push(newBlock);
+      selectedBlock = newBlock.id;
+      renderCanvas();
+      renderProperties();
+    }
+    
+    // 페이지 전환
+    function switchPage() {
+      currentPage = document.getElementById('page-selector').value;
+      
+      // 현재 페이지 저장
+      if (siteConfig.pages[currentPage]) {
+        siteConfig.pages[currentPage].blocks = blocks;
+      }
+      
+      // 새 페이지 로드
+      if (siteConfig.pages[currentPage] && siteConfig.pages[currentPage].blocks) {
+        blocks = siteConfig.pages[currentPage].blocks;
+      } else {
+        blocks = [];
+        siteConfig.pages[currentPage] = { blocks: [] };
+      }
+      
+      selectedBlock = null;
+      renderCanvas();
+      renderProperties();
+    }
+    
+    // 편집 팝업 닫기
+    function closeEditPopup() {
+      document.getElementById('edit-popup').style.display = 'none';
+    }
+    
+    // 적용
+    function applyEdit() {
+      closeEditPopup();
+    }
+    
+    // 미리보기
+    function previewSite() {
+      saveCurrentPage();
+      const previewWindow = window.open('/order-new', '_blank');
+      if (previewWindow) {
+        previewWindow.focus();
+      }
+    }
+    
+    // 현재 페이지 저장
+    function saveCurrentPage() {
+      if (siteConfig.pages[currentPage]) {
+        siteConfig.pages[currentPage].blocks = blocks;
+      } else {
+        siteConfig.pages[currentPage] = { blocks: blocks };
+      }
+    }
+    
+    // 전체 저장
+    async function saveSite() {
+      saveCurrentPage();
+      
+      try {
+        const res = await fetch('/api/site/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(siteConfig)
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('저장되었습니다!');
+          // 부모 창 새로고침
+          if (window.opener) {
+            window.opener.location.reload();
+          }
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+    
+    // 초기화
+    loadSiteConfig();
+  </script>
+</body>
+</html>
+

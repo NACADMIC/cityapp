@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>시티반점 - 신규가입 만원쿠폰 증정 + 10%적립</title>
+  
+  <!-- PWA 설정 -->
+  <meta name="theme-color" content="#FFD700">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="시티반점">
+  <link rel="manifest" href="/order-new/manifest.json">
+  
+  <!-- I'mport 결제 스크립트 -->
+  <script type="text/javascript" src="https://cdn.iamport.kr/js/iamport.payment-1.2.0.js"></script>
+  <script src="/config.js"></script>
+  
+  <!-- iOS 아이콘 -->
+  <link rel="apple-touch-icon" href="https://images.unsplash.com/photo-1585032226651-759b368d7246?w=180&h=180&fit=crop">
+  
+  <!-- 기본 메타 태그 -->
+  <meta name="description" content="시티반점을 이용해주시는 고객분들께 감사드리는 마음으로 직접주문을 통해서 이익을 고객님들께 돌려드리고자 합니다. 본 앱을 통해 직접 주문시 주문금액의 10%를 포인트로 적립하여 페이백 하고자 하오니 많은 이용 부탁드립니다.">
+  <meta name="keywords" content="시티반점, 중화요리, 배달, 포인트 적립, 10% 페이백">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Open Graph (카카오톡, 페이스북 등) -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="시티반점 - 신규가입 만원쿠폰 증정 + 10%적립">
+  <meta property="og:description" content="시티반점을 이용해주시는 고객분들께 감사드리는 마음으로 직접주문을 통해서 이익을 고객님들께 돌려드리고자 합니다. 본 앱을 통해 직접 주문시 주문금액의 10%를 포인트로 적립하여 페이백 하고자 하오니 많은 이용 부탁드립니다.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1200&h=630&fit=crop">
+  <meta property="og:url" content="">
+  <meta property="og:site_name" content="시티반점">
+  
+  <!-- 카카오톡 링크 미리보기 -->
+  <meta property="og:locale" content="ko_KR">
+  
+  <!-- 트위터 카드 -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="시티반점 - 신규가입 만원쿠폰 증정 + 10%적립">
+  <meta name="twitter:description" content="시티반점을 이용해주시는 고객분들께 감사드리는 마음으로 직접주문을 통해서 이익을 고객님들께 돌려드리고자 합니다. 본 앱을 통해 직접 주문시 주문금액의 10%를 포인트로 적립하여 페이백 하고자 하오니 많은 이용 부탁드립니다.">
+  <meta name="twitter:image" content="https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=1200&h=630&fit=crop">
+  
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&display=swap">
+  <link rel="stylesheet" href="style-premium.css">
+</head>
+<body>
+  <!-- Auth Select Screen -->
+  <div id="auth-select-screen" class="screen active">
+    <div class="container">
+      <!-- 최상단 텍스트 -->
+      <div class="logo-text-top">
+        <h1 class="logo-text" data-store-name>시티반점</h1>
+        <p class="logo-subtitle">맛있는 중국요리 배달</p>
+      </div>
+
+      <!-- 로고 이미지 -->
+      <div class="logo">
+        <div class="logo-container">
+          <img src="logo2.png" alt="시티반점 로고" class="logo-image" style="max-width: 540px !important; width: 540px !important; min-width: 540px !important; height: auto; display: block; margin: 0 auto;" onerror="console.error('이미지 로드 실패:', this.src);">
+          
+          <!-- 로고 중앙 버튼들 -->
+          <div class="auth-buttons">
+        <button class="btn btn-primary" onclick="showLogin()">
+          회원 로그인
+          <small>10% 페이벡</small>
+        </button>
+
+        <button class="btn btn-secondary" onclick="showGuestOrder()">
+          비회원 주문
+          <small>휴대폰 인증 필요</small>
+        </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 작은 링크 -->
+      <div class="auth-small-links">
+        <a href="#" onclick="showRegister(); return false;">회원가입</a>
+        <span class="divider">/</span>
+        <a href="#" onclick="showFindPassword(); return false;">비밀번호 찾기</a>
+      </div>
+      
+      <!-- 회원가입 혜택 안내 -->
+      <div class="signup-benefit">
+        🎁 회원가입 시 10,000원 쿠폰 증정!
+      </div>
+      
+      <!-- 개발자 테스트 버튼 -->
+      <button onclick="testLogin()" class="btn-test" style="margin-top: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+        🚀 개발자 테스트 로그인 (바로 시작)
+      </button>
+    </div>
+  </div>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
+      
+      <h2>시티반점</h2>
+      
+      <form id="login-form" class="form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="login-phone" placeholder="010-1234-5678" required>
+        </div>
+
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="login-password" placeholder="비밀번호" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">로그인</button>
+      </form>
+
+      <div class="auth-links">
+        <a href="#" onclick="showRegister(); return false;">회원가입</a>
+        <span class="divider">/</span>
+        <a href="#" onclick="showFindId(); return false;">아이디 찾기</a>
+        <span class="divider">/</span>
+        <a href="#" onclick="showFindPassword(); return false;">비밀번호 찾기</a>
+      </div>
+      
+      <!-- 개발자 테스트 버튼 -->
+      <button onclick="testLogin()" class="btn-test" style="margin-top: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">
+        🚀 개발자 테스트 로그인 (바로 시작)
+      </button>
+    </div>
+  </div>
+
+  <!-- Register Screen -->
+  <div id="register-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
+      
+      <h2>회원가입</h2>
+      
+      <form id="register-form" class="form">
+        <div class="form-group">
+          <label>전화번호 *</label>
+          <input type="tel" id="register-phone" placeholder="010-1234-5678" required>
+        </div>
+        <div class="form-group">
+          <label>이름 *</label>
+          <input type="text" id="register-name" placeholder="홍길동" required>
+        </div>
+        <div class="form-group">
+          <label>이메일</label>
+          <input type="email" id="register-email" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+          <label>주소 *</label>
+          <input type="text" id="register-address" placeholder="서울시 강남구..." required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호 *</label>
+          <input type="password" id="register-password" placeholder="비밀번호 (6자 이상)" required minlength="6">
+        </div>
+        <div class="form-group">
+          <label>비밀번호 확인 *</label>
+          <input type="password" id="register-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
+        </div>
+        <div class="privacy-accordion">
+          <div class="privacy-header" onclick="togglePrivacy('register')">
+            <div class="privacy-title">
+              <input type="checkbox" id="register-privacy" required onclick="event.stopPropagation()">
+              <label for="register-privacy" style="margin: 0; cursor: pointer;" onclick="event.stopPropagation()">
+                개인정보 수집 및 이용에 동의합니다 *
+              </label>
+            </div>
+            <span class="privacy-arrow" id="register-arrow">▼</span>
+          </div>
+          <div class="privacy-content" id="register-content">
+            <div class="privacy-text">
+              <h4>📋 수집하는 개인정보 항목</h4>
+              <ul>
+                <li><strong>필수항목:</strong> 전화번호, 이름, 주소, 비밀번호</li>
+                <li><strong>선택항목:</strong> 이메일</li>
+              </ul>
+
+              <h4>🎯 개인정보의 수집 및 이용목적</h4>
+              <ul>
+                <li>음식 주문 및 배달 서비스 제공</li>
+                <li>주문 내역 관리 및 고객 문의 응대</li>
+                <li>회원 관리 및 포인트 적립/사용</li>
+                <li>서비스 개선 및 맞춤 서비스 제공</li>
+              </ul>
+
+              <h4>⏰ 개인정보의 보유 및 이용기간</h4>
+              <ul>
+                <li><span class="highlight">회원 탈퇴 시까지</span> 보유</li>
+                <li>주문 내역: 전자상거래법에 따라 <strong>5년간</strong> 보관</li>
+                <li>결제 정보: <strong>5년간</strong> 보관</li>
+              </ul>
+
+              <h4>✅ 동의를 거부할 권리</h4>
+              <p>귀하는 개인정보 수집 및 이용에 동의하지 않을 권리가 있습니다. 다만, 필수항목 동의를 거부하실 경우 <strong>회원가입 및 서비스 이용이 제한</strong>될 수 있습니다.</p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px;">가입하기</button>
+      </form>
+
+      <p class="link-text">
+        이미 계정이 있으신가요? <a href="#" onclick="showLogin(); return false;">로그인</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Guest Info Screen -->
+  <div id="guest-verify-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showAuthSelect()">← 뒤로</button>
+      
+      <h2>비회원 주문</h2>
+      <p class="subtitle">전화번호만 입력하세요</p>
+      
+      <form id="guest-verify-form" class="form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="guest-phone" placeholder="010-1234-5678" required>
+        </div>
+
+        <div class="privacy-accordion">
+          <div class="privacy-header" onclick="togglePrivacy('guest')">
+            <div class="privacy-title">
+              <input type="checkbox" id="guest-privacy" required onclick="event.stopPropagation()">
+              <label for="guest-privacy" style="margin: 0; cursor: pointer;" onclick="event.stopPropagation()">
+                개인정보 수집 및 이용에 동의합니다 *
+              </label>
+            </div>
+            <span class="privacy-arrow" id="guest-arrow">▼</span>
+          </div>
+          <div class="privacy-content" id="guest-content">
+            <div class="privacy-text">
+              <h4>📋 수집하는 개인정보 항목</h4>
+              <ul>
+                <li><strong>필수항목:</strong> 전화번호, 이름, 배달주소</li>
+              </ul>
+
+              <h4>🎯 개인정보의 수집 및 이용목적</h4>
+              <ul>
+                <li>음식 주문 및 배달 서비스 제공</li>
+                <li>주문 확인 및 배달 안내</li>
+                <li>고객 문의 응대</li>
+              </ul>
+
+              <h4>⏰ 개인정보의 보유 및 이용기간</h4>
+              <ul>
+                <li>주문 완료 후 <span class="highlight">5년간</span> 보관 (전자상거래법)</li>
+                <li>보유기간 경과 후 자동 삭제</li>
+              </ul>
+
+              <h4>✅ 동의를 거부할 권리</h4>
+              <p>귀하는 개인정보 수집 및 이용에 동의하지 않을 권리가 있습니다. 다만, 동의를 거부하실 경우 <strong>비회원 주문 서비스 이용이 불가능</strong>합니다.</p>
+
+              <p style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 12px; font-size: 13px;">
+                <strong>💡 회원가입 시</strong> 포인트 적립(10%) 및 더 많은 혜택을 받으실 수 있습니다!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 20px;">주문 시작</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Find ID Screen -->
+  <div id="find-id-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showLogin()">← 뒤로</button>
+      
+      <h2>아이디 찾기</h2>
+      <p class="subtitle">가입 시 입력한 이름을 입력하세요</p>
+      
+      <form id="find-id-form" class="form">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="find-id-name" placeholder="홍길동" required>
+        </div>
+        <button type="submit" class="btn btn-primary">아이디(전화번호) 찾기</button>
+      </form>
+      
+      <div id="find-id-result" style="display: none; margin-top: 20px; padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 16px; text-align: center;">
+        <p style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">📱 가입된 전화번호</p>
+        <p id="found-phone" style="font-size: 24px; font-weight: 800; color: #1a1a1a;"></p>
+        <button onclick="showLogin()" class="btn btn-secondary" style="margin-top: 15px;">로그인하러 가기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Find Password Screen -->
+  <div id="find-password-screen" class="screen">
+    <div class="container">
+      <button class="back-btn" onclick="showLogin()">← 뒤로</button>
+      
+      <h2>비밀번호 찾기</h2>
+      <p class="subtitle">가입한 전화번호와 이름을 입력하세요</p>
+      
+      <form id="find-password-form" class="form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="find-pw-phone" placeholder="010-1234-5678" required>
+        </div>
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="find-pw-name" placeholder="홍길동" required>
+        </div>
+        <button type="submit" class="btn btn-primary">비밀번호 재설정</button>
+      </form>
+      
+      <div id="find-password-result" style="display: none; margin-top: 20px;">
+        <div style="padding: 20px; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 16px; text-align: center; margin-bottom: 20px;">
+          <p style="font-size: 16px; font-weight: 600; margin-bottom: 10px;">✅ 본인 확인 완료</p>
+          <p style="font-size: 14px; color: #555;">새 비밀번호를 설정하세요</p>
+        </div>
+        
+        <form id="reset-password-form" class="form">
+          <div class="form-group">
+            <label>새 비밀번호</label>
+            <input type="password" id="new-password" placeholder="새 비밀번호 (6자 이상)" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label>새 비밀번호 확인</label>
+            <input type="password" id="new-password-confirm" placeholder="비밀번호 재입력" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary">비밀번호 변경</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu Screen -->
+  <div id="menu-screen" class="screen">
+    <div class="header" style="position: relative; justify-content: space-between; padding: 8px 24px;">
+      <!-- 왼쪽: 햄버거 메뉴 -->
+      <div style="display: flex; align-items: center; gap: 12px; flex: 0 0 auto;">
+        <button class="hamburger-btn" onclick="toggleSideMenu()" style="background: none; border: none; cursor: pointer; padding: 8px; display: flex; flex-direction: column; gap: 5px; transition: all 0.3s; z-index: 1001;">
+          <span style="display: block; width: 24px; height: 3px; background: #8B4513; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #8B4513; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #8B4513; border-radius: 3px; transition: all 0.3s;"></span>
+        </button>
+      </div>
+      
+      <!-- 중앙: 로고 + 사용자 이름 + 전화번호 -->
+      <h1 onclick="location.reload()" data-store-name>
+        <span>시티반점</span>
+        <span id="header-user-name" style="color: #000000; font-size: 16px; font-weight: 700; display: none;">
+          <span id="header-user-name-text"></span><span>님</span>
+        </span>
+        <span id="header-phone-text"></span>
+      </h1>
+      
+      <!-- 헤더 포인트 표시 -->
+      <div id="header-points" style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); color: #000000; font-size: 14px; font-weight: 700; display: none; cursor: pointer;" onclick="goToPointHistory()">
+        포인트: <strong id="header-points-value">0</strong>P
+      </div>
+      
+      <!-- 오른쪽: 주문 혼잡도 -->
+      <div id="busy-status-banner" style="display: none; position: absolute; top: 20px; right: 24px; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3); z-index: 1000;">
+        <span id="busy-status-text" style="font-size: 11px; font-weight: 500; white-space: nowrap; color: white;"></span>
+      </div>
+    </div>
+
+    <div id="user-info" class="user-info" style="display: none;">
+      <div class="user-info-content">
+        <div class="user-name-section">
+          <span id="user-name"></span><span class="user-name-suffix">님</span>
+        </div>
+        <span class="points" onclick="goToPointHistory()" style="cursor: pointer;">포인트: <strong id="user-points">0</strong>P</span>
+      </div>
+    </div>
+
+    <!-- 카테고리 영역 (특별 메뉴 + 일반 카테고리) -->
+    <div class="category-section">
+      <!-- 특별 메뉴 버튼 (오늘의메뉴, 추천메뉴, 인기메뉴) - 신박한 디자인 -->
+      <div class="special-menu-tabs">
+        <button class="special-tab special-tab-today" data-category="오늘의메뉴">
+          <span class="special-tab-icon">⭐</span>
+          <span class="special-tab-text">오늘의메뉴</span>
+        </button>
+        <button class="special-tab special-tab-recommend" data-category="추천메뉴">
+          <span class="special-tab-icon">💎</span>
+          <span class="special-tab-text">추천메뉴</span>
+        </button>
+        <button class="special-tab special-tab-popular" data-category="인기">
+          <span class="special-tab-icon">🔥</span>
+          <span class="special-tab-text">인기메뉴</span>
+        </button>
+        <button class="special-tab special-tab-favorite" data-category="즐겨찾기" id="favorite-tab" style="display: none;">
+          <span class="special-tab-icon">❤️</span>
+          <span class="special-tab-text">즐겨찾기</span>
+        </button>
+      </div>
+
+      <!-- 일반 카테고리 탭 -->
+      <div class="category-tabs">
+        <button class="category-tab" data-category="면류">면류</button>
+        <button class="category-tab" data-category="밥류">밥류</button>
+        <button class="category-tab" data-category="세트메뉴">세트메뉴</button>
+        <button class="category-tab" data-category="음료">음료</button>
+        <button class="category-tab" data-category="주류">주류</button>
+        <button class="category-tab" data-category="사이드">사이드</button>
+        <button class="category-tab" data-category="디저트">디저트</button>
+        <button class="category-tab active" data-category="all">전체</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <h2 class="section-title">메뉴</h2>
+      <div id="menu-list" class="menu-list">
+        <div class="loading">메뉴 불러오는 중...</div>
+      </div>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn active" onclick="goHome()">
+        <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+        <span class="nav-label">홈</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToOrderHistory()">
+        <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span class="nav-label">주문내역</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToCart()">
+        <span class="nav-icon">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span id="nav-cart-count" class="nav-cart-badge" style="display: none;">0</span>
+        </span>
+        <span class="nav-label">장바구니</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToMyPage()">
+        <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+        <span class="nav-label">마이시티</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📱 메뉴</h2>
+      <button class="close-btn" onclick="toggleSideMenu()" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="javascript:void(0)" class="menu-item" onclick="goToPointHistory(); toggleSideMenu();">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 내역</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="showCouponList(); toggleSideMenu();">
+        <span class="menu-icon">🎫</span>
+        <span class="menu-text">내 쿠폰</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="showAuthSelect(); sessionStorage.removeItem('currentUser'); currentUser = null; isGuest = false; toggleSideMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleSideMenu()"></div>
+
+  <!-- 메뉴 상세 팝업 -->
+  <div id="menu-detail-popup" class="menu-detail-popup" onclick="if(event.target === this) closeMenuDetail();">
+    <div id="menu-detail-content" class="menu-detail-content">
+      <!-- 내용은 JavaScript에서 동적으로 생성 -->
+    </div>
+  </div>
+
+  <!-- Cart Screen -->
+  <div id="cart-screen" class="screen">
+    <div class="header" style="justify-content: space-between;">
+      <button class="back-btn" onclick="showMenu()">← 뒤로</button>
+      <h1 style="position: static; transform: none;">장바구니</h1>
+      <button class="home-btn" onclick="location.reload()">🏠 홈</button>
+    </div>
+
+    <div class="container">
+      <div id="cart-items" class="cart-items"></div>
+      
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>상품 금액</span>
+          <span id="items-total">0원</span>
+        </div>
+        
+        <div class="summary-row" id="delivery-fee-row" style="display: none;">
+          <span>배달료</span>
+          <span id="delivery-fee">0원</span>
+        </div>
+        
+        <div id="min-order-warning" style="display: none; background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 14px; color: #856404;">
+          ⚠️ 최소 주문 금액: <span id="min-order-amount">15,000</span>원
+        </div>
+        
+        <div id="point-section" class="point-section" style="display: none;">
+          <div class="point-header">
+            <div>
+              <p class="point-label">💰 보유 포인트</p>
+              <p class="point-amount"><span id="user-points-display">0</span>P</p>
+            </div>
+            <div>
+              <p class="point-label" style="color: #FF6B6B;">사용할 포인트</p>
+              <p class="point-amount" style="color: #FF6B6B;"><span id="used-points-display">0</span>P</p>
+            </div>
+          </div>
+          
+          <div class="point-input-group">
+            <input type="number" id="use-points" placeholder="포인트 입력" min="0" max="0">
+            <button onclick="applyPoints()" class="point-apply-btn">적용</button>
+          </div>
+          
+          <div class="point-quick-btns">
+            <button onclick="quickPoints(1000)">+1천</button>
+            <button onclick="quickPoints(3000)">+3천</button>
+            <button onclick="quickPoints(5000)">+5천</button>
+            <button onclick="quickPoints('all')">전액</button>
+          </div>
+          
+          <p class="point-info">💡 1P = 1원 | 최대 <span id="max-points-display">0</span>P 사용 가능</p>
+        </div>
+
+        <!-- 쿠폰 섹션 -->
+        <div id="coupon-section" class="point-section" style="display: none; margin-top: 20px;">
+          <div class="point-header">
+            <div>
+              <p class="point-label">🎫 쿠폰</p>
+              <p class="point-amount" id="coupon-name-display" style="font-size: 14px; color: #27ae60;">쿠폰 미사용</p>
+            </div>
+            <div>
+              <p class="point-label" style="color: #27ae60;">할인 금액</p>
+              <p class="point-amount" style="color: #27ae60;"><span id="coupon-discount-display">0</span>원</p>
+            </div>
+          </div>
+          
+          <div class="point-input-group">
+            <input type="text" id="coupon-code" placeholder="쿠폰 코드 입력" style="text-transform: uppercase;">
+            <button onclick="applyCoupon()" class="point-apply-btn">적용</button>
+          </div>
+          
+          <div style="margin-top: 10px;">
+            <button onclick="showCouponList()" style="width: 100%; padding: 10px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; color: #333;">
+              🎫 내 쿠폰 보기
+            </button>
+          </div>
+          
+          <p class="point-info" id="coupon-info" style="display: none; font-size: 12px; color: #666; margin-top: 8px;"></p>
+          
+          <div id="coupon-error" style="display: none; color: #e74c3c; font-size: 12px; margin-top: 8px;"></div>
+        </div>
+
+        <div class="summary-total">
+          <span>총 결제 금액</span>
+          <span id="total-price" class="total-price">0원</span>
+        </div>
+
+        <div id="earn-points-info" class="earn-info" style="display: none; background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 16px; font-weight: 600; color: #f57c00;">
+          🎁 <span id="earn-points">0</span>P 적립 예정 (10%)
+        </div>
+      </div>
+
+      <button class="btn btn-primary" onclick="showCheckout()">주문하기</button>
+      <button class="btn btn-secondary" onclick="showMenu()">메뉴로 돌아가기</button>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button type="button" class="nav-btn" onclick="goHome()">
+        <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+        <span class="nav-label">홈</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToOrderHistory()">
+        <span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span>
+        <span class="nav-label">주문내역</span>
+      </button>
+      <button type="button" class="nav-btn active" onclick="goToCart()">
+        <span class="nav-icon">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span id="nav-cart-count-cart" class="nav-cart-badge" style="display: none;">0</span>
+        </span>
+        <span class="nav-label">장바구니</span>
+      </button>
+      <button type="button" class="nav-btn" onclick="goToMyPage()">
+        <span class="nav-icon"><i class="fa-solid fa-user"></i></span>
+        <span class="nav-label">마이시티</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Checkout Screen -->
+  <div id="checkout-screen" class="screen">
+    <div class="header" style="justify-content: space-between;">
+      <button class="back-btn" onclick="showCart()">← 뒤로</button>
+      <h1 style="position: static; transform: none;">주문 정보</h1>
+      <button class="home-btn" onclick="location.reload()">🏠 홈</button>
+    </div>
+
+    <div class="container">
+      <form id="checkout-form" class="form">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="checkout-name" required>
+        </div>
+
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="checkout-phone" required>
+        </div>
+
+        <div class="form-group">
+          <label>주문 타입</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="orderType" value="delivery" checked onchange="toggleAddressField()">
+              <span>🚚 배달</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="orderType" value="takeout" onchange="toggleAddressField()">
+              <span>📦 포장</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group" id="address-group">
+          <label>배달 주소</label>
+          <div id="saved-addresses" style="margin-bottom: 10px; display: none;"></div>
+          <div style="display: flex; gap: 8px;">
+            <textarea id="checkout-address" required style="flex: 1;"></textarea>
+            <button type="button" onclick="showAddressModal()" style="padding: 12px 16px; background: #2196f3; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 600;">
+              📍 주소록
+            </button>
+            <button type="button" onclick="saveAddress()" style="padding: 12px 16px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 600;">
+              💾 저장
+            </button>
+          </div>
+          <button type="button" onclick="showAddressModal()" style="margin-top: 8px; padding: 8px 16px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; cursor: pointer; width: 100%;">
+            📍 주소록에서 선택
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label>주문 요청사항 (선택)</label>
+          <textarea id="checkout-request" placeholder="예: 문 앞에 놓아주세요, 양파 빼주세요 등" rows="3" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>결제 방법</label>
+          <div class="radio-group" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="cash_on_delivery" checked>
+              <span>💵 만나서 현금</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="cash_on_delivery_card">
+              <span>💳 만나서 카드</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="card_prepaid">
+              <span>💳 선결제 (카드)</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="kakao_pay">
+              <span>🟡 카카오페이</span>
+            </label>
+            <label class="radio-label" style="padding: 12px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+              <input type="radio" name="payment" value="naver_pay">
+              <span>🟢 네이버페이</span>
+            </label>
+          </div>
+          <style>
+            .radio-label input[type="radio"]:checked + span {
+              font-weight: 800;
+              color: #FFD700;
+            }
+            .radio-label:has(input[type="radio"]:checked) {
+              border-color: #FFD700 !important;
+              background: rgba(255, 215, 0, 0.1);
+            }
+          </style>
+        </div>
+
+        <div class="order-summary">
+          <h3>주문 내역</h3>
+          <div id="checkout-items"></div>
+          
+          <div class="summary-row">
+            <span>상품 금액</span>
+            <span id="checkout-items-total">0원</span>
+          </div>
+          
+          <div id="checkout-points-section" style="display: none;">
+            <div class="summary-row">
+              <span>포인트 사용</span>
+              <span id="checkout-used-points">0P</span>
+            </div>
+          </div>
+
+          <div class="summary-total">
+            <span>총 금액</span>
+            <span id="checkout-total" class="total-price">0원</span>
+          </div>
+
+          <div id="checkout-earn-info" class="earn-info" style="display: none; background: #fff3cd; padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px dashed #ffa000;">
+            <div style="text-align: center;">
+              <p style="font-size: 14px; color: #e65100; margin-bottom: 5px;">🎉 포인트 적립</p>
+              <p style="font-size: 24px; font-weight: 700; color: #f57c00; margin: 0;">
+                <span id="checkout-earn-points">0</span>P
+              </p>
+              <p style="font-size: 12px; color: #e65100; margin-top: 5px;">결제 금액의 10% 적립!</p>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">주문 확정</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Complete Screen -->
+  <div id="complete-screen" class="screen">
+    <div class="container text-center">
+      <div class="success-icon">✅</div>
+      <h2>주문이 완료되었습니다!</h2>
+      
+      <div class="order-info">
+        <p>주문번호</p>
+        <p id="complete-order-id" class="order-id"></p>
+      </div>
+
+      <div id="complete-points-info" style="display: none; background: linear-gradient(135deg, #ffd54f 0%, #ffb300 100%); padding: 25px; border-radius: 15px; margin: 20px 0; box-shadow: 0 4px 15px rgba(255, 179, 0, 0.3);">
+        <p style="font-size: 16px; color: #e65100; margin-bottom: 10px; font-weight: 600;">
+          🎉 포인트 적립 완료!
+        </p>
+        <p style="font-size: 32px; font-weight: 700; color: #e65100; margin: 0;">
+          <span id="complete-earned-points">0</span>P
+        </p>
+        <p style="font-size: 14px; color: #e65100; margin-top: 10px;">
+          다음 주문 시 사용하실 수 있습니다!
+        </p>
+      </div>
+
+      <p class="order-message">
+        주문하신 음식을 준비중입니다.<br>
+        약 30-40분 후 배달될 예정입니다.
+      </p>
+
+      <div style="background: #e3f2fd; padding: 20px; border-radius: 12px; margin: 20px 0; border: 2px solid #2196f3;">
+        <p style="font-size: 16px; color: #1976d2; text-align: center; font-weight: 600; margin-bottom: 10px;">
+          🚚 배달 현황 실시간 추적
+        </p>
+        <p style="font-size: 14px; color: #1976d2; text-align: center;">
+          조리 시작부터 배달 완료까지 실시간으로 확인하세요!
+        </p>
+      </div>
+
+      <button class="btn btn-primary" onclick="window.location.href='/track'">🔍 배달 현황 보기</button>
+      <button class="btn btn-secondary" onclick="location.reload()">🏠 홈으로 가기</button>
+      
+      <!-- 리뷰 작성 버튼 (주문 완료 후 표시) -->
+      <div id="review-section" style="margin-top: 30px; display: none;">
+        <button class="btn btn-primary" onclick="showReviewModal()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);">
+          ⭐ 리뷰 작성하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 리뷰 작성 모달 -->
+  <div id="review-modal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2>리뷰 작성</h2>
+        <button class="close-btn" onclick="closeReviewModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <p style="font-size: 16px; color: #666; margin-bottom: 15px;">음식은 어떠셨나요?</p>
+          <div id="star-rating" style="font-size: 40px; letter-spacing: 10px; cursor: pointer;">
+            <span class="star" data-rating="1">☆</span>
+            <span class="star" data-rating="2">☆</span>
+            <span class="star" data-rating="3">☆</span>
+            <span class="star" data-rating="4">☆</span>
+            <span class="star" data-rating="5">☆</span>
+          </div>
+          <p id="rating-text" style="margin-top: 10px; color: #999; font-size: 14px;">별점을 선택해주세요</p>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">리뷰 내용</label>
+          <textarea id="review-comment" placeholder="음식이 맛있었나요? 배달은 빠르게 왔나요? 리뷰를 작성해주세요!" rows="5" style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+        
+        <button class="btn btn-primary" onclick="submitReview()" style="width: 100%;" id="submit-review-btn" disabled>
+          리뷰 등록하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coupon List Screen -->
+  <div id="coupon-list-screen" class="screen">
+    <div class="header" style="justify-content: space-between;">
+      <button class="back-btn" onclick="showMenu()">← 뒤로</button>
+      <h1 style="position: static; transform: none;">내 쿠폰</h1>
+      <button class="home-btn" onclick="location.reload()">🏠 홈</button>
+    </div>
+
+    <div class="container">
+      <!-- 쿠폰 리딤 입력창 -->
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <h3 style="color: white; margin: 0 0 15px 0; font-size: 18px; font-weight: 600;">🎁 쿠폰 코드 리딤</h3>
+        <div style="display: flex; gap: 10px;">
+          <input 
+            type="text" 
+            id="redeem-coupon-code" 
+            placeholder="쿠폰 코드 입력 (예: WELCOME2024)" 
+            style="flex: 1; padding: 12px 16px; border: none; border-radius: 8px; font-size: 15px; text-transform: uppercase; font-weight: 600;"
+            onkeypress="if(event.key === 'Enter') redeemCoupon()"
+          >
+          <button 
+            onclick="redeemCoupon()" 
+            style="padding: 12px 24px; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s; white-space: nowrap;"
+            onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(255,255,255,0.4)';"
+            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';"
+          >
+            리딤
+          </button>
+        </div>
+        <div id="redeem-error" style="display: none; color: #ffebee; margin-top: 10px; font-size: 13px; font-weight: 600;"></div>
+      </div>
+
+      <div id="coupon-list-container" style="min-height: 400px;">
+        <div style="text-align: center; padding: 40px 20px; color: #999;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🎫</div>
+          <p>쿠폰을 불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  
+
+  <!-- 플로팅 문의 버튼들 (항상 표시) -->
+  <div id="floating-inquiry-buttons" style="display: none; position: fixed; bottom: 90px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 12px; align-items: flex-end;">
+    <!-- 실시간 채팅 버튼 -->
+    <div id="floating-chat-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="openChat()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
+      <span style="font-size: 28px;">💬</span>
+    </div>
+    <!-- 카카오톡 채널 버튼 -->
+    <div id="floating-kakao-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #FEE500 0%, #FDD835 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(254, 229, 0, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="openKakaoChannel()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(254, 229, 0, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(254, 229, 0, 0.4)';">
+      <span style="font-size: 28px;">💛</span>
+    </div>
+    <!-- 전화 버튼 -->
+    <div id="floating-phone-btn" style="width: 60px; height: 60px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border-radius: 50%; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s;" onclick="callStore()" onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(76, 175, 80, 0.6)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(76, 175, 80, 0.4)';">
+      <span style="font-size: 28px;">📞</span>
+    </div>
+  </div>
+  
+  <!-- 푸터 (가게 정보) - 로그인 화면에만 표시 -->
+  <footer id="store-footer" style="display: none; background: rgba(245, 245, 245, 0.95); padding: 8px 15px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 10px; color: #888; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; backdrop-filter: blur(5px);">
+    <div id="footer-content">로딩 중...</div>
+  </footer>
+
+  <script>
+    let storePhone = ''; // 전화번호 저장
+    
+    // 푸터 가게 정보 로드
+    async function loadFooterInfo() {
+      try {
+        const res = await fetch('/api/store/info');
+        const data = await res.json();
+        if (data.success && data.storeInfo) {
+          const info = data.storeInfo;
+          storePhone = info.phone || '';
+          storeKakaoUrl = info.kakaoChannelUrl || '';
+          storeChatUrl = info.chatServiceUrl || '';
+          
+          let footerHTML = `<div style="font-weight: 500; margin-bottom: 3px; color: #666; font-size: 11px;">${info.name || '시티반점'}</div>`;
+          if (info.owner) {
+            footerHTML += `<div style="font-size: 10px; color: #888; margin-bottom: 3px;">대표자: ${info.owner}</div>`;
+          }
+          if (info.address) {
+            footerHTML += `<div style="font-size: 10px; color: #888; margin-bottom: 3px;">📍 ${info.address}</div>`;
+          }
+          if (info.license) {
+            footerHTML += `<div style="font-size: 9px; color: #aaa; margin-top: 3px;">사업자등록번호: ${info.license}</div>`;
+          }
+          document.getElementById('footer-content').innerHTML = footerHTML;
+          
+          // 헤더에 전화번호 표시
+          const headerPhoneText = document.getElementById('header-phone-text');
+          if (headerPhoneText && info.phone) {
+            headerPhoneText.textContent = info.phone;
+          }
+          
+          // 사용자 정보 영역에 전화번호 표시 (제거 - 헤더로 이동)
+          const userPhone = document.getElementById('user-phone');
+          if (userPhone && info.phone) {
+            userPhone.textContent = info.phone;
+          }
+          
+          // 플로팅 버튼들 표시 (항상 표시)
+          const floatingButtons = document.getElementById('floating-inquiry-buttons');
+          if (floatingButtons) {
+            floatingButtons.style.display = 'flex';
+          }
+        }
+      } catch (error) {
+        console.error('푸터 정보 로드 오류:', error);
+        document.getElementById('footer-content').innerHTML = '<div>가게 정보를 불러올 수 없습니다.</div>';
+      }
+    }
+    
+    let storeKakaoUrl = ''; // 카카오톡 채널 URL
+    let storeChatUrl = ''; // 실시간 채팅 URL
+    
+    // 전화 걸기 함수
+    function callStore() {
+      if (storePhone) {
+        window.location.href = `tel:${storePhone.replace(/-/g, '')}`;
+      } else {
+        alert('전화번호가 등록되지 않았습니다.');
+      }
+    }
+    
+    // 카카오톡 채널 열기
+    function openKakaoChannel() {
+      if (storeKakaoUrl) {
+        window.open(storeKakaoUrl, '_blank');
+      } else {
+        // 카카오톡 채널이 설정되지 않은 경우 기본 링크 또는 안내
+        alert('카카오톡 채널이 아직 설정되지 않았습니다.\n가게 관리에서 카카오톡 채널을 설정해주세요.');
+      }
+    }
+    
+    // 실시간 채팅 열기 (나중에 외부 서비스 연동)
+    function openChat() {
+      if (storeChatUrl) {
+        // 외부 채팅 서비스 URL이 있으면 새 창으로 열기 (크기를 더 크게 설정)
+        window.open(storeChatUrl, '_blank', 'width=600,height=800,resizable=yes,scrollbars=yes');
+      } else {
+        // 임시: 나중에 외부 서비스 연동 예정 안내
+        alert('실시간 채팅 서비스는 준비 중입니다.\n곧 서비스를 시작할 예정입니다.');
+        // TODO: 나중에 외부 채팅 서비스 연동
+        // 예: window.open('https://your-chat-service.com/widget', '_blank', 'width=600,height=800,resizable=yes,scrollbars=yes');
+      }
+    }
+    
+    // 푸터 표시/숨김 제어 (로그인 화면에만 표시)
+    function updateFooterVisibility() {
+      const footer = document.getElementById('store-footer');
+      const authSelectScreen = document.getElementById('auth-select-screen');
+      const loginScreen = document.getElementById('login-screen');
+      const registerScreen = document.getElementById('register-screen');
+      
+      // 로그인 관련 화면이 활성화되어 있으면 푸터 표시
+      if (authSelectScreen && authSelectScreen.classList.contains('active')) {
+        footer.style.display = 'block';
+        // 버튼들이 가려지지 않도록 컨테이너에 패딩 추가
+        const container = authSelectScreen.querySelector('.container');
+        if (container) {
+          container.style.paddingBottom = '80px';
+        }
+      } else if (loginScreen && loginScreen.classList.contains('active')) {
+        footer.style.display = 'block';
+        const container = loginScreen.querySelector('.container');
+        if (container) {
+          container.style.paddingBottom = '80px';
+        }
+      } else if (registerScreen && registerScreen.classList.contains('active')) {
+        footer.style.display = 'block';
+        const container = registerScreen.querySelector('.container');
+        if (container) {
+          container.style.paddingBottom = '80px';
+        }
+      } else {
+        footer.style.display = 'none';
+        // 다른 화면에서는 패딩 제거
+        document.querySelectorAll('.container').forEach(container => {
+          container.style.paddingBottom = '';
+        });
+      }
+    }
+    
+    
+    // 화면 전환 감지
+    const observer = new MutationObserver(() => {
+      updateFooterVisibility();
+    });
+    document.querySelectorAll('.screen').forEach(screen => {
+      observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
+    });
+    
+    // 가게 정보 업데이트 이벤트 리스너
+    window.addEventListener('store-info-updated', () => {
+      loadFooterInfo();
+    });
+    
+    // 페이지 로드 시 푸터 정보 로드 및 표시 상태 업데이트
+    loadFooterInfo();
+    updateFooterVisibility();
+    
+    // 초기 표시 상태 확인 (약간의 지연 후)
+    setTimeout(() => {
+      updateFooterVisibility();
+    }, 100);
+  </script>
+</body>
+</html>
+

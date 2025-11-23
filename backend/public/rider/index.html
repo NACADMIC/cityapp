@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>라이더 앱 - 시티반점</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #757575;
+    }
+
+    .rider-dashboard {
+      display: none;
+    }
+
+    .rider-dashboard.active {
+      display: block;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .status-badge.online {
+      background: #4caf50;
+      color: white;
+    }
+
+    .status-badge.offline {
+      background: #9e9e9e;
+      color: white;
+    }
+
+    .status-badge.delivering {
+      background: #ff9800;
+      color: white;
+    }
+
+    .order-list {
+      margin-top: 20px;
+    }
+
+    .order-item {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      border-left: 4px solid #667eea;
+    }
+
+    .order-item h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .order-item p {
+      color: #666;
+      margin: 5px 0;
+    }
+
+    .order-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-accept {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-complete {
+      background: #2196f3;
+      color: white;
+    }
+
+    .location-info {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .location-info p {
+      color: #1976d2;
+      font-weight: 600;
+      margin: 5px 0;
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #d32f2f;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .rider-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .toggle-status {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .toggle-status.online {
+      background: #4caf50;
+      color: white;
+    }
+
+    .toggle-status.offline {
+      background: #9e9e9e;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛵 라이더 앱</h1>
+      <p>배달 주문을 관리하세요</p>
+    </div>
+
+    <!-- 로그인 화면 -->
+    <div id="login-screen" class="card">
+      <h2 style="margin-bottom: 20px; color: #667eea;">라이더 로그인</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="login-phone" placeholder="010-1234-5678" required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="login-password" placeholder="비밀번호" required>
+        </div>
+        <button type="submit" class="btn">로그인</button>
+        <button type="button" class="btn btn-secondary" onclick="showRegister()">회원가입</button>
+      </form>
+      <div class="error-message" id="login-error"></div>
+    </div>
+
+    <!-- 회원가입 화면 -->
+    <div id="register-screen" class="card" style="display: none;">
+      <h2 style="margin-bottom: 20px; color: #667eea;">라이더 회원가입</h2>
+      <form id="register-form">
+        <div class="form-group">
+          <label>이름</label>
+          <input type="text" id="register-name" placeholder="홍길동" required>
+        </div>
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="register-phone" placeholder="010-1234-5678" required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호</label>
+          <input type="password" id="register-password" placeholder="비밀번호" required>
+        </div>
+        <button type="submit" class="btn">회원가입</button>
+        <button type="button" class="btn btn-secondary" onclick="showLogin()">로그인으로</button>
+      </form>
+      <div class="error-message" id="register-error"></div>
+    </div>
+
+    <!-- 라이더 대시보드 -->
+    <div id="rider-dashboard" class="rider-dashboard">
+      <div class="card">
+        <div class="rider-info">
+          <div>
+            <h2 id="rider-name" style="color: #667eea; margin-bottom: 5px;"></h2>
+            <span class="status-badge offline" id="rider-status">오프라인</span>
+          </div>
+          <button class="toggle-status offline" id="toggle-status" onclick="toggleRiderStatus()">온라인 전환</button>
+        </div>
+
+        <div class="location-info" id="location-info" style="display: none;">
+          <p><i class="fas fa-map-marker-alt"></i> 위치 추적 중...</p>
+          <p id="location-coords">위도: -, 경도: -</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-bottom: 20px; color: #667eea;">배정 가능한 주문</h2>
+        <div id="available-orders" class="order-list">
+          <p style="text-align: center; color: #999;">배정 가능한 주문이 없습니다.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-bottom: 20px; color: #667eea;">내 배달 주문</h2>
+        <div id="my-orders" class="order-list">
+          <p style="text-align: center; color: #999;">배정된 주문이 없습니다.</p>
+        </div>
+      </div>
+
+      <!-- 배달 중인 주문 지도 -->
+      <div class="card" id="delivery-map-card" style="display: none;">
+        <h2 style="margin-bottom: 20px; color: #667eea;">🗺️ 배달 경로</h2>
+        <div id="delivery-map" style="width: 100%; height: 300px; border-radius: 10px; overflow: hidden; background: #f5f5f5;"></div>
+        <div style="margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+          <p style="color: #1976d2; font-weight: 600; margin: 0;">남은 거리: <span id="remaining-distance">-</span>km</p>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary" onclick="logout()" style="margin-top: 20px;">로그아웃</button>
+    </div>
+  </div>
+  
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_APP_KEY&autoload=false"></script>
+
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    let currentRider = null;
+    let locationWatchId = null;
+    let riderMap = null;
+    let currentOrderMarker = null;
+    let destinationMarker = null;
+
+    // 로그인
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('login-phone').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const res = await fetch('/api/riders/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, password })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          currentRider = data.rider;
+          sessionStorage.setItem('currentRider', JSON.stringify(currentRider));
+          showDashboard();
+        } else {
+          document.getElementById('login-error').textContent = data.error;
+          document.getElementById('login-error').classList.add('show');
+        }
+      } catch (err) {
+        alert('로그인 오류: ' + err.message);
+      }
+    });
+
+    // 회원가입
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('register-name').value;
+      const phone = document.getElementById('register-phone').value;
+      const password = document.getElementById('register-password').value;
+
+      try {
+        const res = await fetch('/api/riders/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, password })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('회원가입 성공! 로그인해주세요.');
+          showLogin();
+        } else {
+          document.getElementById('register-error').textContent = data.error;
+          document.getElementById('register-error').classList.add('show');
+        }
+      } catch (err) {
+        alert('회원가입 오류: ' + err.message);
+      }
+    });
+
+    function showLogin() {
+      document.getElementById('login-screen').style.display = 'block';
+      document.getElementById('register-screen').style.display = 'none';
+    }
+
+    function showRegister() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('register-screen').style.display = 'block';
+    }
+
+    function showDashboard() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('register-screen').style.display = 'none';
+      document.getElementById('rider-dashboard').classList.add('active');
+      
+      document.getElementById('rider-name').textContent = currentRider.name;
+      loadOrders();
+      startLocationTracking();
+    }
+
+    function logout() {
+      if (locationWatchId) {
+        navigator.geolocation.clearWatch(locationWatchId);
+      }
+      currentRider = null;
+      sessionStorage.removeItem('currentRider');
+      document.getElementById('rider-dashboard').classList.remove('active');
+      document.getElementById('login-screen').style.display = 'block';
+      socket.disconnect();
+    }
+
+    // 세션 복원
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedRider = sessionStorage.getItem('currentRider');
+      if (savedRider) {
+        currentRider = JSON.parse(savedRider);
+        showDashboard();
+      }
+    });
+
+    // 위치 추적 시작
+    function startLocationTracking() {
+      if (!navigator.geolocation) {
+        alert('위치 서비스를 사용할 수 없습니다.');
+        return;
+      }
+
+      locationWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          document.getElementById('location-info').style.display = 'block';
+          document.getElementById('location-coords').textContent = `위도: ${lat.toFixed(6)}, 경도: ${lng.toFixed(6)}`;
+          
+          // 서버에 위치 업데이트
+          if (currentRider) {
+            fetch(`/api/riders/${currentRider.riderId}/location`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ lat, lng })
+            });
+            
+            socket.emit('rider-location', { riderId: currentRider.riderId, lat, lng });
+            
+            // 배달 중인 주문이 있으면 지도 업데이트
+            if (riderMap && currentOrderMarker) {
+              const newPosition = new kakao.maps.LatLng(lat, lng);
+              currentOrderMarker.setPosition(newPosition);
+              
+              if (destinationMarker) {
+                const destPos = destinationMarker.getPosition();
+                const distance = calculateDistance(lat, lng, destPos.getLat(), destPos.getLng());
+                document.getElementById('remaining-distance').textContent = distance.toFixed(2);
+                
+                // 지도 중심 조정
+                const bounds = new kakao.maps.LatLngBounds();
+                bounds.extend(newPosition);
+                bounds.extend(destPos);
+                riderMap.setBounds(bounds);
+              }
+            }
+          }
+        },
+        (error) => {
+          console.error('위치 오류:', error);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+
+    // 라이더 상태 토글
+    function toggleRiderStatus() {
+      if (!currentRider) return;
+      
+      const statusBadge = document.getElementById('rider-status');
+      const toggleBtn = document.getElementById('toggle-status');
+      const currentStatus = statusBadge.classList.contains('online') ? 'online' : 'offline';
+      const newStatus = currentStatus === 'online' ? 'offline' : 'online';
+      
+      statusBadge.className = `status-badge ${newStatus}`;
+      statusBadge.textContent = newStatus === 'online' ? '온라인' : '오프라인';
+      toggleBtn.className = `toggle-status ${newStatus}`;
+      toggleBtn.textContent = newStatus === 'online' ? '오프라인 전환' : '온라인 전환';
+      
+      socket.emit('rider-status', { riderId: currentRider.riderId, status: newStatus });
+    }
+
+    // 주문 목록 로드
+    async function loadOrders() {
+      try {
+        // 배정 가능한 주문
+        const res1 = await fetch('/api/riders/orders');
+        const data1 = await res1.json();
+        renderAvailableOrders(data1.orders || []);
+
+        // 내 배달 주문
+        const res2 = await fetch(`/api/orders/rider/${currentRider.riderId}`);
+        const data2 = await res2.json();
+        renderMyOrders(data2.orders || []);
+      } catch (err) {
+        console.error('주문 로드 오류:', err);
+      }
+    }
+
+    function renderAvailableOrders(orders) {
+      const container = document.getElementById('available-orders');
+      if (orders.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">배정 가능한 주문이 없습니다.</p>';
+        return;
+      }
+
+      container.innerHTML = orders.map(order => {
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        return `
+          <div class="order-item">
+            <h3>${order.orderId || order.orderid}</h3>
+            <p><strong>고객:</strong> ${order.customername || order.customerName}</p>
+            <p><strong>주소:</strong> ${order.address}</p>
+            <p><strong>금액:</strong> ${(order.totalprice || order.totalAmount).toLocaleString()}원</p>
+            <p><strong>메뉴:</strong> ${items.map(i => `${i.name} x${i.quantity}`).join(', ')}</p>
+            <div class="order-actions">
+              <button class="btn-small btn-accept" onclick="acceptOrder('${order.orderId || order.orderid}')">
+                <i class="fas fa-check"></i> 주문 수락
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderMyOrders(orders) {
+      const container = document.getElementById('my-orders');
+      const mapCard = document.getElementById('delivery-map-card');
+      
+      if (orders.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #999;">배정된 주문이 없습니다.</p>';
+        mapCard.style.display = 'none';
+        return;
+      }
+
+      // 배달 중인 주문 찾기
+      const deliveringOrder = orders.find(o => o.status === 'delivering');
+      
+      if (deliveringOrder) {
+        mapCard.style.display = 'block';
+        initDeliveryMap(deliveringOrder);
+      } else {
+        mapCard.style.display = 'none';
+      }
+
+      container.innerHTML = orders.map(order => {
+        const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+        const isDelivering = order.status === 'delivering';
+        return `
+          <div class="order-item" style="${isDelivering ? 'border-left: 4px solid #ff9800;' : ''}">
+            <h3>${order.orderId || order.orderid} ${isDelivering ? '<span style="color: #ff9800;">🚚 배달 중</span>' : ''}</h3>
+            <p><strong>고객:</strong> ${order.customername || order.customerName}</p>
+            <p><strong>전화:</strong> <a href="tel:${order.customerphone || order.phone}" style="color: #667eea; text-decoration: none;">${order.customerphone || order.phone}</a></p>
+            <p><strong>주소:</strong> ${order.address}</p>
+            <p><strong>금액:</strong> ${(order.totalprice || order.totalAmount).toLocaleString()}원</p>
+            <p><strong>메뉴:</strong> ${items.map(i => `${i.name} x${i.quantity}`).join(', ')}</p>
+            <div class="order-actions">
+              ${isDelivering ? `
+                <button class="btn-small btn-complete" onclick="completeDelivery('${order.orderId || order.orderid}')">
+                  <i class="fas fa-check-circle"></i> 배달 완료
+                </button>
+                <button class="btn-small" style="background: #2196f3; color: white;" onclick="openNavigation('${order.address}')">
+                  <i class="fas fa-directions"></i> 길찾기
+                </button>
+              ` : `
+                <button class="btn-small btn-complete" onclick="completeDelivery('${order.orderId || order.orderid}')">
+                  <i class="fas fa-check-circle"></i> 배달 완료
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 배달 지도 초기화
+    function initDeliveryMap(order) {
+      if (typeof kakao === 'undefined' || !kakao.maps) {
+        document.getElementById('delivery-map').innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+            <div style="text-align: center;">
+              <p>🗺️ 지도 로딩 중...</p>
+              <p style="font-size: 12px;">카카오맵 API 키가 필요합니다</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      kakao.maps.load(() => {
+        const mapContainer = document.getElementById('delivery-map');
+        const defaultLat = 37.0047;
+        const defaultLng = 127.2796;
+        
+        const mapOption = {
+          center: new kakao.maps.LatLng(defaultLat, defaultLng),
+          level: 4
+        };
+        riderMap = new kakao.maps.Map(mapContainer, mapOption);
+
+        // 배달지 좌표 추정
+        let destLat = defaultLat;
+        let destLng = defaultLng;
+        
+        if (order.address) {
+          if (order.address.includes('공도')) {
+            destLat = 37.0047;
+            destLng = 127.2796;
+          } else if (order.address.includes('미양')) {
+            destLat = 37.0150;
+            destLng = 127.2900;
+          } else if (order.address.includes('대덕')) {
+            destLat = 36.9900;
+            destLng = 127.2700;
+          } else if (order.address.includes('양성')) {
+            destLat = 37.0200;
+            destLng = 127.3000;
+          }
+        }
+
+        // 배달지 마커
+        const destPosition = new kakao.maps.LatLng(destLat, destLng);
+        destinationMarker = new kakao.maps.Marker({
+          position: destPosition,
+          map: riderMap,
+          image: new kakao.maps.MarkerImage(
+            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_blue.png',
+            new kakao.maps.Size(50, 50),
+            { offset: new kakao.maps.Point(25, 50) }
+          )
+        });
+
+        const destInfoWindow = new kakao.maps.InfoWindow({
+          content: `<div style="padding: 5px; font-weight: 600;">📍 배달지<br>${order.address}</div>`
+        });
+        destInfoWindow.open(riderMap, destinationMarker);
+
+        // 현재 위치 마커 (GPS 위치가 있으면)
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((position) => {
+            const currentPos = new kakao.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            currentOrderMarker = new kakao.maps.Marker({
+              position: currentPos,
+              map: riderMap,
+              image: new kakao.maps.MarkerImage(
+                'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                new kakao.maps.Size(50, 50),
+                { offset: new kakao.maps.Point(25, 50) }
+              )
+            });
+
+            const currentInfoWindow = new kakao.maps.InfoWindow({
+              content: '<div style="padding: 5px; font-weight: 600;">🛵 내 위치</div>'
+            });
+            currentInfoWindow.open(riderMap, currentOrderMarker);
+
+            // 거리 계산
+            const distance = calculateDistance(
+              position.coords.latitude,
+              position.coords.longitude,
+              destLat,
+              destLng
+            );
+            document.getElementById('remaining-distance').textContent = distance.toFixed(2);
+
+            // 두 마커 사이 선 그리기
+            const polyline = new kakao.maps.Polyline({
+              path: [currentPos, destPosition],
+              strokeWeight: 3,
+              strokeColor: '#FF6B6B',
+              strokeOpacity: 0.7,
+              strokeStyle: 'dashed'
+            });
+            polyline.setMap(riderMap);
+
+            // 지도 중심 조정
+            const bounds = new kakao.maps.LatLngBounds();
+            bounds.extend(currentPos);
+            bounds.extend(destPosition);
+            riderMap.setBounds(bounds);
+          });
+        }
+      });
+    }
+
+    // 거리 계산
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    // 네비게이션 열기
+    function openNavigation(address) {
+      // 카카오맵 길찾기 URL
+      const encodedAddress = encodeURIComponent(address);
+      window.open(`https://map.kakao.com/link/to/${encodedAddress}`, '_blank');
+    }
+
+    async function acceptOrder(orderId) {
+      if (!currentRider) return;
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}/assign-rider`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ riderId: currentRider.riderId })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('주문이 배정되었습니다!');
+          loadOrders();
+        } else {
+          alert('주문 배정 실패: ' + data.error);
+        }
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    }
+
+    async function completeDelivery(orderId) {
+      if (!confirm('배달을 완료하셨나요?')) return;
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'completed' })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          alert('배달 완료 처리되었습니다!');
+          loadOrders();
+        }
+      } catch (err) {
+        alert('오류: ' + err.message);
+      }
+    }
+
+    // 실시간 업데이트
+    socket.on('new-order', () => {
+      if (currentRider) loadOrders();
+    });
+
+    socket.on('rider-assigned', () => {
+      if (currentRider) loadOrders();
+    });
+  </script>
+</body>
+</html>
+

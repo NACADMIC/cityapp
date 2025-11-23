@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>메뉴 관리 - 시티반점 POS</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .menu-management-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .page-header h2 {
+      font-size: 1.8em;
+      color: #1976d2;
+      margin: 0;
+    }
+    .btn-add {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .btn-add:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    @media (max-width: 768px) {
+      .menu-management-container {
+        padding: 15px;
+      }
+      
+      .page-header {
+        margin-bottom: 20px;
+      }
+      
+      .page-header h2 {
+        font-size: 1.4em;
+      }
+      
+      .btn-add {
+        padding: 10px 18px;
+        font-size: 14px;
+      }
+      
+      .menu-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .menu-card {
+        padding: 15px;
+      }
+      
+      .menu-name {
+        font-size: 1.1em;
+      }
+      
+      .menu-actions {
+        flex-direction: column;
+      }
+      
+      .menu-actions button {
+        width: 100%;
+        padding: 10px;
+      }
+      
+      .tab-btn {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+      
+      .popup-content {
+        max-width: 95%;
+        padding: 20px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .menu-management-container {
+        padding: 10px;
+      }
+      
+      .page-header h2 {
+        font-size: 1.2em;
+      }
+      
+      .btn-add {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+      
+      .menu-card {
+        padding: 12px;
+      }
+      
+      .menu-name {
+        font-size: 1em;
+      }
+      
+      .menu-price {
+        font-size: 1em;
+      }
+    }
+    .menu-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s;
+      position: relative;
+    }
+    .menu-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .menu-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+    .menu-name {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: #333;
+      margin: 0;
+    }
+    .menu-category {
+      display: inline-block;
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    .menu-price {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #1976d2;
+      margin: 10px 0;
+    }
+    .menu-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    .btn-edit, .btn-delete, .btn-options, .btn-discount {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .btn-edit {
+      background: #2196f3;
+      color: white;
+    }
+    .btn-edit:hover {
+      background: #1976d2;
+    }
+    .btn-delete {
+      background: #f44336;
+      color: white;
+    }
+    .btn-delete:hover {
+      background: #d32f2f;
+    }
+    .btn-options {
+      background: #ff9800;
+      color: white;
+    }
+    .btn-options:hover {
+      background: #f57c00;
+    }
+    .btn-discount {
+      background: #9c27b0;
+      color: white;
+    }
+    .btn-discount:hover {
+      background: #7b1fa2;
+    }
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    .popup-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .popup-content h3 {
+      margin: 0 0 20px 0;
+      color: #1976d2;
+      font-size: 1.5em;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+    .popup-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .popup-actions button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .btn-save {
+      background: #4caf50;
+      color: white;
+    }
+    .btn-cancel {
+      background: #757575;
+      color: white;
+    }
+    .options-list, .discount-info {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    .option-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .discount-badge {
+      display: inline-block;
+      background: #9c27b0;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1 data-store-name>🏮 시티반점</h1>
+    </div>
+    <div class="header-controls">
+      <a href="/pos" style="color: white; text-decoration: none; padding: 8px 14px; background: rgba(255,255,255,0.2); border-radius: 6px; font-size: 13px;">← 주문 관리</a>
+    </div>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">전체현황·임시중지</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="alert('가게관리 기능은 주문 관리 페이지에서 사용할 수 있습니다.'); toggleMenu();">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">가게관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">가게통계</span>
+        <span class="menu-badge">업데이트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/menu-management.html" class="menu-item active" onclick="toggleMenu()">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">가게 메뉴판 편집</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=options" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">메뉴·옵션 관리</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=discounts" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏷️</span>
+        <span class="menu-text">메뉴별 할인 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/point-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 관리</span>
+      </a>
+      <a href="/pos/coupon-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🎫</span>
+        <span class="menu-text">쿠폰 관리</span>
+      </a>
+      <a href="/pos/total-sales-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">통합 매출 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
+        <span class="menu-icon">🎨</span>
+        <span class="menu-text">사이트 디자인 편집</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+
+  <div class="menu-management-container">
+    <div class="page-header">
+      <h2 id="page-title">📝 가게 메뉴판 편집</h2>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-add" id="edit-mode-btn" onclick="openEditMode()" style="background: #9c27b0;">🎨 편집 모드</button>
+        <button class="btn-add" id="add-btn" onclick="openAddMenuPopup()" style="display: none;">+ 메뉴 추가</button>
+      </div>
+    </div>
+
+    <!-- 탭 메뉴 -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
+      <button class="tab-btn" onclick="switchTab('menu')" style="padding: 12px 24px; border: none; background: none; cursor: pointer; font-size: 15px; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s;">📝 메뉴 관리</button>
+      <button class="tab-btn" onclick="switchTab('options')" style="padding: 12px 24px; border: none; background: none; cursor: pointer; font-size: 15px; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s;">⚙️ 옵션 관리</button>
+      <button class="tab-btn" onclick="switchTab('discounts')" style="padding: 12px 24px; border: none; background: none; cursor: pointer; font-size: 15px; font-weight: 600; color: #666; border-bottom: 3px solid transparent; transition: all 0.3s;">🏷️ 할인 관리</button>
+    </div>
+
+    <!-- 일괄 적용 컨트롤 (옵션/할인 탭에서만 표시) -->
+    <div id="bulk-controls" style="display: none; background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+      <h3 style="margin: 0 0 15px 0; color: #1976d2;">일괄 적용</h3>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <button class="btn-add" onclick="selectAllMenus()" style="background: #2196f3;">전체 선택</button>
+        <button class="btn-add" onclick="deselectAllMenus()" style="background: #757575;">전체 해제</button>
+        <span id="selected-count" style="color: #666; margin-left: 10px;">선택된 메뉴: 0개</span>
+        <div style="margin-left: auto; display: flex; gap: 10px;">
+          <button id="bulk-options-btn" class="btn-add" onclick="applyOptionsToSelected()" style="background: #ff9800; display: none;">선택 메뉴에 옵션 적용</button>
+          <button id="bulk-discount-btn" class="btn-add" onclick="applyDiscountToSelected()" style="background: #9c27b0; display: none;">선택 메뉴에 할인 적용</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메뉴 관리 탭 -->
+    <div id="menu-tab" class="tab-content">
+      <div id="menu-list" class="menu-grid">
+        <div style="text-align: center; padding: 40px; color: #999;">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 옵션 관리 탭 -->
+    <div id="options-tab" class="tab-content" style="display: none;">
+      <div id="options-management-list" class="menu-grid">
+        <div style="text-align: center; padding: 40px; color: #999;">로딩 중...</div>
+      </div>
+    </div>
+
+    <!-- 할인 관리 탭 -->
+    <div id="discounts-tab" class="tab-content" style="display: none;">
+      <div id="discounts-management-list" class="menu-grid">
+        <div style="text-align: center; padding: 40px; color: #999;">로딩 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메뉴 추가/수정 팝업 -->
+  <div id="menu-popup" class="popup-overlay">
+    <div class="popup-content">
+      <h3 id="popup-title">메뉴 추가</h3>
+      <form id="menu-form">
+        <input type="hidden" id="menu-id">
+        <div class="form-group">
+          <label>메뉴명 *</label>
+          <input type="text" id="menu-name" required>
+        </div>
+        <div class="form-group">
+          <label>카테고리</label>
+          <select id="menu-category">
+            <option value="오늘의메뉴">오늘의메뉴</option>
+            <option value="추천메뉴">추천메뉴</option>
+            <option value="면류">면류</option>
+            <option value="밥류">밥류</option>
+            <option value="세트메뉴">세트메뉴</option>
+            <option value="디저트">디저트</option>
+            <option value="음료">음료</option>
+            <option value="맥주">맥주</option>
+            <option value="소주">소주</option>
+            <option value="주류">주류</option>
+            <option value="사이드">사이드</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>가격 (원) *</label>
+          <input type="number" id="menu-price" min="0" required>
+        </div>
+        <div class="form-group">
+          <label>이미지</label>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="file" id="menu-image-file" accept="image/*" style="padding: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px;">
+            <div style="font-size: 12px; color: #666;">또는</div>
+            <input type="url" id="menu-image" placeholder="이미지 URL 입력 (https://...)">
+            <div id="image-preview" style="display: none; margin-top: 10px;">
+              <img id="preview-img" src="" alt="미리보기" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="menu-bestseller"> 베스트셀러
+          </label>
+        </div>
+        <div class="popup-actions">
+          <button type="button" class="btn-save" onclick="saveMenu()">저장</button>
+          <button type="button" class="btn-cancel" onclick="closeMenuPopup()">취소</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 옵션 관리 팝업 -->
+  <div id="options-popup" class="popup-overlay">
+    <div class="popup-content">
+      <h3>메뉴 옵션 관리</h3>
+      <div id="options-list" class="options-list"></div>
+      <div class="form-group">
+        <label>옵션명</label>
+        <input type="text" id="option-name" placeholder="예: 사이즈 업">
+      </div>
+      <div class="form-group">
+        <label>추가 가격 (원)</label>
+        <input type="number" id="option-price" min="0" placeholder="0">
+      </div>
+      <button class="btn-add" onclick="addOption()" style="width: 100%; margin-bottom: 15px;">옵션 추가</button>
+      <div class="popup-actions">
+        <button type="button" class="btn-save" onclick="saveOptions()">저장</button>
+        <button type="button" class="btn-cancel" onclick="closeOptionsPopup()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 할인 관리 팝업 -->
+  <div id="discount-popup" class="popup-overlay">
+    <div class="popup-content">
+      <h3>메뉴 할인 설정</h3>
+      <div class="form-group">
+        <label>할인 타입</label>
+        <select id="discount-type">
+          <option value="">할인 없음</option>
+          <option value="percent">퍼센트 할인 (%)</option>
+          <option value="fixed">고정 금액 할인 (원)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>할인 값</label>
+        <input type="number" id="discount-value" min="0" placeholder="예: 10 (10% 또는 1000원)">
+      </div>
+      <div class="popup-actions">
+        <button type="button" class="btn-save" onclick="saveDiscount()">저장</button>
+        <button type="button" class="btn-cancel" onclick="closeDiscountPopup()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check authentication
+    if (sessionStorage.getItem('pos-authenticated') !== 'true') {
+      window.location.href = 'login.html';
+    }
+
+    let menus = [];
+    let currentMenuId = null;
+    let currentOptions = [];
+    let discounts = {};
+
+    // 사이드 메뉴 토글
+    function toggleMenu() {
+      const sideMenu = document.getElementById('side-menu');
+      const overlay = document.getElementById('menu-overlay');
+      sideMenu.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // 메뉴 목록 로드
+    async function loadMenus() {
+      try {
+        const res = await fetch('/api/menu');
+        const data = await res.json();
+        if (data.success) {
+          menus = data.menu;
+          renderMenus();
+          await loadDiscounts();
+        }
+      } catch (error) {
+        console.error('메뉴 로드 오류:', error);
+      }
+    }
+
+    // 할인 정보 로드
+    async function loadDiscounts() {
+      try {
+        const res = await fetch('/api/menu/discounts');
+        const data = await res.json();
+        if (data.success) {
+          discounts = data.discounts || {};
+          renderMenus();
+        }
+      } catch (error) {
+        console.error('할인 정보 로드 오류:', error);
+      }
+    }
+
+    // 메뉴 목록 렌더링
+    function renderMenus() {
+      const container = document.getElementById('menu-list');
+      if (menus.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">메뉴가 없습니다. 메뉴를 추가해주세요.</div>';
+        return;
+      }
+
+      container.innerHTML = menus.map(menu => {
+        const discount = discounts[menu.id];
+        const discountBadge = discount 
+          ? `<span class="discount-badge">${discount.type === 'percent' ? discount.value + '%' : discount.value + '원'} 할인</span>`
+          : '';
+        
+        return `
+          <div class="menu-card">
+            <div class="menu-card-header">
+              <div>
+                <h3 class="menu-name">${menu.name}</h3>
+                <span class="menu-category">${menu.category}</span>
+                ${discountBadge}
+              </div>
+            </div>
+            <div class="menu-price">${menu.price.toLocaleString()}원</div>
+            <div class="menu-actions">
+              <button class="btn-edit" onclick="editMenu(${menu.id})">수정</button>
+              <button class="btn-options" onclick="openOptionsPopup(${menu.id})">옵션</button>
+              <button class="btn-discount" onclick="openDiscountPopup(${menu.id})">할인</button>
+              <button class="${menu.isAvailable === 0 || menu.isAvailable === false ? 'btn-available' : 'btn-soldout'}" 
+                      onclick="toggleMenuAvailability(${menu.id}, ${menu.isAvailable === 0 || menu.isAvailable === false ? 1 : 0})">
+                ${menu.isAvailable === 0 || menu.isAvailable === false ? '판매 가능' : '품절'}
+              </button>
+              <button class="btn-delete" onclick="deleteMenu(${menu.id})">삭제</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 메뉴 추가 팝업 열기
+    function openAddMenuPopup() {
+      document.getElementById('popup-title').textContent = '메뉴 추가';
+      document.getElementById('menu-id').value = '';
+      document.getElementById('menu-name').value = '';
+      document.getElementById('menu-category').value = '기타';
+      document.getElementById('menu-price').value = '';
+      document.getElementById('menu-image').value = '';
+      document.getElementById('menu-image-file').value = '';
+      document.getElementById('image-preview').style.display = 'none';
+      document.getElementById('menu-bestseller').checked = false;
+      document.getElementById('menu-popup').style.display = 'flex';
+    }
+
+    // 메뉴 수정 팝업 열기
+    async function editMenu(menuId) {
+      const menu = menus.find(m => m.id === menuId);
+      if (!menu) return;
+
+      document.getElementById('popup-title').textContent = '메뉴 수정';
+      document.getElementById('menu-id').value = menu.id;
+      document.getElementById('menu-name').value = menu.name;
+      document.getElementById('menu-category').value = menu.category;
+      document.getElementById('menu-price').value = menu.price;
+      document.getElementById('menu-image').value = menu.image || '';
+      document.getElementById('menu-image-file').value = '';
+      document.getElementById('image-preview').style.display = menu.image ? 'block' : 'none';
+      if (menu.image) {
+        document.getElementById('preview-img').src = menu.image;
+      }
+      document.getElementById('menu-bestseller').checked = menu.bestseller === 1;
+      document.getElementById('menu-popup').style.display = 'flex';
+    }
+
+    // 파일 선택 시 미리보기
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.getElementById('menu-image-file');
+      const urlInput = document.getElementById('menu-image');
+      const preview = document.getElementById('image-preview');
+      const previewImg = document.getElementById('preview-img');
+      
+      if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              previewImg.src = e.target.result;
+              preview.style.display = 'block';
+              urlInput.value = ''; // URL 입력 초기화
+            };
+            reader.readAsDataURL(file);
+          } else {
+            preview.style.display = 'none';
+          }
+        });
+      }
+      
+      if (urlInput) {
+        urlInput.addEventListener('input', (e) => {
+          const url = e.target.value.trim();
+          if (url) {
+            previewImg.src = url;
+            preview.style.display = 'block';
+            fileInput.value = ''; // 파일 선택 초기화
+          } else {
+            preview.style.display = 'none';
+          }
+        });
+      }
+    });
+
+    // 메뉴 저장
+    async function saveMenu() {
+      const id = document.getElementById('menu-id').value;
+      const name = document.getElementById('menu-name').value;
+      const category = document.getElementById('menu-category').value;
+      const price = parseInt(document.getElementById('menu-price').value);
+      let image = document.getElementById('menu-image').value;
+      const fileInput = document.getElementById('menu-image-file');
+      const bestseller = document.getElementById('menu-bestseller').checked ? 1 : 0;
+
+      if (!name || !price) {
+        alert('메뉴명과 가격을 입력해주세요.');
+        return;
+      }
+
+      try {
+        // 파일 업로드가 있으면 먼저 업로드
+        if (fileInput.files && fileInput.files.length > 0) {
+          const formData = new FormData();
+          formData.append('image', fileInput.files[0]);
+          
+          const uploadRes = await fetch('/api/upload/image', {
+            method: 'POST',
+            body: formData
+          });
+          
+          const uploadData = await uploadRes.json();
+          if (uploadData.success) {
+            image = uploadData.imageUrl;
+          } else {
+            alert('이미지 업로드 실패: ' + uploadData.error);
+            return;
+          }
+        }
+
+        let res;
+        if (id) {
+          // 수정
+          res = await fetch(`/api/menu/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, category, price, image, bestseller })
+          });
+        } else {
+          // 추가
+          res = await fetch('/api/menu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, category, price, image, bestseller })
+          });
+        }
+
+        const data = await res.json();
+        if (data.success) {
+          alert('메뉴가 저장되었습니다.');
+          closeMenuPopup();
+          loadMenus();
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
+    // 메뉴 삭제
+    async function deleteMenu(menuId) {
+      if (!confirm('정말 삭제하시겠습니까?')) return;
+
+      try {
+        const res = await fetch(`/api/menu/${menuId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('메뉴가 삭제되었습니다.');
+          loadMenus();
+        } else {
+          alert('삭제 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('삭제 오류: ' + error.message);
+      }
+    }
+
+    // 메뉴 팝업 닫기
+    function closeMenuPopup() {
+      document.getElementById('menu-popup').style.display = 'none';
+    }
+
+    // 옵션 관리 팝업 열기
+    async function openOptionsPopup(menuId) {
+      currentMenuId = menuId;
+      try {
+        const res = await fetch(`/api/menu/${menuId}/options`);
+        const data = await res.json();
+        currentOptions = data.success ? (data.options || []) : [];
+        renderOptions();
+        document.getElementById('options-popup').style.display = 'flex';
+      } catch (error) {
+        console.error('옵션 로드 오류:', error);
+        currentOptions = [];
+        renderOptions();
+        document.getElementById('options-popup').style.display = 'flex';
+      }
+    }
+
+    // 옵션 목록 렌더링
+    function renderOptions() {
+      const container = document.getElementById('options-list');
+      if (currentOptions.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">옵션이 없습니다.</div>';
+        return;
+      }
+      container.innerHTML = currentOptions.map((opt, idx) => `
+        <div class="option-item">
+          <div>
+            <strong>${opt.name}</strong>
+            <span style="color: #666; margin-left: 10px;">+${opt.price.toLocaleString()}원</span>
+          </div>
+          <button onclick="removeOption(${idx})" style="background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">삭제</button>
+        </div>
+      `).join('');
+    }
+
+    // 옵션 추가
+    function addOption() {
+      const name = document.getElementById('option-name').value.trim();
+      const price = parseInt(document.getElementById('option-price').value) || 0;
+
+      if (!name) {
+        alert('옵션명을 입력해주세요.');
+        return;
+      }
+
+      currentOptions.push({ name, price });
+      document.getElementById('option-name').value = '';
+      document.getElementById('option-price').value = '';
+      renderOptions();
+    }
+
+    // 옵션 삭제
+    function removeOption(index) {
+      currentOptions.splice(index, 1);
+      renderOptions();
+    }
+
+    // 옵션 저장
+    async function saveOptions() {
+      try {
+        const res = await fetch(`/api/menu/${currentMenuId}/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ options: currentOptions })
+        });
+        const data = await res.json();
+        if (data.success) {
+          const selectedIds = getSelectedMenuIds();
+          if (selectedIds.length > 1 && selectedIds.includes(currentMenuId)) {
+            // 여러 메뉴가 선택되어 있고 현재 메뉴도 포함되어 있으면 일괄 적용 제안
+            if (confirm('저장되었습니다. 선택한 다른 메뉴들에도 같은 옵션을 적용하시겠습니까?')) {
+              await applyOptionsToSelected();
+            } else {
+              alert('옵션이 저장되었습니다.');
+            }
+          } else {
+            alert('옵션이 저장되었습니다.');
+          }
+          closeOptionsPopup();
+          loadOptionsManagement();
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
+    // 옵션 팝업 닫기
+    function closeOptionsPopup() {
+      document.getElementById('options-popup').style.display = 'none';
+      currentMenuId = null;
+      currentOptions = [];
+    }
+
+    // 할인 관리 팝업 열기
+    async function openDiscountPopup(menuId) {
+      currentMenuId = menuId;
+      const discount = discounts[menuId] || null;
+      
+      document.getElementById('discount-type').value = discount ? discount.type : '';
+      document.getElementById('discount-value').value = discount ? discount.value : '';
+      document.getElementById('discount-popup').style.display = 'flex';
+    }
+
+    // 할인 저장
+    async function saveDiscount() {
+      const type = document.getElementById('discount-type').value;
+      const value = parseInt(document.getElementById('discount-value').value) || 0;
+
+      if (type && value <= 0) {
+        alert('할인 값을 입력해주세요.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/menu/${currentMenuId}/discount`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: type || null, value: type ? value : null })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('할인이 저장되었습니다.');
+          closeDiscountPopup();
+          await loadDiscounts();
+        } else {
+          alert('저장 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('저장 오류: ' + error.message);
+      }
+    }
+
+    // 할인 팝업 닫기
+    function closeDiscountPopup() {
+      document.getElementById('discount-popup').style.display = 'none';
+      currentMenuId = null;
+    }
+
+    // 탭 전환
+    function switchTab(tabName) {
+      // 모든 탭 버튼과 컨텐츠 비활성화
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.style.color = '#666';
+        btn.style.borderBottomColor = 'transparent';
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.style.display = 'none';
+      });
+
+      // 선택된 탭 활성화
+      event.target.style.color = '#1976d2';
+      event.target.style.borderBottomColor = '#1976d2';
+      document.getElementById(tabName + '-tab').style.display = 'block';
+
+      // 페이지 제목 및 버튼 업데이트
+      if (tabName === 'menu') {
+        document.getElementById('page-title').textContent = '📝 가게 메뉴판 편집';
+        document.getElementById('add-btn').style.display = 'block';
+        document.getElementById('add-btn').onclick = openAddMenuPopup;
+        document.getElementById('bulk-controls').style.display = 'none';
+        loadMenus();
+      } else if (tabName === 'options') {
+        document.getElementById('page-title').textContent = '⚙️ 메뉴·옵션 관리';
+        document.getElementById('add-btn').style.display = 'none';
+        document.getElementById('bulk-controls').style.display = 'block';
+        document.getElementById('bulk-options-btn').style.display = 'block';
+        document.getElementById('bulk-discount-btn').style.display = 'none';
+        loadOptionsManagement();
+      } else if (tabName === 'discounts') {
+        document.getElementById('page-title').textContent = '🏷️ 메뉴별 할인 관리';
+        document.getElementById('add-btn').style.display = 'none';
+        document.getElementById('bulk-controls').style.display = 'block';
+        document.getElementById('bulk-options-btn').style.display = 'none';
+        document.getElementById('bulk-discount-btn').style.display = 'block';
+        loadDiscountsManagement();
+      }
+    }
+
+    // 옵션 관리 탭 로드
+    async function loadOptionsManagement() {
+      try {
+        const res = await fetch('/api/menu');
+        const data = await res.json();
+        if (data.success) {
+          menus = data.menu;
+          renderOptionsManagement();
+        }
+      } catch (error) {
+        console.error('메뉴 로드 오류:', error);
+      }
+    }
+
+    // 옵션 관리 목록 렌더링
+    async function renderOptionsManagement() {
+      const container = document.getElementById('options-management-list');
+      if (menus.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">메뉴가 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">로딩 중...</div>';
+
+      const menuCards = [];
+      for (const menu of menus) {
+        try {
+          const optionsRes = await fetch(`/api/menu/${menu.id}/options`);
+          const optionsData = await optionsRes.json();
+          const options = optionsData.success ? (optionsData.options || []) : [];
+          
+          menuCards.push(`
+            <div class="menu-card">
+              <div class="menu-card-header">
+                <div style="flex: 1;">
+                  <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" class="menu-checkbox" data-menu-id="${menu.id}" onchange="updateSelectedCount()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <div>
+                      <h3 class="menu-name" style="margin: 0;">${menu.name}</h3>
+                      <span class="menu-category">${menu.category}</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div style="margin-top: 15px;">
+                ${options.length > 0 
+                  ? options.map(opt => `
+                    <div class="option-item" style="margin-bottom: 8px;">
+                      <div>
+                        <strong>${opt.name}</strong>
+                        <span style="color: #666; margin-left: 10px;">+${opt.price.toLocaleString()}원</span>
+                      </div>
+                    </div>
+                  `).join('')
+                  : '<div style="color: #999; font-size: 14px;">옵션이 없습니다.</div>'
+                }
+              </div>
+              <div class="menu-actions">
+                <button class="btn-options" onclick="openOptionsPopup(${menu.id})" style="flex: 1;">옵션 관리</button>
+              </div>
+            </div>
+          `);
+        } catch (error) {
+          console.error(`메뉴 ${menu.id} 옵션 로드 오류:`, error);
+        }
+      }
+
+      container.innerHTML = menuCards.join('');
+      updateSelectedCount();
+    }
+
+    // 할인 관리 탭 로드
+    async function loadDiscountsManagement() {
+      try {
+        const menuRes = await fetch('/api/menu');
+        const menuData = await menuRes.json();
+        if (menuData.success) {
+          menus = menuData.menu;
+        }
+        await loadDiscounts();
+        renderDiscountsManagement();
+      } catch (error) {
+        console.error('할인 관리 로드 오류:', error);
+      }
+    }
+
+    // 할인 관리 목록 렌더링
+    function renderDiscountsManagement() {
+      const container = document.getElementById('discounts-management-list');
+      if (menus.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">메뉴가 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = menus.map(menu => {
+        const discount = discounts[menu.id];
+        const discountInfo = discount 
+          ? `<div class="discount-info">
+               <div style="font-weight: 600; margin-bottom: 8px;">할인 정보</div>
+               <div>타입: ${discount.type === 'percent' ? '퍼센트' : '고정 금액'}</div>
+               <div>값: ${discount.value}${discount.type === 'percent' ? '%' : '원'}</div>
+               <div style="margin-top: 8px; font-weight: 600; color: #9c27b0;">
+                 할인가: ${discount.type === 'percent' 
+                   ? (menu.price * (1 - discount.value / 100)).toLocaleString() + '원'
+                   : Math.max(0, menu.price - discount.value).toLocaleString() + '원'}
+               </div>
+             </div>`
+          : '<div style="color: #999; font-size: 14px;">할인이 설정되지 않았습니다.</div>';
+        
+        return `
+          <div class="menu-card">
+            <div class="menu-card-header">
+              <div style="flex: 1;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                  <input type="checkbox" class="menu-checkbox" data-menu-id="${menu.id}" onchange="updateSelectedCount()" style="width: 18px; height: 18px; cursor: pointer;">
+                  <div>
+                    <h3 class="menu-name" style="margin: 0;">${menu.name}</h3>
+                    <span class="menu-category">${menu.category}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div class="menu-price">${menu.price.toLocaleString()}원</div>
+            ${discountInfo}
+            <div class="menu-actions">
+              <button class="btn-discount" onclick="openDiscountPopup(${menu.id})" style="flex: 1;">할인 설정</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      updateSelectedCount();
+    }
+
+    // 선택된 메뉴 개수 업데이트
+    function updateSelectedCount() {
+      const checkboxes = document.querySelectorAll('.menu-checkbox:checked');
+      const count = checkboxes.length;
+      document.getElementById('selected-count').textContent = `선택된 메뉴: ${count}개`;
+    }
+
+    // 전체 선택
+    function selectAllMenus() {
+      document.querySelectorAll('.menu-checkbox').forEach(cb => cb.checked = true);
+      updateSelectedCount();
+    }
+
+    // 전체 해제
+    function deselectAllMenus() {
+      document.querySelectorAll('.menu-checkbox').forEach(cb => cb.checked = false);
+      updateSelectedCount();
+    }
+
+    // 선택된 메뉴 ID 목록 가져오기
+    function getSelectedMenuIds() {
+      return Array.from(document.querySelectorAll('.menu-checkbox:checked'))
+        .map(cb => parseInt(cb.dataset.menuId));
+    }
+
+    // 여러 메뉴에 옵션 일괄 적용
+    async function applyOptionsToSelected() {
+      const selectedIds = getSelectedMenuIds();
+      if (selectedIds.length === 0) {
+        alert('적용할 메뉴를 선택해주세요.');
+        return;
+      }
+
+      if (currentOptions.length === 0) {
+        alert('적용할 옵션을 먼저 설정해주세요.');
+        openOptionsPopup(selectedIds[0]);
+        return;
+      }
+
+      if (!confirm(`선택한 ${selectedIds.length}개 메뉴에 옵션을 일괄 적용하시겠습니까?`)) {
+        return;
+      }
+
+      try {
+        let successCount = 0;
+        for (const menuId of selectedIds) {
+          try {
+            const res = await fetch(`/api/menu/${menuId}/options`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ options: currentOptions })
+            });
+            const data = await res.json();
+            if (data.success) successCount++;
+          } catch (error) {
+            console.error(`메뉴 ${menuId} 옵션 적용 오류:`, error);
+          }
+        }
+        alert(`${successCount}개 메뉴에 옵션이 적용되었습니다.`);
+        loadOptionsManagement();
+      } catch (error) {
+        alert('일괄 적용 오류: ' + error.message);
+      }
+    }
+
+    // 여러 메뉴에 할인 일괄 적용
+    async function applyDiscountToSelected() {
+      const selectedIds = getSelectedMenuIds();
+      if (selectedIds.length === 0) {
+        alert('적용할 메뉴를 선택해주세요.');
+        return;
+      }
+
+      // 할인 설정 팝업 열기 (일괄 적용 모드)
+      const discountType = prompt('할인 타입을 선택하세요:\n1. percent (퍼센트)\n2. fixed (고정 금액)\n3. 취소 (할인 해제)', 'percent');
+      if (!discountType || (discountType !== 'percent' && discountType !== 'fixed')) {
+        if (discountType !== null) {
+          // 할인 해제
+          if (!confirm(`선택한 ${selectedIds.length}개 메뉴의 할인을 모두 해제하시겠습니까?`)) {
+            return;
+          }
+          try {
+            let successCount = 0;
+            for (const menuId of selectedIds) {
+              try {
+                const res = await fetch(`/api/menu/${menuId}/discount`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ type: null, value: null })
+                });
+                const data = await res.json();
+                if (data.success) successCount++;
+              } catch (error) {
+                console.error(`메뉴 ${menuId} 할인 해제 오류:`, error);
+              }
+            }
+            alert(`${successCount}개 메뉴의 할인이 해제되었습니다.`);
+            loadDiscountsManagement();
+          } catch (error) {
+            alert('일괄 해제 오류: ' + error.message);
+          }
+        }
+        return;
+      }
+
+      const value = parseFloat(prompt(`할인 값을 입력하세요:\n${discountType === 'percent' ? '(예: 10 = 10%)' : '(예: 1000 = 1000원)'}`));
+      if (isNaN(value) || value <= 0) {
+        alert('올바른 값을 입력해주세요.');
+        return;
+      }
+
+      if (!confirm(`선택한 ${selectedIds.length}개 메뉴에 ${discountType === 'percent' ? value + '%' : value + '원'} 할인을 일괄 적용하시겠습니까?`)) {
+        return;
+      }
+
+      try {
+        let successCount = 0;
+        for (const menuId of selectedIds) {
+          try {
+            const res = await fetch(`/api/menu/${menuId}/discount`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: discountType, value: value })
+            });
+            const data = await res.json();
+            if (data.success) successCount++;
+          } catch (error) {
+            console.error(`메뉴 ${menuId} 할인 적용 오류:`, error);
+          }
+        }
+        alert(`${successCount}개 메뉴에 할인이 적용되었습니다.`);
+        loadDiscountsManagement();
+      } catch (error) {
+        alert('일괄 적용 오류: ' + error.message);
+      }
+    }
+
+    // URL 파라미터로 탭 초기화
+    function initTab() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tab = urlParams.get('tab');
+      if (tab === 'options' || tab === 'discounts') {
+        // 탭 버튼 클릭 시뮬레이션
+        const tabBtn = document.querySelector(`.tab-btn:nth-child(${tab === 'options' ? 2 : 3})`);
+        if (tabBtn) {
+          tabBtn.click();
+        }
+      } else {
+        // 기본 탭 (메뉴 관리)
+        document.querySelector('.tab-btn').style.color = '#1976d2';
+        document.querySelector('.tab-btn').style.borderBottomColor = '#1976d2';
+        document.getElementById('add-btn').style.display = 'block';
+        loadMenus();
+      }
+    }
+
+        // 편집 모드 열기 (새 창)
+        // 사이트 편집 모드 열기
+        function openSiteEditor() {
+          const editWindow = window.open('/pos/site-editor.html', 'siteEditor', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+          if (editWindow) {
+            editWindow.focus();
+          } else {
+            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+          }
+        }
+
+        function openEditMode() {
+          const editWindow = window.open('/pos/menu-editor.html', 'menuEditor', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+          if (editWindow) {
+            editWindow.focus();
+          } else {
+            alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+          }
+        }
+
+        // 초기화
+        initTab();
+      </script>
+    </body>
+    </html>
+
+

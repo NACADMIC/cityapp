@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쿠폰 관리 - 시티반점 POS</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .coupon-management-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .page-header h2 {
+      font-size: 1.8em;
+      color: #1976d2;
+      margin: 0;
+    }
+    
+    .btn-add {
+      background: #4caf50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-add:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .stat-card h3 {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    .stat-card .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1976d2;
+    }
+    
+    .section-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .section-card h3 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 1.3em;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1565c0;
+    }
+    
+    .btn-secondary {
+      background: #757575;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #616161;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .data-table th {
+      background: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .data-table tr:hover {
+      background: #f9f9f9;
+    }
+    
+    .coupon-code {
+      font-family: monospace;
+      font-weight: 600;
+      color: #1976d2;
+      background: #e3f2fd;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge-active {
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+    
+    .badge-inactive {
+      background: #ffebee;
+      color: #c62828;
+    }
+    
+    @media (max-width: 768px) {
+      .coupon-management-container {
+        padding: 15px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .data-table {
+        font-size: 12px;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 8px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1 data-store-name>🏮 시티반점</h1>
+    </div>
+    <div class="header-controls">
+      <a href="/pos" style="color: white; text-decoration: none; padding: 8px 14px; background: rgba(255,255,255,0.2); border-radius: 6px; font-size: 13px;">← 주문 관리</a>
+    </div>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">전체현황·임시중지</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/store-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">가게관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">가게통계</span>
+        <span class="menu-badge">업데이트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/menu-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">가게 메뉴판 편집</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=options" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">메뉴·옵션 관리</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=discounts" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏷️</span>
+        <span class="menu-text">메뉴별 할인 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/point-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 관리</span>
+      </a>
+      <a href="/pos/coupon-management.html" class="menu-item active" onclick="toggleMenu()">
+        <span class="menu-icon">🎫</span>
+        <span class="menu-text">쿠폰 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
+        <span class="menu-icon">🎨</span>
+        <span class="menu-text">사이트 디자인 편집</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="openVolumeSettings(); toggleMenu();">
+        <span class="menu-icon">🔊</span>
+        <span class="menu-text">주문 소리 크기</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+
+  <div class="coupon-management-container">
+    <div class="page-header">
+      <h2>🎫 쿠폰 관리</h2>
+      <button class="btn-add" onclick="openCreateCouponPopup()">+ 쿠폰 생성</button>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>전체 쿠폰</h3>
+        <div class="stat-value" id="total-coupons">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>활성 쿠폰</h3>
+        <div class="stat-value" id="active-coupons">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>총 발급량</h3>
+        <div class="stat-value" id="total-issued">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>총 사용량</h3>
+        <div class="stat-value" id="total-used">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>사용률</h3>
+        <div class="stat-value" id="usage-rate">0%</div>
+      </div>
+    </div>
+
+    <!-- 쿠폰 목록 -->
+    <div class="section-card">
+      <h3>📋 쿠폰 목록</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>쿠폰명</th>
+            <th>쿠폰 코드</th>
+            <th>할인</th>
+            <th>최소 주문금액</th>
+            <th>유효기간</th>
+            <th>발급량</th>
+            <th>사용량</th>
+            <th>상태</th>
+            <th>액션</th>
+          </tr>
+        </thead>
+        <tbody id="coupons-table">
+          <tr><td colspan="9" class="loading">로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 쿠폰 생성 팝업 -->
+  <div id="create-coupon-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content" style="max-width: 600px;">
+      <h2>➕ 쿠폰 생성</h2>
+      <form id="create-coupon-form">
+        <div class="form-group">
+          <label>쿠폰명</label>
+          <input type="text" id="coupon-name" required placeholder="예: 신규 회원 환영 쿠폰">
+        </div>
+        <div class="form-group">
+          <label>쿠폰 코드</label>
+          <input type="text" id="coupon-code" required placeholder="예: WELCOME2024" style="text-transform: uppercase;">
+          <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">고객이 입력할 쿠폰 코드입니다</small>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>할인 타입</label>
+            <select id="coupon-discount-type" required>
+              <option value="percent">퍼센트 (%)</option>
+              <option value="fixed">고정 금액 (원)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>할인 값</label>
+            <input type="number" id="coupon-discount-value" min="1" required placeholder="10 또는 5000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>최소 주문금액 (원)</label>
+          <input type="number" id="coupon-min-amount" min="0" value="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>최대 할인금액 (원, 퍼센트 타입만)</label>
+          <input type="number" id="coupon-max-discount" min="0" placeholder="비워두면 제한 없음">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>유효 시작일</label>
+            <input type="datetime-local" id="coupon-valid-from" required>
+          </div>
+          <div class="form-group">
+            <label>유효 종료일</label>
+            <input type="datetime-local" id="coupon-valid-to" required>
+          </div>
+        </div>
+        <div class="popup-actions">
+          <button type="submit" class="btn btn-primary">생성</button>
+          <button type="button" class="btn btn-secondary" onclick="closeCreateCouponPopup()">취소</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 쿠폰 발급 팝업 -->
+  <div id="issue-coupon-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content" style="max-width: 500px;">
+      <h2>🎁 쿠폰 발급</h2>
+      <form id="issue-coupon-form">
+        <div class="form-group">
+          <label>사용자 선택</label>
+          <select id="issue-user-select" required>
+            <option value="">사용자 선택...</option>
+          </select>
+        </div>
+        <div class="popup-actions">
+          <button type="submit" class="btn btn-primary">발급</button>
+          <button type="button" class="btn btn-secondary" onclick="closeIssueCouponPopup()">취소</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // 로그인 체크
+    if (sessionStorage.getItem('pos-authenticated') !== 'true') {
+      window.location.href = '/pos/login.html';
+    }
+
+    let storeName = '시티반점';
+    let allUsers = [];
+    let allCoupons = [];
+    let currentIssueCouponId = null;
+
+    // 가게 정보 로드
+    async function loadStoreInfo() {
+      try {
+        const res = await fetch('/api/store/info');
+        const data = await res.json();
+        if (data.success && data.storeInfo && data.storeInfo.name) {
+          storeName = data.storeInfo.name;
+          document.querySelectorAll('[data-store-name]').forEach(el => {
+            el.textContent = `🏮 ${storeName}`;
+          });
+        }
+      } catch (error) {
+        console.error('가게 정보 로드 오류:', error);
+      }
+    }
+
+    // 쿠폰 통계 로드
+    async function loadCouponStats() {
+      try {
+        const res = await fetch('/api/coupons/stats');
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('total-coupons').textContent = data.stats.totalCoupons;
+          document.getElementById('active-coupons').textContent = data.stats.activeCoupons;
+          document.getElementById('total-issued').textContent = data.stats.totalIssued;
+          document.getElementById('total-used').textContent = data.stats.totalUsed;
+          document.getElementById('usage-rate').textContent = data.stats.usageRate + '%';
+        }
+      } catch (error) {
+        console.error('쿠폰 통계 로드 오류:', error);
+      }
+    }
+
+    // 쿠폰 목록 로드
+    async function loadCoupons() {
+      try {
+        const res = await fetch('/api/coupons');
+        const data = await res.json();
+        if (data.success) {
+          allCoupons = data.coupons;
+          renderCoupons();
+        }
+      } catch (error) {
+        console.error('쿠폰 목록 로드 오류:', error);
+      }
+    }
+
+    // 쿠폰 목록 렌더링
+    function renderCoupons() {
+      const tbody = document.getElementById('coupons-table');
+      if (allCoupons.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #999;">쿠폰이 없습니다</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = allCoupons.map(coupon => {
+        const discountText = coupon.discountType === 'percent' 
+          ? `${coupon.discountValue}%` 
+          : `${coupon.discountValue.toLocaleString()}원`;
+        const validFrom = new Date(coupon.validFrom).toLocaleDateString('ko-KR');
+        const validTo = new Date(coupon.validTo).toLocaleDateString('ko-KR');
+        const isActive = coupon.isActive && new Date(coupon.validTo) >= new Date();
+        
+        return `
+          <tr>
+            <td>${coupon.name}</td>
+            <td><span class="coupon-code">${coupon.code}</span></td>
+            <td>${discountText}</td>
+            <td>${coupon.minAmount ? coupon.minAmount.toLocaleString() + '원' : '없음'}</td>
+            <td>${validFrom} ~ ${validTo}</td>
+            <td>${coupon.issuedCount || 0}</td>
+            <td>${coupon.usedCount || 0}</td>
+            <td><span class="badge ${isActive ? 'badge-active' : 'badge-inactive'}">${isActive ? '활성' : '비활성'}</span></td>
+            <td>
+              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="openIssueCouponPopup(${coupon.id})">발급</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 사용자 목록 로드
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (data.success) {
+          allUsers = data.users;
+        }
+      } catch (error) {
+        console.error('사용자 목록 로드 오류:', error);
+      }
+    }
+
+    // 쿠폰 생성 팝업 열기
+    function openCreateCouponPopup() {
+      document.getElementById('create-coupon-popup').style.display = 'flex';
+    }
+
+    // 쿠폰 생성 팝업 닫기
+    function closeCreateCouponPopup() {
+      document.getElementById('create-coupon-popup').style.display = 'none';
+      document.getElementById('create-coupon-form').reset();
+    }
+
+    // 쿠폰 발급 팝업 열기
+    function openIssueCouponPopup(couponId) {
+      currentIssueCouponId = couponId;
+      const select = document.getElementById('issue-user-select');
+      select.innerHTML = '<option value="">사용자 선택...</option>';
+      allUsers.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.userid;
+        option.textContent = `${user.name} (${user.phone})`;
+        select.appendChild(option);
+      });
+      document.getElementById('issue-coupon-popup').style.display = 'flex';
+    }
+
+    // 쿠폰 발급 팝업 닫기
+    function closeIssueCouponPopup() {
+      document.getElementById('issue-coupon-popup').style.display = 'none';
+      document.getElementById('issue-coupon-form').reset();
+      currentIssueCouponId = null;
+    }
+
+    // 쿠폰 생성
+    document.getElementById('create-coupon-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const couponData = {
+        name: document.getElementById('coupon-name').value,
+        code: document.getElementById('coupon-code').value.toUpperCase(),
+        discountType: document.getElementById('coupon-discount-type').value,
+        discountValue: parseInt(document.getElementById('coupon-discount-value').value),
+        minAmount: parseInt(document.getElementById('coupon-min-amount').value) || 0,
+        maxDiscount: document.getElementById('coupon-max-discount').value ? parseInt(document.getElementById('coupon-max-discount').value) : null,
+        validFrom: new Date(document.getElementById('coupon-valid-from').value).toISOString(),
+        validTo: new Date(document.getElementById('coupon-valid-to').value).toISOString()
+      };
+      
+      try {
+        const res = await fetch('/api/coupons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(couponData)
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('쿠폰이 생성되었습니다!');
+          closeCreateCouponPopup();
+          loadCouponStats();
+          loadCoupons();
+        } else {
+          alert('쿠폰 생성 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('오류: ' + error.message);
+      }
+    });
+
+    // 쿠폰 발급
+    document.getElementById('issue-coupon-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userId = document.getElementById('issue-user-select').value;
+      
+      if (!userId || !currentIssueCouponId) {
+        alert('사용자를 선택해주세요.');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/coupons/issue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ couponId: currentIssueCouponId, userId })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('쿠폰이 발급되었습니다!');
+          closeIssueCouponPopup();
+          loadCouponStats();
+          loadCoupons();
+        } else {
+          alert('쿠폰 발급 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('오류: ' + error.message);
+      }
+    });
+
+    // 사이드 메뉴 토글
+    function toggleMenu() {
+      const sideMenu = document.getElementById('side-menu');
+      const overlay = document.getElementById('menu-overlay');
+      sideMenu.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // 사이트 편집 모드 열기
+    function openSiteEditor() {
+      const editWindow = window.open('/pos/site-editor.html', 'siteEditor', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+      if (editWindow) {
+        editWindow.focus();
+      } else {
+        alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+      }
+    }
+
+    // 주문 소리 크기 설정 팝업 열기
+    function openVolumeSettings() {
+      alert('주문 소리 크기 설정은 주문 관리 페이지에서 사용할 수 있습니다.');
+    }
+
+    // 초기화
+    loadStoreInfo();
+    loadCouponStats();
+    loadCoupons();
+    loadUsers();
+  </script>
+</body>
+</html>
+

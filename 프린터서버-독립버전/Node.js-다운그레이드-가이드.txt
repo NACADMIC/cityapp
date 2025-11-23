@@ -1,0 +1,49 @@
+Node.js v18 LTS로 다운그레이드 방법
+
+[방법 1] 간단한 방법 (권장)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 기존 Node.js 제거
+   - 제어판 > 프로그램 제거
+   - "Node.js" 검색 후 제거
+   - 또는 Windows 설정 > 앱 > Node.js 제거
+
+2. Node.js v18 LTS 설치
+   - https://nodejs.org 접속
+   - 왼쪽 "LTS" 버전 클릭 (v18.x.x)
+   - Windows Installer (.msi) 다운로드
+   - 설치 시 "Add to PATH" 체크 필수!
+   - 설치 완료
+
+3. 확인
+   - 명령 프롬프트 열기
+   - node --version 입력
+   - v18.x.x 나오면 성공!
+
+4. 프린터 서버 재설치
+   - 재설치-시작.bat 실행
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[방법 2] nvm 사용 (고급)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. nvm-windows 설치
+   - https://github.com/coreybutler/nvm-windows/releases
+   - nvm-setup.exe 다운로드 및 설치
+
+2. 명령 프롬프트에서:
+   nvm install 18.20.0
+   nvm use 18.20.0
+
+3. 확인:
+   node --version
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ 주의사항
+- 기존 Node.js를 제거하지 않으면 충돌 가능
+- 설치 후 명령 프롬프트 재시작 필요
+- "Add to PATH" 체크 필수!
+
+

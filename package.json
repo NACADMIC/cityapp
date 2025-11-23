@@ -1,0 +1,25 @@
+{
+  "name": "city-restaurant-app",
+  "version": "1.0.0",
+  "description": "시티반점 주문 시스템",
+  "main": "backend/server-simple.js",
+  "scripts": {
+    "start": "cd backend && npm install && node server.js",
+    "backup": "node backend/scripts/backup-db.js",
+    "dev": "cd backend && nodemon server.js",
+    "clear-test": "node backend/scripts/clear-test-data.js",
+    "clear-all": "node backend/scripts/clear-all-data.js"
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "uuid": "^9.0.0",
+    "axios": "^1.6.0"
+  }
+}
+

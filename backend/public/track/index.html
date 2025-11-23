@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주문 조회 - 시티반점</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .search-box {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #d32f2f;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(211, 47, 47, 0.4);
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      margin: 0 5px;
+      border: 2px solid #d32f2f;
+      background: white;
+      color: #d32f2f;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      background: #d32f2f;
+      color: white;
+    }
+
+    .tab-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .order-result {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      display: none;
+    }
+
+    .order-result.show {
+      display: block;
+    }
+
+    .order-id {
+      font-size: 1.5em;
+      font-weight: 700;
+      color: #d32f2f;
+      margin-bottom: 20px;
+      font-family: monospace;
+    }
+
+    .status-tracker {
+      margin: 30px 0;
+    }
+
+    .status-step {
+      display: flex;
+      align-items: center;
+      margin: 15px 0;
+      position: relative;
+    }
+
+    .status-step::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 40px;
+      width: 2px;
+      height: 50px;
+      background: #e0e0e0;
+    }
+
+    .status-step:last-child::before {
+      display: none;
+    }
+
+    .status-step.active::before {
+      background: #4caf50;
+    }
+
+    .status-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .status-step.active .status-icon {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .status-step.active .status-icon::before {
+      content: '✓';
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .status-step.current .status-icon {
+      background: #ffa000;
+      color: white;
+      animation: pulse 2s infinite;
+      font-weight: bold;
+    }
+    
+    .status-step.current .status-icon::before {
+      content: '●';
+      font-size: 14px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+    
+    .status-step.active .status-info h3 {
+      color: #4caf50;
+      font-weight: 700;
+    }
+    
+    .status-step.current .status-info h3 {
+      color: #ffa000;
+      font-weight: 800;
+    }
+
+    .status-info h3 {
+      font-size: 1.1em;
+      margin-bottom: 5px;
+      color: #333;
+    }
+
+    .status-info p {
+      color: #666;
+      font-size: 0.9em;
+    }
+
+    .order-details {
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 2px solid #f0f0f0;
+    }
+
+    .order-details h3 {
+      margin-bottom: 15px;
+      color: #d32f2f;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .error-message {
+      background: #ffebee;
+      color: #d32f2f;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button onclick="history.back()" style="background: #757575; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">← 뒤로</button>
+        <button onclick="location.href='/order-new'" style="background: #d32f2f; color: white; padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">🏠 홈</button>
+      </div>
+      <h1>🏮 주문 조회</h1>
+      <p>주문번호로 배달 상태를 확인하세요</p>
+    </div>
+
+    <div class="search-box">
+      <div style="margin-bottom: 20px; text-align: center;">
+        <button type="button" class="tab-btn active" onclick="showTab('order-id')">주문번호로 조회</button>
+        <button type="button" class="tab-btn" onclick="showTab('phone')">전화번호로 조회</button>
+      </div>
+
+      <form id="search-form-orderid" class="search-form">
+        <div class="form-group">
+          <label>주문번호</label>
+          <input type="text" id="order-id-input" placeholder="ORD-1234567890" required>
+        </div>
+        <button type="submit" class="btn">조회하기</button>
+      </form>
+
+      <form id="search-form-phone" class="search-form" style="display: none;">
+        <div class="form-group">
+          <label>전화번호</label>
+          <input type="tel" id="phone-input" placeholder="010-1234-5678" required>
+        </div>
+        <button type="submit" class="btn">최근 주문 조회</button>
+      </form>
+      
+      <div class="error-message" id="error-message">주문을 찾을 수 없습니다.</div>
+    </div>
+
+    <div class="order-result" id="order-result">
+      <div class="order-id" id="display-order-id"></div>
+
+      <div class="status-tracker" id="status-tracker">
+        <div class="status-step" data-status="pending">
+          <div class="status-icon"></div>
+          <div class="status-info">
+            <h3>📝 주문 접수</h3>
+            <p>주문이 접수되었습니다</p>
+          </div>
+        </div>
+
+        <div class="status-step" data-status="preparing">
+          <div class="status-icon"></div>
+          <div class="status-info">
+            <h3>👨‍🍳 조리중</h3>
+            <p>맛있게 조리하고 있습니다</p>
+          </div>
+        </div>
+
+        <div class="status-step" data-status="delivering">
+          <div class="status-icon"></div>
+          <div class="status-info">
+            <h3>🚚 배달중</h3>
+            <p>배달원이 출발했습니다</p>
+          </div>
+        </div>
+
+        <div class="status-step" data-status="completed">
+          <div class="status-icon"></div>
+          <div class="status-info">
+            <h3>✨ 배달 완료</h3>
+            <p>맛있게 드세요!</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-details" id="order-details"></div>
+
+      <!-- 라이더 위치 지도 -->
+      <div id="rider-map-container" style="display: none; margin-top: 30px;">
+        <h3 style="margin-bottom: 15px; color: #d32f2f;">🚚 배달원 위치</h3>
+        <div id="rider-map" style="width: 100%; height: 300px; border-radius: 10px; overflow: hidden;"></div>
+        <div id="estimated-time" style="margin-top: 15px; padding: 15px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+          <p style="color: #1976d2; font-weight: 600; margin: 0;">예상 도착 시간: <span id="time-value">-</span>분</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL에서 orderId 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderIdParam = urlParams.get('orderId');
+    
+    // sessionStorage에서 최근 주문번호 확인 (비회원 주문조회용)
+    const lastOrderId = sessionStorage.getItem('lastOrderId');
+    const lastOrderPhone = sessionStorage.getItem('lastOrderPhone');
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      // URL 파라미터가 있으면 우선 사용
+      if (orderIdParam) {
+        document.getElementById('order-id-input').value = orderIdParam;
+        document.getElementById('search-form-orderid').dispatchEvent(new Event('submit'));
+      } 
+      // sessionStorage에 주문번호가 있으면 자동 조회
+      else if (lastOrderId) {
+        document.getElementById('order-id-input').value = lastOrderId;
+        if (lastOrderPhone) {
+          document.getElementById('phone-input').value = lastOrderPhone;
+        }
+        // 자동으로 주문번호로 조회
+        document.getElementById('search-form-orderid').dispatchEvent(new Event('submit'));
+      }
+    });
+  </script>
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_APP_KEY&autoload=false"></script>
+  <script>
+    const socket = io();
+    let currentOrderId = null;
+    let map = null;
+    let riderMarker = null;
+    let destinationMarker = null;
+
+    // 탭 전환
+    function showTab(tab) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const forms = document.querySelectorAll('.search-form');
+      
+      tabs.forEach(t => t.classList.remove('active'));
+      forms.forEach(f => f.style.display = 'none');
+      
+      if (tab === 'order-id') {
+        tabs[0].classList.add('active');
+        document.getElementById('search-form-orderid').style.display = 'block';
+      } else {
+        tabs[1].classList.add('active');
+        document.getElementById('search-form-phone').style.display = 'block';
+      }
+    }
+
+    // 주문번호로 조회
+    document.getElementById('search-form-orderid').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const orderId = document.getElementById('order-id-input').value.trim();
+      
+      try {
+        const res = await fetch(`/api/orders/${orderId}`);
+        const data = await res.json();
+        
+        if (data.success) {
+          currentOrderId = orderId;
+          displayOrder(data.order);
+          document.getElementById('error-message').classList.remove('show');
+          document.getElementById('order-result').classList.add('show');
+        } else {
+          document.getElementById('error-message').textContent = '주문을 찾을 수 없습니다.';
+          document.getElementById('error-message').classList.add('show');
+          document.getElementById('order-result').classList.remove('show');
+        }
+      } catch (err) {
+        alert('조회 오류: ' + err.message);
+      }
+    });
+
+    // 전화번호로 조회
+    document.getElementById('search-form-phone').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const phone = document.getElementById('phone-input').value.trim();
+      
+      try {
+        const res = await fetch(`/api/orders/phone/${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        
+        if (data.success && data.orders && data.orders.length > 0) {
+          // 최근 주문 표시
+          const recentOrder = data.orders[0];
+          currentOrderId = recentOrder.orderid || recentOrder.orderId;
+          displayOrder(recentOrder);
+          document.getElementById('error-message').classList.remove('show');
+          document.getElementById('order-result').classList.add('show');
+        } else {
+          document.getElementById('error-message').textContent = '해당 전화번호로 주문 내역이 없습니다.';
+          document.getElementById('error-message').classList.add('show');
+          document.getElementById('order-result').classList.remove('show');
+        }
+      } catch (err) {
+        alert('조회 오류: ' + err.message);
+      }
+    });
+
+    // 주문 표시
+    function displayOrder(order) {
+      const orderId = order.orderid || order.orderId;
+      const customerName = order.customername || order.customerName;
+      const phone = order.customerphone || order.phone;
+      const totalAmount = order.totalprice || order.totalAmount;
+      const paymentMethod = order.paymentmethod || order.paymentMethod || 'cash';
+      
+      document.getElementById('display-order-id').textContent = orderId;
+      
+      // 상태 업데이트
+      updateStatus(order.status || 'pending');
+      
+      // 배달 중이면 지도 표시
+      if (order.status === 'delivering' && order.riderLat && order.riderLng) {
+        showRiderMap(order);
+      } else {
+        document.getElementById('rider-map-container').style.display = 'none';
+      }
+      
+      // 주문 상세
+      let items = [];
+      try {
+        items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+      } catch (e) {
+        items = order.items || [];
+      }
+      
+      const detailsHtml = `
+        <h3>주문 정보</h3>
+        <div class="detail-row">
+          <span>고객명</span>
+          <span>${customerName}</span>
+        </div>
+        <div class="detail-row">
+          <span>전화번호</span>
+          <span>${phone}</span>
+        </div>
+        <div class="detail-row">
+          <span>배달 주소</span>
+          <span>${order.address}</span>
+        </div>
+        <div class="detail-row">
+          <span>주문 메뉴</span>
+          <span>${items.map(i => `${i.name} x ${i.quantity}`).join(', ')}</span>
+        </div>
+        <div class="detail-row">
+          <span>결제 금액</span>
+          <span><strong>${totalAmount.toLocaleString()}원</strong></span>
+        </div>
+        <div class="detail-row">
+          <span>결제 방법</span>
+          <span>${paymentMethod === 'cash' ? '현금' : '카드'}</span>
+        </div>
+      `;
+      
+      document.getElementById('order-details').innerHTML = detailsHtml;
+    }
+
+    // 라이더 지도 표시
+    function showRiderMap(order) {
+      const container = document.getElementById('rider-map-container');
+      container.style.display = 'block';
+
+      // 안성 공도읍 기본 좌표
+      const defaultLat = 37.0047;
+      const defaultLng = 127.2796;
+
+      // 주소를 좌표로 변환 (간단한 예시 - 실제로는 Geocoding API 사용)
+      // 안성 지역 주소 파싱
+      let destLat = defaultLat;
+      let destLng = defaultLng;
+      
+      // 주소에서 좌표 추정 (간단한 로직)
+      if (order.address) {
+        // 공도읍 중심 좌표
+        if (order.address.includes('공도')) {
+          destLat = 37.0047;
+          destLng = 127.2796;
+        }
+        // 미양면
+        else if (order.address.includes('미양')) {
+          destLat = 37.0150;
+          destLng = 127.2900;
+        }
+        // 대덕면
+        else if (order.address.includes('대덕')) {
+          destLat = 36.9900;
+          destLng = 127.2700;
+        }
+        // 양성면
+        else if (order.address.includes('양성')) {
+          destLat = 37.0200;
+          destLng = 127.3000;
+        }
+      }
+
+      // Kakao Map 초기화
+      if (typeof kakao !== 'undefined' && kakao.maps) {
+        kakao.maps.load(() => {
+          const mapContainer = document.getElementById('rider-map');
+          const mapOption = {
+            center: new kakao.maps.LatLng(defaultLat, defaultLng),
+            level: 4
+          };
+          map = new kakao.maps.Map(mapContainer, mapOption);
+
+          // 배달지 마커
+          const destPosition = new kakao.maps.LatLng(destLat, destLng);
+          destinationMarker = new kakao.maps.Marker({
+            position: destPosition,
+            map: map,
+            image: new kakao.maps.MarkerImage(
+              'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_blue.png',
+              new kakao.maps.Size(50, 50),
+              { offset: new kakao.maps.Point(25, 50) }
+            )
+          });
+
+          // 배달지 인포윈도우
+          const destInfoWindow = new kakao.maps.InfoWindow({
+            content: `<div style="padding: 5px; font-weight: 600;">📍 배달지<br>${order.address}</div>`
+          });
+          destInfoWindow.open(map, destinationMarker);
+
+          // 라이더 위치 마커
+          if (order.riderLat && order.riderLng) {
+            const riderPosition = new kakao.maps.LatLng(order.riderLat, order.riderLng);
+            riderMarker = new kakao.maps.Marker({
+              position: riderPosition,
+              map: map,
+              image: new kakao.maps.MarkerImage(
+                'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                new kakao.maps.Size(50, 50),
+                { offset: new kakao.maps.Point(25, 50) }
+              )
+            });
+
+            // 라이더 인포윈도우
+            const riderInfoWindow = new kakao.maps.InfoWindow({
+              content: '<div style="padding: 5px; font-weight: 600;">🛵 배달원 위치</div>'
+            });
+            riderInfoWindow.open(map, riderMarker);
+
+            // 두 마커 사이 선 그리기
+            const polyline = new kakao.maps.Polyline({
+              path: [riderPosition, destPosition],
+              strokeWeight: 3,
+              strokeColor: '#FF6B6B',
+              strokeOpacity: 0.7,
+              strokeStyle: 'dashed'
+            });
+            polyline.setMap(map);
+
+            // 지도 중심을 두 마커 중간으로
+            const bounds = new kakao.maps.LatLngBounds();
+            bounds.extend(riderPosition);
+            bounds.extend(destPosition);
+            map.setBounds(bounds);
+          } else {
+            // 라이더 위치가 없으면 배달지만 표시
+            map.setCenter(destPosition);
+          }
+        });
+      } else {
+        // 카카오맵이 없으면 간단한 메시지
+        document.getElementById('rider-map').innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f5f5f5; color: #666;">
+            <div style="text-align: center;">
+              <p style="font-size: 18px; margin-bottom: 10px;">🗺️ 지도 로딩 중...</p>
+              <p style="font-size: 14px;">카카오맵 API 키가 필요합니다</p>
+            </div>
+          </div>
+        `;
+      }
+
+      // 예상 시간 표시
+      if (order.estimatedTime) {
+        document.getElementById('time-value').textContent = order.estimatedTime;
+      } else {
+        document.getElementById('time-value').textContent = '계산 중...';
+      }
+    }
+
+    // 상태 업데이트
+    function updateStatus(status) {
+      const steps = document.querySelectorAll('.status-step');
+      const statusOrder = ['pending', 'accepted', 'preparing', 'delivering', 'completed'];
+      const currentIndex = statusOrder.indexOf(status);
+      
+      // pending과 accepted는 같은 단계로 표시 (주문 접수)
+      let displayIndex = currentIndex;
+      if (status === 'accepted') {
+        displayIndex = 0; // 첫 번째 단계에 표시
+      } else if (currentIndex > 1) {
+        displayIndex = currentIndex - 1; // accepted를 건너뛰므로 -1
+      }
+      
+      steps.forEach((step, index) => {
+        step.classList.remove('active', 'current');
+        
+        if (index < displayIndex) {
+          step.classList.add('active');
+        } else if (index === displayIndex) {
+          step.classList.add('active', 'current');
+        }
+      });
+    }
+
+    // 실시간 상태 업데이트
+    socket.on('order-status-changed', (data) => {
+      console.log('📡 상태 변경:', data);
+      if (data.orderId === currentOrderId) {
+        console.log('✅ 현재 주문 상태 업데이트:', data.status);
+        updateStatus(data.status);
+        
+        // 배달 중이면 주문 정보 다시 로드
+        if (data.status === 'delivering') {
+          fetch(`/api/orders/${currentOrderId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success) {
+                displayOrder(data.order);
+              }
+            });
+        }
+        
+        // 알림 표시
+        showNotification(data.status);
+      }
+    });
+
+    // 라이더 위치 업데이트
+    socket.on('rider-location-updated', (data) => {
+      if (data.orderId === currentOrderId) {
+        if (map && riderMarker && typeof kakao !== 'undefined' && kakao.maps) {
+          const position = new kakao.maps.LatLng(data.lat, data.lng);
+          riderMarker.setPosition(position);
+          
+          // 배달지와의 거리 계산하여 예상 시간 업데이트
+          if (destinationMarker) {
+            const destPos = destinationMarker.getPosition();
+            const distance = calculateDistance(data.lat, data.lng, destPos.getLat(), destPos.getLng());
+            const estimatedMinutes = Math.ceil(distance / 0.5); // km를 분으로 변환 (대략 30km/h 가정)
+            
+            if (data.estimatedTime) {
+              document.getElementById('time-value').textContent = data.estimatedTime;
+            } else {
+              document.getElementById('time-value').textContent = estimatedMinutes;
+            }
+            
+            // 지도 중심 조정
+            const bounds = new kakao.maps.LatLngBounds();
+            bounds.extend(position);
+            bounds.extend(destPos);
+            map.setBounds(bounds);
+          }
+        }
+        
+        if (data.estimatedTime) {
+          document.getElementById('time-value').textContent = data.estimatedTime;
+        }
+      }
+    });
+
+    // 두 좌표 간 거리 계산 (Haversine 공식)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // 지구 반지름 (km)
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+    
+    // 상태 변경 알림
+    function showNotification(status) {
+      const messages = {
+        'pending': '주문이 접수되었습니다',
+        'accepted': '주문이 확인되었습니다',
+        'preparing': '조리를 시작했습니다! 👨‍🍳',
+        'delivering': '배달원이 출발했습니다! 🚚',
+        'completed': '배달이 완료되었습니다! ✅'
+      };
+      
+      const message = messages[status] || '상태가 업데이트되었습니다';
+      
+      // 간단한 알림 (필요시 더 멋지게 꾸밀 수 있음)
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4caf50;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s;
+        font-weight: 600;
+      `;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+    
+    // CSS 애니메이션
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
+

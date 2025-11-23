@@ -1,0 +1,92 @@
+# 🚀 Railway 배포 - 3단계
+
+GitHub 업로드가 완료되면 바로 실행하세요!
+
+---
+
+## 1️⃣ Railway 접속
+
+https://railway.app
+
+**Login** → **GitHub로 로그인**
+
+---
+
+## 2️⃣ 프로젝트 생성
+
+1. **Start a New Project** 클릭
+2. **Deploy from GitHub repo** 선택
+3. **cityapp** 선택
+4. 자동 배포 시작! (3-5분 대기)
+
+---
+
+## 3️⃣ 도메인 받기
+
+1. 배포 완료 후 프로젝트 클릭
+2. **Settings** 탭
+3. **Networking** 섹션
+4. **Public Networking** → **Generate Domain** 클릭
+5. 주소 나옴! 🎉
+
+예: `cityapp-production-abc123.up.railway.app`
+
+---
+
+## ✅ 완료!
+
+### 📱 주소 목록:
+
+```
+고객 주문: https://당신주소.up.railway.app/order-new
+POS 접속: https://당신주소.up.railway.app/pos/login.html
+주문 추적: https://당신주소.up.railway.app/track
+```
+
+### 🎯 테스트:
+
+1. **영업시간 외 (오전 11시 전, 밤 11시 후)**
+   - 접속하면: "현재 영업시간이 아닙니다" 표시
+
+2. **영업시간 내 (11시-23시)**
+   - 정상 주문 가능
+   - POS에서 주문 확인
+   - 배달 현황 관리
+
+---
+
+## 🔧 영업시간 변경
+
+`backend/server.js` 파일에서:
+
+```javascript
+const businessHours = {
+  open: 11,   // 시작 시간
+  close: 23   // 종료 시간
+};
+```
+
+변경 후:
+```bash
+git add .
+git commit -m "영업시간 변경"
+git push
+```
+
+Railway가 자동으로 재배포합니다! ✨
+
+---
+
+## 💰 비용
+
+- **무료**: 월 500시간 (하루 16시간+)
+- **초과 시**: $5/월
+
+영업시간 12시간이면 충분합니다! 💯
+
+---
+
+**완료하면 24시간 작동하는 고정 주소를 얻습니다!** 🚀
+
+
+

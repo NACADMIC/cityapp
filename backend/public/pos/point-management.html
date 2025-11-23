@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포인트 관리 - 시티반점 POS</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .point-management-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .page-header h2 {
+      font-size: 1.8em;
+      color: #1976d2;
+      margin: 0;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    .stat-card h3 {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    .stat-card .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1976d2;
+    }
+    
+    .section-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .section-card h3 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 1.3em;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #555;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #1976d2;
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #d32f2f;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    .data-table th,
+    .data-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .data-table th {
+      background: #f5f5f5;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .data-table tr:hover {
+      background: #f9f9f9;
+    }
+    
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .search-box input {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    @media (max-width: 768px) {
+      .point-management-container {
+        padding: 15px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .data-table {
+        font-size: 12px;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 8px 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1 data-store-name>🏮 시티반점</h1>
+    </div>
+    <div class="header-controls">
+      <a href="/pos" style="color: white; text-decoration: none; padding: 8px 14px; background: rgba(255,255,255,0.2); border-radius: 6px; font-size: 13px;">← 주문 관리</a>
+    </div>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">전체현황·임시중지</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/store-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">가게관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">가게통계</span>
+        <span class="menu-badge">업데이트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/menu-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">가게 메뉴판 편집</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=options" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">메뉴·옵션 관리</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=discounts" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏷️</span>
+        <span class="menu-text">메뉴별 할인 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/point-management.html" class="menu-item active" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 관리</span>
+      </a>
+      <a href="/pos/coupon-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🎫</span>
+        <span class="menu-text">쿠폰 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
+        <span class="menu-icon">🎨</span>
+        <span class="menu-text">사이트 디자인 편집</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="openVolumeSettings(); toggleMenu();">
+        <span class="menu-icon">🔊</span>
+        <span class="menu-text">주문 소리 크기</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+
+  <div class="point-management-container">
+    <div class="page-header">
+      <h2>💰 포인트 관리</h2>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>총 발급량</h3>
+        <div class="stat-value" id="total-issued">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>총 사용량</h3>
+        <div class="stat-value" id="total-used">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>현재 보유 포인트</h3>
+        <div class="stat-value" id="current-total">0</div>
+      </div>
+      <div class="stat-card">
+        <h3>회원 수</h3>
+        <div class="stat-value" id="total-users">0</div>
+      </div>
+    </div>
+
+    <!-- 포인트 지급 -->
+    <div class="section-card">
+      <h3>➕ 포인트 지급</h3>
+      <form id="issue-points-form">
+        <div class="form-group">
+          <label>사용자 선택</label>
+          <select id="user-select" required>
+            <option value="">사용자 선택...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>지급 포인트</label>
+          <input type="number" id="points-amount" min="1" required placeholder="지급할 포인트를 입력하세요">
+        </div>
+        <div class="form-group">
+          <label>사유</label>
+          <input type="text" id="points-reason" required placeholder="예: 이벤트 보상, 환불 등">
+        </div>
+        <button type="submit" class="btn btn-primary">포인트 지급</button>
+      </form>
+    </div>
+
+    <!-- 포인트 내역 -->
+    <div class="section-card">
+      <h3>📋 포인트 내역</h3>
+      <div class="search-box">
+        <input type="text" id="search-user" placeholder="사용자 이름 또는 전화번호로 검색..." onkeyup="searchPointHistory()">
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>날짜</th>
+            <th>사용자</th>
+            <th>전화번호</th>
+            <th>포인트</th>
+            <th>유형</th>
+            <th>내용</th>
+          </tr>
+        </thead>
+        <tbody id="point-history-table">
+          <tr><td colspan="6" class="loading">로딩 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // 로그인 체크
+    if (sessionStorage.getItem('pos-authenticated') !== 'true') {
+      window.location.href = '/pos/login.html';
+    }
+
+    let storeName = '시티반점';
+    let allUsers = [];
+    let allPointHistory = [];
+
+    // 가게 정보 로드
+    async function loadStoreInfo() {
+      try {
+        const res = await fetch('/api/store/info');
+        const data = await res.json();
+        if (data.success && data.storeInfo && data.storeInfo.name) {
+          storeName = data.storeInfo.name;
+          document.querySelectorAll('[data-store-name]').forEach(el => {
+            el.textContent = `🏮 ${storeName}`;
+          });
+        }
+      } catch (error) {
+        console.error('가게 정보 로드 오류:', error);
+      }
+    }
+
+    // 포인트 통계 로드
+    async function loadPointStats() {
+      try {
+        const res = await fetch('/api/points/stats');
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('total-issued').textContent = data.stats.issued.toLocaleString() + 'P';
+          document.getElementById('total-used').textContent = data.stats.used.toLocaleString() + 'P';
+          document.getElementById('current-total').textContent = data.stats.currentTotal.toLocaleString() + 'P';
+          document.getElementById('total-users').textContent = data.stats.totalUsers.toLocaleString() + '명';
+        }
+      } catch (error) {
+        console.error('포인트 통계 로드 오류:', error);
+      }
+    }
+
+    // 사용자 목록 로드
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (data.success) {
+          allUsers = data.users;
+          const select = document.getElementById('user-select');
+          select.innerHTML = '<option value="">사용자 선택...</option>';
+          allUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.userid;
+            option.textContent = `${user.name} (${user.phone}) - ${(user.points || 0).toLocaleString()}P`;
+            select.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('사용자 목록 로드 오류:', error);
+      }
+    }
+
+    // 포인트 내역 로드
+    async function loadPointHistory() {
+      try {
+        const res = await fetch('/api/points/history/all');
+        const data = await res.json();
+        if (data.success) {
+          allPointHistory = data.history;
+          renderPointHistory();
+        }
+      } catch (error) {
+        console.error('포인트 내역 로드 오류:', error);
+      }
+    }
+
+    // 포인트 내역 렌더링
+    function renderPointHistory(searchTerm = '') {
+      const tbody = document.getElementById('point-history-table');
+      let filtered = allPointHistory;
+      
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filtered = allPointHistory.filter(h => {
+          const user = allUsers.find(u => u.userid == h.userid);
+          if (!user) return false;
+          return user.name.toLowerCase().includes(term) || user.phone.includes(term);
+        });
+      }
+      
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">내역이 없습니다</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = filtered.map(h => {
+        const user = allUsers.find(u => u.userid == h.userid);
+        const userName = user ? user.name : '알 수 없음';
+        const userPhone = user ? user.phone : '-';
+        const date = new Date(h.createdat).toLocaleString('ko-KR');
+        const points = h.points > 0 ? `+${h.points.toLocaleString()}` : h.points.toLocaleString();
+        const typeClass = h.type === 'earn' || h.type === 'admin' ? 'color: #4caf50;' : 'color: #f44336;';
+        const typeText = h.type === 'earn' ? '적립' : h.type === 'admin' ? '관리자 지급' : '사용';
+        
+        return `
+          <tr>
+            <td>${date}</td>
+            <td>${userName}</td>
+            <td>${userPhone}</td>
+            <td style="${typeClass} font-weight: 600;">${points}P</td>
+            <td>${typeText}</td>
+            <td>${h.description || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // 포인트 내역 검색
+    function searchPointHistory() {
+      const term = document.getElementById('search-user').value;
+      renderPointHistory(term);
+    }
+
+    // 포인트 지급
+    document.getElementById('issue-points-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userId = document.getElementById('user-select').value;
+      const points = parseInt(document.getElementById('points-amount').value);
+      const reason = document.getElementById('points-reason').value;
+      
+      if (!userId || !points || !reason) {
+        alert('모든 항목을 입력해주세요.');
+        return;
+      }
+      
+      if (!confirm(`${points.toLocaleString()}P를 지급하시겠습니까?`)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/points/issue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, points, reason })
+        });
+        
+        const data = await res.json();
+        if (data.success) {
+          alert('포인트가 지급되었습니다!');
+          document.getElementById('issue-points-form').reset();
+          loadPointStats();
+          loadUsers();
+          loadPointHistory();
+        } else {
+          alert('포인트 지급 실패: ' + data.error);
+        }
+      } catch (error) {
+        alert('오류: ' + error.message);
+      }
+    });
+
+    // 사이드 메뉴 토글
+    function toggleMenu() {
+      const sideMenu = document.getElementById('side-menu');
+      const overlay = document.getElementById('menu-overlay');
+      sideMenu.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    // 사이트 편집 모드 열기
+    function openSiteEditor() {
+      const editWindow = window.open('/pos/site-editor.html', 'siteEditor', 'width=1600,height=1000,scrollbars=yes,resizable=yes');
+      if (editWindow) {
+        editWindow.focus();
+      } else {
+        alert('팝업이 차단되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+      }
+    }
+
+    // 주문 소리 크기 설정 팝업 열기
+    function openVolumeSettings() {
+      alert('주문 소리 크기 설정은 주문 관리 페이지에서 사용할 수 있습니다.');
+    }
+
+    // 초기화
+    loadStoreInfo();
+    loadPointStats();
+    loadUsers();
+    loadPointHistory();
+  </script>
+</body>
+</html>
+

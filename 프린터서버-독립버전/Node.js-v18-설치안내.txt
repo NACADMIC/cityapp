@@ -1,0 +1,22 @@
+Python 없이 프린터 서버를 사용하려면:
+
+1. Node.js v18 LTS 설치 (권장)
+   - https://nodejs.org 접속
+   - "LTS" 버전 다운로드 (v18.x.x)
+   - 설치 시 "Add to PATH" 체크
+   - 설치 완료 후 재부팅
+
+2. 기존 Node.js 제거 (선택사항)
+   - 제어판 > 프로그램 제거
+   - Node.js 제거
+   - v18 LTS 재설치
+
+3. 프린터 서버 재설치
+   - 재설치-시작.bat 실행
+
+왜 v18 LTS인가?
+- 대부분의 네이티브 모듈이 prebuilt binary 제공
+- Python 없이 설치 가능
+- 안정적이고 널리 사용됨
+
+

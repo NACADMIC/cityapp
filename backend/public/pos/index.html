@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <button class="hamburger-btn" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1 data-store-name>🏮 시티반점</h1>
+    </div>
+    <div class="header-controls">
+      <div id="business-status" style="padding: 8px 14px; border-radius: 8px; margin-right: 8px; font-weight: 600; font-size: 13px; white-space: nowrap;">
+        <span id="status-text">영업중</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="voice-toggle" checked>
+        <span class="slider"></span>
+      </label>
+      <span class="voice-label">음성 알림</span>
+      <button class="btn-test btn-main" onclick="openBusinessHoursSettings()">⏰ 영업시간</button>
+      <button class="btn-test btn-main" id="temporary-closed-btn" onclick="toggleTemporaryClosed()">🟢 영업중</button>
+      <button class="btn-test btn-main" onclick="openBreakTimeSettings()">☕ 브레이크</button>
+      <div class="busy-status-selector">
+        <button class="btn-busy-status" id="busy-normal" onclick="setBusyStatus('normal')" title="보통">보통</button>
+        <button class="btn-busy-status" id="busy-busy" onclick="setBusyStatus('busy')" title="바쁨">바쁨</button>
+        <button class="btn-busy-status" id="busy-very-busy" onclick="setBusyStatus('very-busy')" title="매우바쁨">매우바쁨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 사이드 메뉴 -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">
+      <h2>📊 메뉴</h2>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <nav class="side-menu-nav">
+      <a href="/pos" class="menu-item active" onclick="toggleMenu()">
+        <span class="menu-icon">📋</span>
+        <span class="menu-text">전체현황·임시중지</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/store-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏪</span>
+        <span class="menu-text">가게관리</span>
+      </a>
+      <a href="/pos/dashboard.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📊</span>
+        <span class="menu-text">가게통계</span>
+        <span class="menu-badge">업데이트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/menu-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📝</span>
+        <span class="menu-text">가게 메뉴판 편집</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=options" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">⚙️</span>
+        <span class="menu-text">메뉴·옵션 관리</span>
+      </a>
+      <a href="/pos/menu-management.html?tab=discounts" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🏷️</span>
+        <span class="menu-text">메뉴별 할인 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/dashboard.html?tab=settlement" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">정산 정보</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=customers" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">👥</span>
+        <span class="menu-text">고객 분석</span>
+      </a>
+      <a href="/pos/dashboard.html?tab=regions" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📍</span>
+        <span class="menu-text">지역 분석</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="testPrinter(); toggleMenu();">
+        <span class="menu-icon">🖨️</span>
+        <span class="menu-text">프린터 테스트</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/point-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">💰</span>
+        <span class="menu-text">포인트 관리</span>
+      </a>
+      <a href="/pos/coupon-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">🎫</span>
+        <span class="menu-text">쿠폰 관리</span>
+      </a>
+      <a href="/pos/total-sales-management.html" class="menu-item" onclick="toggleMenu()">
+        <span class="menu-icon">📈</span>
+        <span class="menu-text">통합 매출 관리</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="javascript:void(0)" class="menu-item" onclick="openSiteEditor(); toggleMenu();">
+        <span class="menu-icon">🎨</span>
+        <span class="menu-text">사이트 디자인 편집</span>
+      </a>
+      <a href="javascript:void(0)" class="menu-item" onclick="openVolumeSettings(); toggleMenu();">
+        <span class="menu-icon">🔊</span>
+        <span class="menu-text">주문 소리 크기</span>
+      </a>
+      <div class="menu-divider"></div>
+      <a href="/pos/login.html" class="menu-item" onclick="sessionStorage.removeItem('pos-authenticated'); toggleMenu();">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">로그아웃</span>
+      </a>
+    </nav>
+  </div>
+  
+  <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+
+  <div class="container">
+    <!-- 메인 타이틀 -->
+    <div class="main-title">
+      <h1 class="store-title" data-store-name>🏮 시티반점</h1>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="today-orders">0</div>
+        <div class="stat-label">오늘 주문</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="pending-orders">0</div>
+        <div class="stat-label">대기중</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="today-revenue">0</div>
+        <div class="stat-label">매출 (원)</div>
+      </div>
+    </div>
+
+    <div class="orders-section">
+      <h2>최근 주문</h2>
+      <div id="orders-list" class="orders-list">
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <p>아직 주문이 없습니다</p>
+          <small>주문이 실시간으로 표시됩니다</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주문 소리 크기 설정 팝업 -->
+  <div id="volume-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content">
+      <h2>🔊 주문 소리 크기 설정</h2>
+      <div class="volume-control" style="padding: 20px;">
+        <label style="display: block; margin-bottom: 15px; font-size: 15px; color: #333; font-weight: 600;">소리 크기 조절</label>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <input type="range" id="volume-slider-popup" min="0" max="100" value="50" style="flex: 1; height: 8px; border-radius: 4px; background: #ddd; outline: none;" oninput="updateVolume(this.value)">
+          <span id="volume-value-popup" style="font-size: 16px; color: #1976d2; min-width: 50px; text-align: right; font-weight: 600;">50%</span>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="closeVolumeSettings()">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주문 확인 팝업 -->
+  <div id="order-popup" class="popup-overlay">
+    <div class="popup-content">
+      <h2>🔔 새 주문</h2>
+      <div id="popup-order-info" class="popup-order-info"></div>
+      
+      <div class="popup-time-select">
+        <label>예상 소요시간:</label>
+        <select id="prep-time">
+          <option value="15">15분</option>
+          <option value="20" selected>20분</option>
+          <option value="25">25분</option>
+          <option value="30">30분</option>
+          <option value="35">35분</option>
+          <option value="40">40분</option>
+          <option value="45">45분</option>
+          <option value="50">50분</option>
+          <option value="60">60분</option>
+        </select>
+      </div>
+
+      <div class="popup-actions">
+        <button class="btn btn-accept" id="popup-accept-btn">✓ 수락</button>
+        <button class="btn btn-reject" id="popup-reject-btn" onclick="rejectOrder()">✕ 거절</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 브레이크타임 설정 팝업 -->
+  <div id="break-time-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+      <h2>☕ 요일별 브레이크타임 설정</h2>
+      <div style="margin: 20px 0;">
+        <div id="break-time-days-container">
+          <!-- 요일별 입력 필드가 여기에 동적으로 생성됩니다 -->
+        </div>
+        <div style="padding: 15px; background: #fff3cd; border-radius: 8px; margin-bottom: 20px; margin-top: 20px;">
+          <p style="margin: 0; color: #856404; font-weight: 600;">현재 요일: <span id="current-break-day-display">-</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">오늘 브레이크타임: <span id="current-break-time-display">없음</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">브레이크타임 중에는 주문을 받지 않습니다.</p>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="saveBreakTime()">저장</button>
+        <button class="btn btn-reject" onclick="closeBreakTimeSettings()">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 영업시간 설정 팝업 -->
+  <div id="business-hours-popup" class="popup-overlay" style="display: none;">
+    <div class="popup-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+      <h2>⏰ 요일별 영업시간 설정</h2>
+      <div style="margin: 20px 0;">
+        <div id="business-hours-days-container">
+          <!-- 요일별 입력 필드가 여기에 동적으로 생성됩니다 -->
+        </div>
+        <div style="padding: 15px; background: #e3f2fd; border-radius: 8px; margin-bottom: 20px; margin-top: 20px;">
+          <p style="margin: 0; color: #1976d2; font-weight: 600;">현재 요일: <span id="current-day-display">-</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">현재 시간: <span id="current-time-display">-</span></p>
+          <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">오늘 영업시간: <span id="current-hours-display">-</span></p>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn btn-accept" onclick="saveBusinessHours()">저장</button>
+        <button class="btn btn-reject" onclick="closeBusinessHoursSettings()">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
