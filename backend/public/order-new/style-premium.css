@@ -1523,7 +1523,7 @@ h2 {
   filter: brightness(0.8);
   opacity: 0.8;
   border: none;
-  margin: 0 !important; /* 패딩 없이 화면 끝까지 */
+  margin: 0 auto !important; /* 가운데 정렬 */
   text-align: center;
   position: relative;
 }
