@@ -27,10 +27,80 @@ function togglePrivacy(type) {
   }
 }
 
-// 영업시간 체크 (비활성화됨 - 항상 통과)
+// 영업시간 체크
 async function checkBusinessHours() {
-  // 영업시간 체크 기능 제거 - 항상 주문 가능
-  return true;
+  // 개발자 모드 체크 (URL 파라미터 또는 localStorage)
+  const urlParams = new URLSearchParams(window.location.search);
+  const devMode = urlParams.get('dev') === 'true' || localStorage.getItem('dev-mode') === 'true';
+  
+  if (devMode) {
+    console.log('🔧 개발자 모드: 영업시간 체크 우회');
+    // 개발자 모드 배지 표시
+    const devBadge = document.createElement('div');
+    devBadge.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #ff9800;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      z-index: 10000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    devBadge.textContent = '🔧 개발자 모드';
+    document.body.appendChild(devBadge);
+    return true;
+  }
+  
+  try {
+    const res = await fetch('/api/business-hours');
+    const data = await res.json();
+    
+    if (!data.isOpen) {
+      // 영업시간 아님 - 안내 표시 (검정색 배경)
+      let reasonMessage = '현재 영업시간이 아닙니다';
+      const now = new Date();
+      const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+      const dayOfWeek = koreaTime.getDay();
+      const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+      
+      // 휴무일 확인
+      if (data.closedDays && data.closedDays.includes(dayOfWeek)) {
+        reasonMessage = `오늘은 ${dayNames[dayOfWeek]} 휴무일입니다`;
+      } else if (data.temporaryClosed) {
+        reasonMessage = '임시휴업 중입니다';
+      } else if (data.statusMessage) {
+        reasonMessage = data.statusMessage;
+      }
+      
+      document.body.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #000000; color: white; text-align: center; padding: 20px; font-family: 'Noto Sans KR', sans-serif;">
+          <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; max-width: 500px;">
+            <h1 style="font-size: 48px; margin: 0 0 20px 0;">🏮</h1>
+            <h2 style="font-size: 32px; margin: 0 0 20px 0; font-weight: bold;" data-store-name>시티반점</h2>
+            <p style="font-size: 24px; margin: 0 0 10px 0; font-weight: bold;">${reasonMessage}</p>
+            ${!data.closedDays || !data.closedDays.includes(dayOfWeek) ? `<p style="font-size: 18px; margin: 0 0 30px 0; opacity: 0.9;">영업시간: ${data.businessHours}</p>` : ''}
+            <p style="font-size: 16px; margin: 0; opacity: 0.8;">현재 시간: ${data.currentTime}</p>
+            <p style="font-size: 14px; margin: 20px 0 0 0; opacity: 0.7;">영업시간 내에 다시 방문해주세요!</p>
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.3);">
+              <a href="?dev=true" style="display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; transition: all 0.3s;">
+                🔧 개발자 접속
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('영업시간 체크 오류:', err);
+    // 오류 시 정상 진행 (서버 연결 문제일 수 있음)
+    return true;
+  }
 }
 
 // Screen navigation

@@ -326,7 +326,7 @@ app.get('/api/business-hours', async (req, res) => {
     }
     
     res.json({
-      isOpen: isOpen && !temporaryClosed,
+      isOpen: true, // 영업시간 체크 비활성화 - 항상 주문 가능
       currentTime: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
       businessHours: businessHoursText,
       open: todayHours.open,
