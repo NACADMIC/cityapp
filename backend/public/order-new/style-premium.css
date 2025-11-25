@@ -142,7 +142,7 @@ h2 {
 
 /* ===== HEADER ===== */
 .header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
+  background: linear-gradient(135deg, #FFD700 0%, #FFC107 100%);
   padding: 20px 24px;
   display: flex;
   justify-content: center;
@@ -159,11 +159,11 @@ h2 {
 
 
 .header h1 {
-  color: #FFFFFF;
+  color: #1a1a1a;
   font-size: 1.7em;
   margin: 0;
   font-weight: 900;
-  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: transform 0.2s;
   text-align: center;
@@ -181,6 +181,7 @@ h2 {
 }
 
 .header h1 #header-phone-text {
+  color: #1a1a1a;
   font-size: 0.65em;
   font-weight: 400;
   color: white;
