@@ -142,8 +142,8 @@ h2 {
 
 /* ===== HEADER ===== */
 .header {
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
-  padding: 8px 24px;
+  background: linear-gradient(180deg, #1a1a1a 0%, #000 100%);
+  padding: 20px 24px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -154,17 +154,16 @@ h2 {
   border-bottom: 3px solid #FFD700;
   backdrop-filter: blur(20px);
   position: relative;
-  min-height: 28px;
+  min-height: 70px;
 }
 
 
 .header h1 {
-  color: #000000;
+  color: #FFFFFF;
   font-size: 1.7em;
   margin: 0;
   font-weight: 900;
-  font-family: 'Gowun Batang', 'Noto Serif KR', 'Nanum Brush Script', '나눔손글씨', serif;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
   cursor: pointer;
   transition: transform 0.2s;
   text-align: center;
@@ -179,12 +178,6 @@ h2 {
 
 .header h1:hover {
   transform: translateX(-50%) scale(1.05);
-}
-
-#header-user-name {
-  display: inline-block !important;
-  transform: translateX(100px);
-  margin-left: 0 !important;
 }
 
 .header h1 #header-phone-text {
@@ -219,30 +212,6 @@ h2 {
   color: #1a1a1a;
   transform: translateX(-4px);
   box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
-}
-
-/* 회원가입 페이지 뒤로가기 버튼 갈색 스타일 */
-#register-screen .back-btn {
-  background: rgba(139, 69, 19, 0.15);
-  border: 2px solid #8B4513;
-  color: #000000;
-}
-
-#register-screen .back-btn:hover {
-  background: #8B4513;
-  color: #FFFFFF;
-  transform: translateX(-4px);
-  box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
-}
-
-/* 회원 로그인 페이지 뒤로가기 버튼 갈색 테두리 스타일 */
-#login-screen .back-btn {
-  border: none;
-  color: #228B22;
-  margin-left: -320px;
-  padding: 6px 20px;
-  position: relative;
-  top: -80px;
 }
 
 .home-btn {
@@ -300,7 +269,7 @@ h2 {
 
 /* ===== CATEGORY SECTION ===== */
 .category-section {
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
+  background: #000000;
   position: sticky;
   top: 75px;
   z-index: 999;
@@ -449,7 +418,6 @@ h2 {
   display: flex;
   gap: 10px;
   padding: 12px 20px 15px 20px; /* 기본 패딩 */
-  padding-left: 45px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -461,10 +429,10 @@ h2 {
 
 .category-tab {
   padding: 10px 18px;
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
-  border: 2px solid #000000;
+  background: transparent;
+  border: 2px solid #FFD700;
   border-radius: 20px;
-  color: #000000;
+  color: #FFD700;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
@@ -476,8 +444,7 @@ h2 {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-width: 80px;
-  width: 80px;
+  min-width: auto;
   flex-shrink: 0;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -502,15 +469,14 @@ h2 {
 }
 
 .category-tab:hover {
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
+  background: #FFD700;
   color: #000000;
-  border-color: #000000;
 }
 
 .category-tab.active {
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
+  background: #FFD700;
   color: #000000;
-  border-color: #000000;
+  border-color: #FFD700;
   font-weight: 800;
 }
 
@@ -1124,8 +1090,8 @@ h2 {
   }
 
   .auth-buttons {
-    width: 48% !important;
-    max-width: 180px;
+    width: 40% !important;
+    max-width: 150px;
     left: 50% !important;
     transform: translateX(-50%) translateY(-50%) !important;
   }
@@ -1330,8 +1296,8 @@ h2 {
   }
 
   .auth-buttons {
-    width: 54% !important;
-    max-width: 168px;
+    width: 45% !important;
+    max-width: 140px;
   }
 
   .menu-list {
@@ -1389,12 +1355,12 @@ h2 {
 
 /* ===== USER INFO ===== */
 .user-info {
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
-  padding: 0 12px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 18px 24px;
   margin: 0 20px; /* 기본 마진 */
   border-radius: 18px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  border: none;
+  border: 2px solid rgba(255, 215, 0, 0.5);
   backdrop-filter: blur(10px);
 }
 
@@ -1408,10 +1374,6 @@ h2 {
   gap: 8px;
   color: rgba(255, 255, 255, 0.95);
   font-size: 13px;
-  background: linear-gradient(180deg, #FFD700 0%, #FFC107 100%);
-  padding: 7px;
-  border-radius: 8px;
-  border: none;
 }
 
 .user-name-section {
@@ -1419,7 +1381,6 @@ h2 {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  color: #000000;
 }
 
 .user-name-suffix {
@@ -1444,12 +1405,9 @@ h2 {
 }
 
 .points {
-  color: #000000;
-  font-weight: 800;
+  color: #FFD700;
+  font-weight: 300;
   font-size: 13px;
-  position: relative;
-  left: -30px;
-  top: 0;
 }
 
 .points strong {
@@ -1523,7 +1481,7 @@ h2 {
   filter: brightness(0.8);
   opacity: 0.8;
   border: none;
-  margin: 0 auto !important; /* 가운데 정렬 */
+  margin: 0 !important; /* 패딩 없이 화면 끝까지 */
   text-align: center;
   position: relative;
 }
@@ -1598,7 +1556,7 @@ h2 {
   z-index: 15;
   align-items: center;
   pointer-events: auto;
-  width: 21%;
+  width: 17.5%;
   margin-left: 0;
   margin-right: 0;
 }
@@ -1720,8 +1678,6 @@ h2 {
   letter-spacing: 2px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  position: relative;
-  top: -80px;
 }
 
 #login-screen .container {
@@ -1749,21 +1705,6 @@ h2 {
   align-items: center;
 }
 
-#login-screen .form-group:first-child {
-  position: relative;
-  top: -50px;
-}
-
-#login-screen .form-group:first-child label {
-  position: relative;
-  top: 0;
-}
-
-#login-screen .form-group:nth-child(2) {
-  position: relative;
-  top: -30px;
-}
-
 #login-screen .form-group label {
   width: 100%;
   text-align: left;
@@ -1780,14 +1721,10 @@ h2 {
 
 #login-screen .btn,
 #login-screen .btn-primary {
-  width: 28%;
-  max-width: 112px;
-  margin-left: 0;
+  width: 50%;
+  max-width: 200px;
+  margin-left: auto;
   margin-right: auto;
-  padding: 11px;
-  font-size: 14px;
-  position: relative;
-  top: -10px;
 }
 
 #login-screen .btn-test {

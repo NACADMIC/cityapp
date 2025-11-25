@@ -347,22 +347,6 @@ function updateUserInfo() {
     document.getElementById('user-name').textContent = currentUser.name;
     document.getElementById('user-points').textContent = currentUser.points;
     
-    // 헤더에 사용자 이름 표시
-    const headerUserName = document.getElementById('header-user-name');
-    const headerUserNameText = document.getElementById('header-user-name-text');
-    if (headerUserName && headerUserNameText) {
-      headerUserNameText.textContent = currentUser.name;
-      headerUserName.style.display = 'block';
-    }
-    
-    // 헤더에 포인트 표시
-    const headerPoints = document.getElementById('header-points');
-    const headerPointsValue = document.getElementById('header-points-value');
-    if (headerPoints && headerPointsValue) {
-      headerPointsValue.textContent = currentUser.points;
-      headerPoints.style.display = 'block';
-    }
-    
     // 즐겨찾기 탭 표시
     if (favoriteTab) {
       favoriteTab.style.display = 'flex';
@@ -377,18 +361,6 @@ function updateUserInfo() {
     console.log('📦 세션 저장 완료:', currentUser);
   } else {
     userInfoDiv.style.display = 'none';
-    
-    // 헤더의 사용자 이름 숨기기
-    const headerUserName = document.getElementById('header-user-name');
-    if (headerUserName) {
-      headerUserName.style.display = 'none';
-    }
-    
-    // 헤더의 포인트 숨기기
-    const headerPoints = document.getElementById('header-points');
-    if (headerPoints) {
-      headerPoints.style.display = 'none';
-    }
     if (favoriteTab) {
       favoriteTab.style.display = 'none';
     }

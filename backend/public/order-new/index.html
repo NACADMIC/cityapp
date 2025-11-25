@@ -340,29 +340,21 @@
 
   <!-- Menu Screen -->
   <div id="menu-screen" class="screen">
-    <div class="header" style="position: relative; justify-content: space-between; padding: 8px 24px;">
+    <div class="header" style="position: relative; justify-content: space-between; padding: 20px 24px;">
       <!-- 왼쪽: 햄버거 메뉴 -->
       <div style="display: flex; align-items: center; gap: 12px; flex: 0 0 auto;">
         <button class="hamburger-btn" onclick="toggleSideMenu()" style="background: none; border: none; cursor: pointer; padding: 8px; display: flex; flex-direction: column; gap: 5px; transition: all 0.3s; z-index: 1001;">
-          <span style="display: block; width: 24px; height: 3px; background: #8B4513; border-radius: 3px; transition: all 0.3s;"></span>
-          <span style="display: block; width: 24px; height: 3px; background: #8B4513; border-radius: 3px; transition: all 0.3s;"></span>
-          <span style="display: block; width: 24px; height: 3px; background: #8B4513; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
+          <span style="display: block; width: 24px; height: 3px; background: #FFD700; border-radius: 3px; transition: all 0.3s;"></span>
         </button>
       </div>
       
-      <!-- 중앙: 로고 + 사용자 이름 + 전화번호 -->
+      <!-- 중앙: 로고 + 전화번호 -->
       <h1 onclick="location.reload()" data-store-name>
         <span>시티반점</span>
-        <span id="header-user-name" style="color: #000000; font-size: 16px; font-weight: 700; display: none;">
-          <span id="header-user-name-text"></span><span>님</span>
-        </span>
         <span id="header-phone-text"></span>
       </h1>
-      
-      <!-- 헤더 포인트 표시 -->
-      <div id="header-points" style="position: absolute; right: 24px; top: 50%; transform: translateY(-50%); color: #000000; font-size: 14px; font-weight: 700; display: none; cursor: pointer;" onclick="goToPointHistory()">
-        포인트: <strong id="header-points-value">0</strong>P
-      </div>
       
       <!-- 오른쪽: 주문 혼잡도 -->
       <div id="busy-status-banner" style="display: none; position: absolute; top: 20px; right: 24px; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3); z-index: 1000;">
@@ -947,13 +939,13 @@
     // 실시간 채팅 열기 (나중에 외부 서비스 연동)
     function openChat() {
       if (storeChatUrl) {
-        // 외부 채팅 서비스 URL이 있으면 새 창으로 열기 (크기를 더 크게 설정)
-        window.open(storeChatUrl, '_blank', 'width=600,height=800,resizable=yes,scrollbars=yes');
+        // 외부 채팅 서비스 URL이 있으면 새 창으로 열기
+        window.open(storeChatUrl, '_blank', 'width=400,height=600');
       } else {
         // 임시: 나중에 외부 서비스 연동 예정 안내
         alert('실시간 채팅 서비스는 준비 중입니다.\n곧 서비스를 시작할 예정입니다.');
         // TODO: 나중에 외부 채팅 서비스 연동
-        // 예: window.open('https://your-chat-service.com/widget', '_blank', 'width=600,height=800,resizable=yes,scrollbars=yes');
+        // 예: window.open('https://your-chat-service.com/widget', '_blank', 'width=400,height=600');
       }
     }
     
